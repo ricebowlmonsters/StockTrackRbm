@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Aplikasi Monitor Barang</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <i class="fas fa-warehouse"></i>
+                <span>Monitor Barang</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="dashboard.html" class="nav-link active">
+                    <i class="fas fa-chart-line"></i> Dashboard
+                </a></li>
+                <li><a href="monitoring.html" class="nav-link">
+                    <i class="fas fa-money-bill-wave"></i> Monitoring Uang
+                </a></li>
+                <li><a href="hutang.html" class="nav-link">
+                    <i class="fas fa-book"></i> Buku Hutang
+                </a></li>
+                <li><a href="input.html" class="nav-link">
+                    <i class="fas fa-plus-circle"></i> Input Barang
+                </a></li>
+                <li><a href="invoice.html" class="nav-link">
+                    <i class="fas fa-file-invoice"></i> Invoice
+                </a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Page -->
+            <div class="page active">
+                <div class="page-header">
+                    <div class="page-title-container">
+                        <h1><i class="fas fa-chart-line"></i> Dashboard Monitor Barang</h1>
+                        <div class="header-actions">
+                            <div class="date-filter">
+                                <label for="monthFilter">Filter Bulan:</label>
+                                <input type="month" id="monthFilter" class="form-control">
+                            </div>
+                            <div class="date-filter">
+                                <label for="dateFilter">Filter Tanggal:</label>
+                                <input type="date" id="dateFilter" class="form-control">
+                            </div>
+                            <button id="addItemBtn" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Tambah Barang
+                            </button>
+                            <button id="editItemBtn" class="btn btn-warning">
+                                <i class="fas fa-edit"></i> Edit Barang
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-table-container">
+                    <div class="table-header">
+                        <div class="header-cell">Nama</div>
+                        <div class="header-cell">Satuan</div>
+                        <div class="header-cell">Harga</div>
+                        <div class="header-cell">Total</div>
+                        <div id="dateHeaders" class="date-headers">
+                            <!-- Date headers will be populated by JavaScript -->
+                        </div>
+                        <div class="header-cell" style="min-width: 160px;">
+                            <div style="font-weight: bold; margin-bottom: 5px;">Penyesuaian Stok</div>
+                            <div class="date-subheader" style="justify-content: center;">
+                                <div class="date-subheader-cell" style="min-width: 80px; text-align: center; font-weight: bold; color: #28a745;">Fisik</div>
+                                <div class="date-subheader-cell" style="min-width: 80px; text-align: center; font-weight: bold; color: #dc3545;">Selisih</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="dashboardTableBody" class="dashboard-table-body">
+                        <!-- Table rows will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Tambah Barang -->
+    <div id="addItemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus"></i> Tambah Barang Baru</h3>
+                <span class="modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="addItemForm">
+                    <div class="form-group">
+                        <label for="newItemName">Nama Barang:</label>
+                        <input type="text" id="newItemName" name="newItemName" required class="form-control" placeholder="Masukkan nama barang">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="newItemUnit">Satuan:</label>
+                        <select id="newItemUnit" name="newItemUnit" required class="form-control">
+                            <option value="">Pilih Satuan</option>
+                            <option value="pcs">Pcs</option>
+                            <option value="kg">Kg</option>
+                            <option value="liter">Liter</option>
+                            <option value="Gram">Gram</option>
+                            <option value="Pck">Pck</option>
+                            <option value="Btl">Btl</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="newItemPrice">Harga:</label>
+                        <input type="number" id="newItemPrice" name="newItemPrice" step="0.01" class="form-control" placeholder="Masukkan harga barang">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="newItemCategory">Kategori:</label>
+                        <select id="newItemCategory" name="newItemCategory" required class="form-control">
+                            <option value="">Pilih Kategori</option>
+                            <option value="Makanan">Makanan</option>
+                            <option value="Minuman">Minuman</option>
+                            <option value="Packing">Packing</option>
+                            <option value="lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="newItemDescription">Deskripsi:</label>
+                        <textarea id="newItemDescription" name="newItemDescription" class="form-control" rows="3" placeholder="Deskripsi barang (opsional)"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="saveNewItem" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Simpan
+                </button>
+                <button type="button" id="cancelAddItem" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Batal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Item Modal -->
+    <div id="editItemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Edit Barang</h3>
+                <span class="modal-close" id="closeEditModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="editItemForm">
+                    <div class="form-group">
+                        <label for="editItemName">Nama Barang:</label>
+                        <input type="text" id="editItemName" name="editItemName" class="form-control" required readonly>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editItemUnit">Satuan:</label>
+                        <select id="editItemUnit" name="editItemUnit" class="form-control" required>
+                            <option value="">Pilih Satuan</option>
+                            <option value="pcs">Pcs</option>
+                            <option value="kg">Kg</option>
+                            <option value="gram">Gram</option>
+                            <option value="liter">Liter</option>
+                            <option value="meter">Meter</option>
+                            <option value="box">Box</option>
+                            <option value="pack">Pack</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editItemPrice">Harga (Rp):</label>
+                        <input type="number" id="editItemPrice" name="editItemPrice" class="form-control" min="0" step="100" placeholder="Masukkan harga barang">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editItemCategory">Kategori:</label>
+                        <select id="editItemCategory" name="editItemCategory" class="form-control" required>
+                            <option value="">Pilih Kategori</option>
+                            <option value="makanan">Makanan</option>
+                            <option value="minuman">Minuman</option>
+                            <option value="elektronik">Elektronik</option>
+                            <option value="pakaian">Pakaian</option>
+                            <option value="peralatan">Peralatan</option>
+                            <option value="lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editItemDescription">Deskripsi:</label>
+                        <textarea id="editItemDescription" name="editItemDescription" class="form-control" rows="3" placeholder="Deskripsi barang (opsional)"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="saveEditItem" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Simpan Perubahan
+                </button>
+                <button type="button" id="cancelEditItem" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Batal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Loading Spinner -->
+    <div id="loadingSpinner" class="loading-spinner">
+        <i class="fas fa-spinner fa-spin fa-3x text-primary"></i>
+        <p class="mt-3">Memuat data...</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Firebase JS SDK v8 (compat) - required for the existing firebase.initializeApp(...) usage in script.js -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="script.js"></script>
+    <script>
+        // CSS for the loading spinner (ideally move to styles.css)
+        const style = document.createElement('style');
+        style.textContent = `
+            .loading-spinner {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(255, 255, 255, 0.8);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                transition: opacity 0.3s ease-in-out;
+                opacity: 0;
+                visibility: hidden;
+            }
+
+            .loading-spinner.show {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .text-primary {
+                color: #007bff !important; /* Example primary color */
+            }
+
+            .mt-3 {
+                margin-top: 1rem;
+            }
+
+            /* Font Awesome spinner animation is handled by fa-spin class */
+        `;
+        document.head.appendChild(style);
+
+        // Ensure dashboard functionality works
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Dashboard page loaded');
+            
+            // Direct event listener for add button
+            const addBtn = document.getElementById('addItemBtn');
+            if (addBtn) {
+                addBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Add button clicked directly');
+                    showAddItemModal();
+                });
+            }
+            
+            // Direct event listener for save button
+            const saveBtn = document.getElementById('saveNewItem');
+            if (saveBtn) {
+                // Event listener ini sudah ditangani oleh setupEventListeners di script.js
+                // Dihapus untuk menghindari pemicu ganda.
+            }
+            
+            // Direct event listener for close buttons
+            const closeBtn = document.querySelector('.modal-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Close button clicked directly');
+                    hideAddItemModal();
+                });
+            }
+            
+            const cancelBtn = document.getElementById('cancelAddItem');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Cancel button clicked directly');
+                    hideAddItemModal();
+                });
+            }
+            
+            // Event listeners for edit and delete buttons
+            const editBtn = document.getElementById('editItemBtn');
+            if (editBtn) {
+                editBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Edit button clicked');
+                    showEditItemModal();
+                });
+            }
+            
+            // Delete feature removed: no delete button or delete-all action.
+            
+            // Event listeners for edit modal
+            const saveEditBtn = document.getElementById('saveEditItem');
+            if (saveEditBtn) {
+                saveEditBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Save edit button clicked');
+                    saveEditItemData();
+                });
+            }
+            
+            const cancelEditBtn = document.getElementById('cancelEditItem');
+            if (cancelEditBtn) {
+                cancelEditBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Cancel edit button clicked');
+                    hideEditItemModal();
+                });
+            }
+            
+            const closeEditBtn = document.getElementById('closeEditModal');
+            if (closeEditBtn) {
+                closeEditBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Close edit button clicked');
+                    hideEditItemModal();
+                });
+            }
+            
+            // Event listeners for delete modal
+            // Delete modal controls removed (delete disabled)
+
+            if (monthFilter) {
+                monthFilter.addEventListener('change', function(e) {
+                    console.log('Month filter changed:', e.target.value);
+                    if (dateFilter) dateFilter.value = ''; // Clear date filter
+                    updateDashboard();
+                });
+            }
+            
+            // Initialize dashboard
+            updateDashboard();
+        });
+        
+        // Direct functions for modal (add/edit modals are handled by global script.js functions)
+        // Fungsi saveNewItemData() yang ada di sini telah dihapus.
+        // Logika sekarang sepenuhnya dikelola oleh file script.js untuk memastikan
+        // hanya ada satu sumber kebenaran dan menghindari pemanggilan ganda.
+        
+        // Enhanced updateDashboard function with keyword matching
+        function updateDashboard() {
+            console.log('updateDashboard called directly');
+            
+            // Get current filters
+            const monthFilter = document.getElementById('monthFilter');
+            const dateFilter = document.getElementById('dateFilter');
+            const selectedMonth = monthFilter ? monthFilter.value : null;
+            const selectedDate = dateFilter ? dateFilter.value : null;
+
+            const isSingleDayView = selectedDate || !selectedMonth;
+            const isMonthlyView = selectedMonth && !selectedDate;
+            
+            let datesToShow = [];
+            if (selectedDate) {
+                datesToShow.push(selectedDate);
+                console.log('Single day view for selected date:', selectedDate);
+            } else if (!selectedMonth) { // Default view: today
+                const today = new Date().toISOString().split('T')[0];
+                datesToShow.push(today);
+                console.log('Single day view for today:', today);
+            } else {
+                console.log('Monthly view for:', selectedMonth);
+            }
+
+            // Update date headers first
+            updateDateHeaders(selectedMonth, selectedDate);
+            
+            const tableBody = document.getElementById('dashboardTableBody');
+            if (!tableBody) return;
+            
+            // Clear existing content
+            tableBody.innerHTML = '';
+            
+            // Group items by template names (keyword matching) - Dashboard shows template names as keywords
+            const groupedItems = {};
+            
+            // First, initialize all template items as base keywords
+            items.forEach(item => {
+                if (item.isTemplate) { // Hanya proses template sebagai baris utama
+                    groupedItems[item.name] = {
+                        name: item.name, // Use template name as keyword
+                        unit: item.unit || 'pcs',
+                        price: item.price || 0, // Harga dari template
+                        total: 0,
+                        adjustment: 0, // Tambahkan properti untuk penyesuaian
+                        dailyData: {}
+                    };
+                }
+            });
+            
+            // Proses semua transaksi untuk menghitung stok
+            Object.keys(groupedItems).forEach(groupKey => {
+                const templateNameLower = groupKey.toLowerCase();
+                let runningTotal = 0; // Stok berjalan
+                let monthlyAdjustment = 0; // Total penyesuaian di bulan terpilih
+
+                let filterStartDate;
+                if (selectedDate) {
+                    filterStartDate = new Date(selectedDate);
+                } else if (selectedMonth) {
+                    filterStartDate = new Date(selectedMonth + '-01');
+                } else { // Default (today)
+                    filterStartDate = new Date(new Date().toISOString().split('T')[0]);
+                }
+
+                // 1. Hitung stok awal sebelum bulan yang dipilih
+                const transactionsBeforeMonth = items.filter(t => {
+                    const tNameLower = (t.name || '').toLowerCase();
+                    const isMatch = !t.isTemplate && (tNameLower.includes(templateNameLower) || templateNameLower.includes(tNameLower));
+                    return isMatch && new Date(t.date) < filterStartDate;
+                });
+
+                // Stok awal sudah termasuk penyesuaian dari bulan-bulan sebelumnya
+                runningTotal = 0; // Reset for each item
+
+                transactionsBeforeMonth.forEach(t => {
+                    if (t.transactionType === 'in') runningTotal += t.quantity || 0;
+                    else if (t.transactionType === 'out' || t.transactionType === 'damaged') runningTotal -= t.quantity || 0;
+                });
+
+                // 2. Proses transaksi di dalam bulan yang dipilih dan hitung stok harian
+                if (isMonthlyView || isSingleDayView) {
+                    
+                    let datesToProcess = [];
+                    if (selectedDate) {
+                        datesToProcess.push(selectedDate);
+                    } else if (isMonthlyView) {
+                        const year = parseInt(selectedMonth.split('-')[0]);
+                        const monthNum = parseInt(selectedMonth.split('-')[1]);
+                        const daysInMonth = new Date(year, monthNum, 0).getDate();
+                        for (let day = 1; day <= daysInMonth; day++) {
+                            datesToProcess.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+                        }
+                    } else { // Default (today)
+                        datesToProcess.push(new Date().toISOString().split('T')[0]);
+                    }
+
+                    datesToProcess.forEach(dateStr => {
+                         // Pisahkan transaksi normal dan transaksi penyesuaian
+                        const dailyNormalTransactions = items.filter(t => {
+                            const tNameLower = (t.name || '').toLowerCase();
+                            const isMatch = !t.isTemplate && (tNameLower.includes(templateNameLower) || templateNameLower.includes(tNameLower));
+                            // Transaksi normal BUKAN dari 'Sistem'
+                            return isMatch && t.date === dateStr && t.customerName !== 'Sistem';
+                        });
+
+                        let dailyIn = 0, dailyOut = 0, dailyDamaged = 0;
+
+                        // Proses transaksi normal
+                        if (dailyNormalTransactions.length > 0) {
+                            dailyNormalTransactions.forEach(t => {
+                                if (t.transactionType === 'in') dailyIn += t.quantity || 0;
+                                else if (t.transactionType === 'out') dailyOut += t.quantity || 0;
+                                else if (t.transactionType === 'damaged') dailyDamaged += t.quantity || 0;
+                            });
+                        }
+
+                        // Update running total HANYA dengan transaksi normal (In, Out, Damaged)
+                        runningTotal += (dailyIn - dailyOut - dailyDamaged);
+
+                        // Simpan data harian
+                        groupedItems[groupKey].dailyData[dateStr] = {
+                            in: dailyIn,
+                            out: dailyOut,
+                            damaged: dailyDamaged,
+                            total: runningTotal // Simpan stok kumulatif pada akhir hari
+                        };
+                    });
+                }
+
+                // 3. Hitung total penyesuaian untuk bulan ini secara terpisah
+                let adjustmentFilter = '';
+                if (selectedDate) {
+                    adjustmentFilter = selectedDate;
+                } else if (selectedMonth) {
+                    adjustmentFilter = selectedMonth;
+                } else { // Default (today)
+                    adjustmentFilter = new Date().toISOString().split('T')[0];
+                }
+
+                const adjustmentsInMonth = items.filter(t => {
+                    const tNameLower = (t.name || '').toLowerCase();
+                    const isMatch = !t.isTemplate && (tNameLower.includes(templateNameLower) || templateNameLower.includes(tNameLower));
+                    return isMatch && t.date.startsWith(adjustmentFilter) && t.customerName === 'Sistem';
+                });
+
+                adjustmentsInMonth.forEach(t => {
+                    const adjValue = t.transactionType === 'in' ? t.quantity : -t.quantity;
+                    monthlyAdjustment += adjValue;
+                });
+
+                // 4. Set total stok akhir bulan = stok berjalan dari transaksi normal + total penyesuaian bulan ini
+                groupedItems[groupKey].total = runningTotal + monthlyAdjustment;
+                groupedItems[groupKey].adjustment = monthlyAdjustment; // Simpan total penyesuaian
+            });
+
+            // Display grouped items with date data
+            Object.values(groupedItems).forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'dashboard-row';
+
+                let adjustmentFilter = '';
+                if (selectedDate) {
+                    adjustmentFilter = selectedDate;
+                } else if (selectedMonth) {
+                    adjustmentFilter = selectedMonth;
+                } else { // Default (today)
+                    adjustmentFilter = new Date().toISOString().split('T')[0];
+                }
+
+                // Cari transaksi penyesuaian terakhir untuk item ini di bulan yang dipilih
+                const lastAdjustmentInMonth = items
+                    .filter(t => {
+                        const tNameLower = (t.name || '').toLowerCase();
+                        const itemNameLower = (item.name || '').toLowerCase();
+                        return (!t.isTemplate &&
+                            t.customerName === 'Sistem' &&
+                            (tNameLower.includes(itemNameLower) || itemNameLower.includes(tNameLower)) &&
+                            t.date.startsWith(adjustmentFilter));
+                    })
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+
+                // Create date data cells for each day of the month
+                let dateDataCells = '';
+                if (isSingleDayView && datesToShow.length > 0) {
+                    const dateStr = datesToShow[0];
+                    const dayData = item.dailyData[dateStr] || { in: 0, out: 0, damaged: 0, total: 0 };
+                    dateDataCells += `
+                        <div class="daily-data-group">
+                            <div class="date-data-cell in" title="Barang Masuk: ${dayData.in}">${dayData.in}</div>
+                            <div class="date-data-cell out" title="Barang Keluar: ${dayData.out}">${dayData.out}</div>
+                            <div class="date-data-cell damaged" title="Barang Rusak: ${dayData.damaged}">${dayData.damaged}</div>
+                            <div class="date-data-cell total" title="Total: ${dayData.total}">${dayData.total}</div>
+                        </div>
+                    `;
+                } else if (isMonthlyView) {
+                    const year = parseInt(selectedMonth.split('-')[0]);
+                    const monthNum = parseInt(selectedMonth.split('-')[1]);
+                    const daysInMonth = new Date(year, monthNum, 0).getDate();
+                    
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const dateStr = `${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        const dayData = item.dailyData[dateStr] || { in: 0, out: 0, damaged: 0, total: 0 };
+
+                        // Wrap the four numeric cells for each date inside a daily-data-group so
+                        // headers (which are grouped per date) and body cells share the same width.
+                        dateDataCells += `
+                            <div class="daily-data-group">
+                                <div class="date-data-cell in" title="Barang Masuk: ${dayData.in}">${dayData.in}</div>
+                                <div class="date-data-cell out" title="Barang Keluar: ${dayData.out}">${dayData.out}</div>
+                                <div class="date-data-cell damaged" title="Barang Rusak: ${dayData.damaged}">${dayData.damaged}</div>
+                                <div class="date-data-cell total" title="Total: ${dayData.total}">${dayData.total}</div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                row.innerHTML = `
+                    <div class="dashboard-cell">${item.name}</div>
+                    <div class="dashboard-cell">${item.unit}</div>
+                    <div class="dashboard-cell">Rp ${item.price.toLocaleString()}</div>
+                    <div class="dashboard-cell">${item.total}</div>
+                    ${dateDataCells}
+                    <div class="dashboard-cell" style="min-width: 160px; padding: 0; display: flex; border-right: none;">
+                        ${(() => {
+                            // Gunakan data dari transaksi penyesuaian yang ditemukan
+                            const physicalStockValue = lastAdjustmentInMonth ? lastAdjustmentInMonth.physicalStock : '-';
+                            const diff = lastAdjustmentInMonth ? lastAdjustmentInMonth.difference : (item.adjustment !== 0 ? item.adjustment : '-');
+                            const diffColor = diff > 0 ? '#28a745' : (diff < 0 ? '#dc3545' : '#6c757d');
+                            const diffText = diff > 0 ? `+${diff}` : diff;
+                            return `
+                                <div class="date-data-cell" style="min-width: 80px; border-left: none; border-top: none; border-bottom: none; justify-content: center; color: #28a745; font-weight: bold;">${physicalStockValue}</div>
+                                <div class="date-data-cell" style="min-width: 80px; border-right: none; border-top: none; border-bottom: none; font-weight: bold; color: ${diffColor}; justify-content: center;">${diffText}</div>
+                            `;
+                        })()}
+                    </div>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            // Jika tidak ada template, tampilkan rekap dari database atau buat baris dari transaksi
+            const templateKeys = Object.keys(groupedItems);
+            if (templateKeys.length === 0) {
+                // Hitung rekap singkat
+                const totalTemplates = 0;
+                const totalTransactions = items.filter(i => !i.isTemplate).length;
+                const totalInvoices = (invoices || []).length;
+                const totalSurat = (suratJalan || []).length;
+
+                // Jika ada transaksi (meskipun tanpa template), gunakan nama-nama transaksi sebagai baris
+                const txItems = items.filter(i => !i.isTemplate);
+                const uniqueNames = Array.from(new Set(txItems.map(t => (t.name || '').trim()).filter(n => n)));
+
+                if (uniqueNames.length > 0) {
+                    // Bangun groupedItems sementara dari transaksi
+                    uniqueNames.forEach(name => {
+                        const related = txItems.filter(t => (t.name || '').toLowerCase().includes((name || '').toLowerCase()));
+                        const latest = related.sort((a,b) => new Date(b.date) - new Date(a.date))[0] || {};
+                        groupedItems[name] = {
+                            name: name,
+                            unit: latest.unit || 'pcs',
+                            price: latest.price || 0,
+                            total: 0,
+                            adjustment: 0,
+                            dailyData: {}
+                        };
+                        // Compute running totals similarly to template flow
+                        related.forEach(t => {
+                            if (!t.transactionType) return;
+                            if (t.transactionType === 'in') groupedItems[name].total += t.quantity || 0;
+                            else if (t.transactionType === 'out' || t.transactionType === 'damaged') groupedItems[name].total -= t.quantity || 0;
+                        });
+                        groupedItems[name].total = Math.max(0, groupedItems[name].total);
+                    });
+
+                    // Render rows from groupedItems we just built
+                    Object.values(groupedItems).forEach(item => {
+                        const row = document.createElement('div');
+                        row.className = 'dashboard-row';
+                        const dateDataCells = '';// keep simple for transaction-only fallback
+                        row.innerHTML = `
+                            <div class="dashboard-cell">${item.name}</div>
+                            <div class="dashboard-cell">${item.unit}</div>
+                            <div class="dashboard-cell">Rp ${Number(item.price).toLocaleString()}</div>
+                            <div class="dashboard-cell">${item.total}</div>
+                            ${dateDataCells}
+                            <div class="dashboard-cell" style="min-width: 160px; padding: 0; display: flex; border-right: none;">
+                                <div class="date-data-cell" style="min-width: 80px; border-left: none; border-top: none; border-bottom: none; justify-content: center; color: #28a745; font-weight: bold;">-</div>
+                                <div class="date-data-cell" style="min-width: 80px; border-right: none; border-top: none; border-bottom: none; font-weight: bold; color: #6c757d; justify-content: center;">-</div>
+                            </div>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+
+                    // Tambahkan rekap singkat di atas tabel sebagai baris info
+                    const infoRow = document.createElement('div');
+                    infoRow.className = 'dashboard-row';
+                    infoRow.innerHTML = `
+                        <div class="dashboard-cell" style="grid-column: 1 / -1; text-align: left; background: #f8f9fa; color:#333; padding:10px;">
+                            <strong>Rekap Database:</strong>&nbsp; Template: ${totalTemplates} · Transaksi: ${totalTransactions} · Invoice: ${totalInvoices} · Surat Jalan: ${totalSurat}
+                        </div>
+                    `;
+                    tableBody.insertBefore(infoRow, tableBody.firstChild);
+                } else {
+                    // Tidak ada template dan tidak ada transaksi: tampilkan pesan kosong seperti semula
+                    tableBody.innerHTML = `
+                        <div class="dashboard-row">
+                            <div class="dashboard-cell" style="text-align: center; color: #6c757d; font-style: italic; grid-column: 1 / -1;">
+                                Belum ada template barang. Silakan tambah template barang terlebih dahulu.
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        // Function to update date headers
+        function updateDateHeaders(month, date) {
+            const dateHeaders = document.getElementById('dateHeaders');
+            if (!dateHeaders) return;
+            dateHeaders.innerHTML = '';
+
+            let datesToRender = [];
+
+            if (date) { // Specific date view
+                const selected = new Date(date);
+                datesToRender.push({
+                    day: selected.getDate(),
+                    dateStr: date
+                });
+            } else if (month) { // Monthly view
+                const year = parseInt(month.split('-')[0]);
+                const monthNum = parseInt(month.split('-')[1]);
+                const daysInMonth = new Date(year, monthNum, 0).getDate();
+                for (let day = 1; day <= daysInMonth; day++) {
+                    datesToRender.push({
+                        day: day,
+                        dateStr: `${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                    });
+                }
+            } else { // Default view (today)
+                const today = new Date();
+                datesToRender.push({
+                    day: today.getDate(),
+                    dateStr: today.toISOString().split('T')[0]
+                });
+            }
+
+            datesToRender.forEach(dateInfo => {
+                const date = new Date(dateInfo.dateStr);
+                // Tambahkan 1 hari ke tanggal agar tidak salah karena zona waktu
+                date.setDate(date.getDate() + 1);
+                const dayName = date.toLocaleDateString('id-ID', { weekday: 'short' });
+                const dateHeader = document.createElement('div');
+                dateHeader.className = 'date-header';
+                dateHeader.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 5px;">${dateInfo.day}</div>
+                    <div style="font-size: 0.7rem; margin-bottom: 5px;">${dayName}</div>
+                    <div class="date-subheader">
+                        <div class="date-subheader-cell">In</div>
+                        <div class="date-subheader-cell">Out</div>
+                        <div class="date-subheader-cell">Rusak</div>
+                        <div class="date-subheader-cell">Total</div>
+                    </div>
+                `;
+                dateHeaders.appendChild(dateHeader);
+            });
+        }
+        
+        // Function to filter data by month
+        function filterDataByMonth(month) {
+            if (!month) return { items: items, activities: activities };
+            
+            const startDate = new Date(month + '-01');
+            const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+            
+            const filteredItems = items.filter(item => {
+                const itemDate = new Date(item.date);
+                return itemDate >= startDate && itemDate <= endDate;
+            });
+            
+            const filteredActivities = activities.filter(activity => {
+                const activityDate = new Date(activity.date);
+                return activityDate >= startDate && activityDate <= endDate;
+            });
+            
+            return { items: filteredItems, activities: filteredActivities };
+        }
+        
+        // Edit item functions
+        function showEditItemModal() {
+            console.log('showEditItemModal called');
+            const modal = document.getElementById('editItemModal');
+            if (modal) {
+                modal.style.display = 'block';
+                modal.classList.add('show');
+                
+                // Show item selection dialog
+                showItemSelectionDialog('edit');
+            }
+        }
+        
+        function hideEditItemModal() {
+            console.log('hideEditItemModal called');
+            const modal = document.getElementById('editItemModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+            }
+        }
+        
+        // Delete modal functions removed from the inline dashboard script (delete disabled)
+        
+        function showItemSelectionDialog(action) {
+            // Get all template items
+            const allItems = items.filter(item => item.isTemplate);
+            
+            if (allItems.length === 0) {
+                alert('Tidak ada barang template yang bisa di' + (action === 'edit' ? 'edit' : 'hapus') + '!');
+                if (action === 'edit') {
+                    hideEditItemModal();
+                }
+                return;
+            }
+            
+            // Create item list with keyword grouping info
+            let itemList = 'Pilih barang template yang ingin di' + (action === 'edit' ? 'edit' : 'hapus') + ':\n\n';
+            allItems.forEach((item, index) => {
+                // Check if this template has related transactions
+                const hasTransactions = items.some(t => {
+                    if (!t || !t.name) return false;
+                    const tNameLower = (t.name || '').toLowerCase();
+                    const itemNameLower = (item.name || '').toLowerCase();
+                    return !t.isTemplate && (tNameLower.includes(itemNameLower) || itemNameLower.includes(tNameLower));
+                });
+                
+                itemList += `${index + 1}. ${item.name} (${item.unit}) - Rp ${item.price.toLocaleString()}`;
+                if (hasTransactions) {
+                    itemList += ' [Memiliki transaksi]';
+                }
+                itemList += '\n';
+            });
+            
+            const selection = prompt(itemList + '\nMasukkan nomor barang:');
+            const selectedIndex = parseInt(selection) - 1;
+            
+            if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= allItems.length) {
+                alert('Pilihan tidak valid!');
+                if (action === 'edit') {
+                    hideEditItemModal();
+                }
+                return;
+            }
+            
+            const selectedItem = allItems[selectedIndex];
+            
+            if (action === 'edit') {
+                // Fill edit form
+                document.getElementById('editItemName').value = selectedItem.name;
+                document.getElementById('editItemUnit').value = selectedItem.unit;
+                document.getElementById('editItemPrice').value = selectedItem.price;
+                document.getElementById('editItemCategory').value = selectedItem.category;
+                document.getElementById('editItemDescription').value = selectedItem.description || '';
+            } else {
+                // Delete action removed in UI
+                alert('Fungsi hapus barang telah dinonaktifkan. Gunakan fitur edit untuk memodifikasi data.');
+                return;
+            }
+        }
+        
+        // confirmDeleteItemData removed from inline dashboard script: delete functionality disabled.
+    </script>
+</body>
+</html>

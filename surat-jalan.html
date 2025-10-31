@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surat Jalan - Aplikasi Monitor Barang</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <i class="fas fa-warehouse"></i>
+                <span>Monitor Barang</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="dashboard.html" class="nav-link">
+                    <i class="fas fa-chart-line"></i> Dashboard
+                </a></li>
+                <li><a href="monitoring.html" class="nav-link">
+                    <i class="fas fa-money-bill-wave"></i> Monitoring Uang
+                </a></li>
+                <li><a href="input.html" class="nav-link">
+                    <i class="fas fa-plus-circle"></i> Input Barang
+                </a></li>
+                <li><a href="invoice.html" class="nav-link">
+                    <i class="fas fa-file-invoice"></i> Invoice
+                </a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Surat Jalan Page -->
+            <div class="page active">
+                <div style="text-align: center; padding: 50px; color: #6c757d;">
+                    <h2>Halaman ini telah digabungkan</h2>
+                    <p>Fungsi untuk melihat dan mengelola Surat Jalan sekarang berada di dalam halaman <strong>Invoice</strong>.</p>
+                    <a href="invoice.html" class="btn btn-primary">Buka Halaman Invoice</a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

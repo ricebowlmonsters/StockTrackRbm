@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring Uang - Aplikasi Monitor Barang</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .watermark {
+            position: fixed;
+            bottom: 10px;
+            right: 15px;
+            font-size: 12px;
+            color: #000;
+            opacity: 0.4;
+            z-index: 10000;
+            pointer-events: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .watermark span {
+            font-weight: bold;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <i class="fas fa-warehouse"></i>
+                <span>Monitor Barang</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="dashboard.html" class="nav-link">
+                    <i class="fas fa-chart-line"></i> Dashboard
+                </a></li>
+                <li><a href="monitoring.html" class="nav-link active">
+                    <i class="fas fa-money-bill-wave"></i> Monitoring Uang
+                </a></li>
+                <li><a href="hutang.html" class="nav-link">
+                    <i class="fas fa-book"></i> Buku Hutang
+                </a></li>
+                <li><a href="database.html" class="nav-link">
+                    <i class="fas fa-database"></i> Database
+                </a></li>
+                <li><a href="input.html" class="nav-link">
+                    <i class="fas fa-plus-circle"></i> Input Barang
+                </a></li>
+                <li><a href="invoice.html" class="nav-link">
+                    <i class="fas fa-file-invoice"></i> Invoice
+                </a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page active">
+                <div class="page-header">
+                    <h1><i class="fas fa-money-bill-wave"></i> Monitoring Penjualan</h1>
+                    <div class="header-actions">
+                        <div class="date-filter-row">
+                            <div class="date-filter">
+                                <label for="startDate">Dari Tanggal:</label>
+                                <input type="date" id="startDate" class="form-control">
+                            </div>
+                            <div class="date-filter">
+                                <label for="endDate">Sampai Tanggal:</label>
+                                <input type="date" id="endDate" class="form-control">
+                            </div>
+                            <button id="filterBtn" class="btn btn-primary">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                            <button id="last7DaysBtn" class="btn btn-secondary">
+                                <i class="fas fa-calendar-week"></i> 7 Hari Terakhir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Info Cards -->
+                <div class="info-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 10px;">
+                        <h3 style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">Total Semua Outlet</h3>
+                        <p id="totalAllOutlets" style="font-size: 1.5rem; font-weight: bold; margin: 0;">Rp 0</p>
+                    </div>
+                    <div class="card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 10px;">
+                        <h3 style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">RBM PONTI</h3>
+                        <p id="totalPonti" style="font-size: 1.5rem; font-weight: bold; margin: 0;">Rp 0</p>
+                    </div>
+                    <div class="card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 1.5rem; border-radius: 10px;">
+                        <h3 style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">RBM DARMOKALI</h3>
+                        <p id="totalDarmokali" style="font-size: 1.5rem; font-weight: bold; margin: 0;">Rp 0</p>
+                    </div>
+                    <div class="card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 1.5rem; border-radius: 10px;">
+                        <h3 style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">RBM TROSOBO</h3>
+                        <p id="totalTrosobo" style="font-size: 1.5rem; font-weight: bold; margin: 0;">Rp 0</p>
+                    </div>
+                </div>
+
+                <!-- Charts Container -->
+                <div style="display: grid; grid-template-columns: 1fr; gap: 2rem; margin-bottom: 2rem;">
+                    
+                    <!-- Chart 1: Sales by Outlet (Last 7 Days) -->
+                    <div class="chart-container" style="background: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <h2 style="margin-bottom: 1rem; font-size: 1.2rem; color: #333;">
+                            <i class="fas fa-chart-line"></i> Penjualan 7 Hari Terakhir per Outlet
+                        </h2>
+                        <canvas id="salesChart7Days"></canvas>
+                    </div>
+
+                    <!-- Chart 2: Total Sales Per Month -->
+                    <div class="chart-container" style="background: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <h2 style="margin-bottom: 1rem; font-size: 1.2rem; color: #333;">
+                            <i class="fas fa-chart-area"></i> Total Penjualan per Bulan
+                        </h2>
+                        <canvas id="totalSalesMonthlyChart"></canvas>
+                    </div>
+
+                    <!-- Chart 3: Sales per Outlet per Month -->
+                    <div class="chart-container" style="background: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <h2 style="margin-bottom: 1rem; font-size: 1.2rem; color: #333;">
+                            <i class="fas fa-chart-bar"></i> Penjualan per Outlet per Bulan
+                        </h2>
+                        <canvas id="outletMonthlyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Watermark -->
+    <div class="watermark">
+        By. <span>BRN</span>
+    </div>
+
+    <!-- Firebase JS SDK v8 (compat) - Diperlukan untuk script.js -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- Script utama aplikasi -->
+    <script src="script.js"></script>
+    <script src="monitoring.js"></script>
+</body>
+</html>

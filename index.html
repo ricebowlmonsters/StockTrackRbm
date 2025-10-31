@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Monitor Barang</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <i class="fas fa-warehouse"></i>
+                <span>Monitor Barang</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="dashboard.html" class="nav-link">
+                    <i class="fas fa-chart-line"></i> Dashboard
+                </a></li>
+                <li><a href="monitoring.html" class="nav-link">
+                    <i class="fas fa-money-bill-wave"></i> Monitoring Uang
+                </a></li>
+                <li><a href="hutang.html" class="nav-link">
+                    <i class="fas fa-book"></i> Buku Hutang
+                </a></li>
+                <li><a href="input.html" class="nav-link">
+                    <i class="fas fa-plus-circle"></i> Input Barang
+                </a></li>
+                <li><a href="invoice.html" class="nav-link">
+                    <i class="fas fa-file-invoice"></i> Invoice
+                </a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="welcome-page">
+                <div class="welcome-content">
+                    <h1><i class="fas fa-warehouse"></i> Selamat Datang di Aplikasi Monitor Barang</h1>
+                    <p>Sistem manajemen inventori yang lengkap untuk monitoring barang masuk, keluar, dan rusak.</p>
+                    
+                    <div class="feature-cards">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <h3>Dashboard Monitor</h3>
+                            <p>Pantau data barang dengan format tabel dan deretan tanggal</p>
+                            <a href="dashboard.html" class="btn btn-primary">Lihat Dashboard</a>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="fas fa-plus-circle"></i>
+                            </div>
+                            <h3>Input Barang</h3>
+                            <p>Tambah data barang baru dengan fitur lengkap</p>
+                            <a href="input.html" class="btn btn-primary">Input Barang</a>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="fas fa-file-invoice"></i>
+                            </div>
+                            <h3>Invoice</h3>
+                            <p>Buat dan cetak invoice otomatis</p>
+                            <a href="invoice.html" class="btn btn-primary">Buat Invoice</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Watermark -->
+    <div class="watermark">
+        By. <span>BRN</span>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <!-- Tambahkan modul Firebase lain yang Anda butuhkan, misalnya: -->
+    <!-- <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script> -->
+    <script src="script.js"></script>
+</body>
+</html>

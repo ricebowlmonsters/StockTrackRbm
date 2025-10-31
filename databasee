@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database - Aplikasi Monitor Barang</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <i class="fas fa-warehouse"></i>
+                <span>Monitor Barang</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="dashboard.html" class="nav-link">
+                    <i class="fas fa-chart-line"></i> Dashboard
+                </a></li>
+                <li><a href="monitoring.html" class="nav-link">
+                    <i class="fas fa-money-bill-wave"></i> Monitoring Uang
+                </a></li>
+                <li><a href="hutang.html" class="nav-link">
+                    <i class="fas fa-book"></i> Buku Hutang
+                </a></li>
+                <li><a href="database.html" class="nav-link active">
+                    <i class="fas fa-database"></i> Database
+                </a></li>
+                <li><a href="input.html" class="nav-link">
+                    <i class="fas fa-plus-circle"></i> Input Barang
+                </a></li>
+                <li><a href="invoice.html" class="nav-link">
+                    <i class="fas fa-file-invoice"></i> Invoice
+                </a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Database Page -->
+            <div class="page active">
+                <div class="page-header">
+                    <h1><i class="fas fa-database"></i> Database Barang</h1>
+                    <div class="database-tabs">
+                        <button class="tab-btn active" data-tab="in">Barang Masuk</button>
+                        <button class="tab-btn" data-tab="out">Barang Keluar</button>
+                        <button class="tab-btn" data-tab="damaged">Barang Rusak</button>
+                        <button class="tab-btn" data-tab="adjustment">Penyesuaian</button>
+                    </div>
+                </div>
+                
+                <!-- Barang Masuk Tab -->
+                <div id="inTab" class="tab-content active">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Nama Barang</th>
+                                    <th>Jumlah</th>
+                                    <th>Satuan</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inTableBody">
+                                <!-- Table rows will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Barang Keluar Tab -->
+                <div id="outTab" class="tab-content">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Nama Barang</th>
+                                    <th>Jumlah</th>
+                                    <th>Harga</th>
+                                    <th>Total</th>
+                                    <th>Nama Pelanggan</th>
+                                    <th>Alamat</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="outTableBody">
+                                <!-- Table rows will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Barang Rusak Tab -->
+                <div id="damagedTab" class="tab-content">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Nama Barang</th>
+                                    <th>Jumlah</th>
+                                    <th>URL Foto</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="damagedTableBody">
+                                <!-- Table rows will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Penyesuaian Tab -->
+                <div id="adjustmentTab" class="tab-content">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Nama Barang</th>
+                                    <th>Stok Sistem</th>
+                                    <th>Stok Fisik</th>
+                                    <th>Selisih</th>
+                                    <th>Deskripsi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adjustmentTableBody">
+                                <!-- Table rows will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

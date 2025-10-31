@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice - Aplikasi Monitor Barang</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .watermark {
+            position: fixed;
+            bottom: 10px;
+            right: 15px;
+            font-size: 12px;
+            color: #000;
+            opacity: 0.4;
+            z-index: 10000;
+            pointer-events: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .watermark span {
+            font-weight: bold;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <i class="fas fa-warehouse"></i>
+                <span>Monitor Barang</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="dashboard.html" class="nav-link">
+                    <i class="fas fa-chart-line"></i> Dashboard
+                </a></li>
+                <li><a href="monitoring.html" class="nav-link">
+                    <i class="fas fa-money-bill-wave"></i> Monitoring Uang
+                </a></li>
+                <li><a href="hutang.html" class="nav-link">
+                    <i class="fas fa-book"></i> Buku Hutang
+                </a></li>
+                <li><a href="input.html" class="nav-link">
+                    <i class="fas fa-plus-circle"></i> Input Barang
+                </a></li>
+                <li><a href="invoice.html" class="nav-link active">
+                    <i class="fas fa-file-invoice"></i> Invoice
+                </a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Invoice Page -->
+            <div class="page active">
+                <div class="page-header">
+                    <h1><i class="fas fa-file-invoice"></i> Invoice</h1>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="viewHistory" class="btn btn-secondary">
+                            <i class="fas fa-history"></i> History
+                        </button>
+                        <button id="generateInvoice" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Buat Invoice Baru
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Invoice List Section -->
+                <div id="documentListSection" class="invoice-list-container" style="display: none;">
+                    <div class="database-tabs" style="margin-bottom: 20px;">
+                        <button class="tab-btn active" data-tab="invoices">Daftar Invoice</button>
+                        <button class="tab-btn" data-tab="suratJalan">Daftar Surat Jalan</button>
+                    </div>
+
+                    <!-- Invoice List Tab -->
+                    <div id="invoicesTab" class="tab-content active">
+                        <div class="invoice-list-header">
+                            <h2>Daftar Invoice</h2>
+                            <div class="filter-controls">
+                                <input type="text" id="invoiceSearch" placeholder="Cari invoice..." class="form-control" style="width: 300px;">
+                                <button id="refreshInvoices" class="btn btn-info"><i class="fas fa-sync"></i> Refresh</button>
+                            </div>
+                        </div>
+                        <div id="invoiceList" class="invoice-list"></div>
+                    </div>
+
+                    <!-- Surat Jalan List Tab -->
+                    <div id="suratJalanTab" class="tab-content">
+                        <div class="surat-jalan-list-header">
+                            <h2>Daftar Surat Jalan</h2>
+                            <div class="filter-controls">
+                                <input type="text" id="suratJalanSearch" placeholder="Cari surat jalan..." class="form-control" style="width: 300px;">
+                                <button id="refreshSuratJalan" class="btn btn-info"><i class="fas fa-sync"></i> Refresh</button>
+                            </div>
+                        </div>
+                        <div id="suratJalanList" class="surat-jalan-list"></div>
+                    </div>
+                </div>
+
+                <!-- Invoice Form Section -->
+                <div id="invoiceFormSection" class="invoice-container">
+                    <div class="invoice-form">
+                        <div class="form-group">
+                            <label for="invoiceNumber">Nomor Invoice:</label>
+                            <input type="text" id="invoiceNumber" class="form-control" readonly>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="invoiceDate">Tanggal:</label>
+                            <input type="date" id="invoiceDate" class="form-control">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="customerName">Kepada:</label>
+                            <select id="customerName" class="form-control">
+                                <option value="">Pilih Pelanggan</option>
+                                <option value="RBM PONTI" data-address="Jl. Ponti No. 10">RBM PONTI</option>
+                                <option value="RBM DARMOKALI" data-address="Jl. Darmokali No. 20">RBM DARMOKALI</option>
+                                <option value="RBM TROSOBO" data-address="Jl. Trosobo No. 30">RBM TROSOBO</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="customerAddress">Alamat:</label>
+                            <textarea id="customerAddress" class="form-control" rows="3" placeholder="Alamat pelanggan"></textarea>
+                        </div>
+                        
+                        <div class="invoice-items">
+                            <h3>Item Invoice</h3>
+                            <div class="form-actions" style="justify-content: flex-start; margin-bottom: 15px;">
+                                <button type="button" id="addInvoiceItem" class="btn btn-secondary">
+                                    <i class="fas fa-plus"></i> Tambah Item Manual
+                                </button>
+                            </div>
+                            <div id="invoiceItemsList">
+                                <!-- Invoice items will be added here -->
+                            </div>                           
+                        </div>
+                        
+                        <div class="invoice-total">
+                            <h3>Total: <span id="invoiceTotal">Rp 0</span></h3>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" id="saveInvoice" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Simpan Invoice
+                            </button>
+                            <button type="button" id="printInvoiceAndSuratJalan" class="btn btn-info combined-print" title="Cetak Invoice dan Surat Jalan sekaligus dalam 2 halaman">
+                                <i class="fas fa-print"></i> Cetak Invoice + Surat Jalan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Watermark -->
+    <div class="watermark">
+        By. <span>BRN</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Firebase JS SDK v8 (compat) - Diperlukan untuk script.js -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- Script utama aplikasi -->
+    <script src="script.js"></script>
+</body>
+</html>
