@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Materi Presentasi - BIG MONSTERS</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #525659;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .page {
+            background: white;
+            width: 210mm;
+            padding: 20mm 20mm;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        h1, h2, h3 { color: #2c3e50; }
+        
+        /* Cover Styles */
+        .cover-title { text-align: center; font-size: 28pt; font-weight: 800; color: #1e40af; margin-top: 50px; line-height: 1.2; border: none; }
+        .cover-subtitle { text-align: center; font-size: 16pt; color: #64748b; margin-top: 10px; margin-bottom: 50px; }
+        
+        h2 { border-bottom: 2px solid #4C2A85; padding-bottom: 8px; margin-top: 30px; font-size: 16pt; color: #4C2A85; text-transform: uppercase; letter-spacing: 1px; }
+        h3 { font-size: 14pt; color: #059669; margin-top: 25px; margin-bottom: 10px; }
+        
+        /* Feature List Styles */
+        .menu-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            page-break-inside: avoid;
+        }
+        .menu-icon {
+            font-size: 28pt;
+            margin-right: 15px;
+            line-height: 1;
+            min-width: 50px;
+            text-align: center;
+        }
+        .menu-content { flex: 1; }
+        .menu-title { font-size: 14pt; font-weight: 700; color: #1e293b; margin: 0 0 5px 0; display: flex; align-items: center; }
+        .menu-desc { font-size: 11pt; color: #475569; margin: 0 0 8px 0; text-align: justify; }
+        .menu-bullet { margin: 0; padding-left: 20px; font-size: 10.5pt; color: #334155; }
+        .menu-bullet li { margin-bottom: 4px; }
+
+        .page-break { page-break-after: always; }
+
+        @media print {
+            body { background: white; margin: 0; padding: 0; display: block; }
+            .page { margin: 0; box-shadow: none; width: 100%; min-height: auto; padding: 15mm; page-break-after: avoid; }
+            @page { size: A4 portrait; margin: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="page">
+        <div style="text-align: center; font-size: 60pt; margin-top: 40px; margin-bottom: 10px;">📊</div>
+        <h1 class="cover-title">KATALOG FITUR SISTEM<br>Aplikasi Kasir & Manajemen "RBM"</h1>
+        <div class="cover-subtitle">Panduan Lengkap Modul Penjualan, HRD, dan Keuangan</div>
+        
+        <div style="margin-top: 80px; padding: 20px; border-left: 4px solid #4C2A85; background: #f8fafc;">
+            <p><strong>Tujuan Dokumen:</strong> Buku Panduan ini berisi penjelasan mendetail mengenai fungsi, logika, dan nilai bisnis dari seluruh menu yang terdapat di dalam sistem aplikasi BIG MONSTERS. Dokumen ini dirancang sebagai pegangan presentasi kepada Klien dan Manajemen Tingkat Atas.</p>
+        </div>
+
+        <h2>A. Operasional Penjualan (Front-Office)</h2>
+        
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">🖥️</div>
+                <h4 class="menu-title" style="margin:0;">Kasir / Menu (Point of Sale)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Jantung operasional transaksi restoran. Dirancang khusus untuk meminimalkan jumlah klik (frictionless) sehingga kasir dapat melayani antrean panjang dengan sangat cepat.</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Auto-Print & Split Routing:</strong> Menggunakan skrip lokal (Print Bridge), sistem akan memecah pesanan secara instan. Struk Makanan ditembakkan ke IP Printer Dapur, Minuman ke Printer Bar, dan Tagihan ke Printer Kasir tanpa ada jendela dialog <em>pop-up</em> yang mengganggu layar.</li>
+                        <li><strong>Table Hold & Retrieve:</strong> Fitur esensial jika pelanggan menahan antrean (misal: dompet tertinggal). Kasir dapat menekan "Table Hold" untuk menyimpan pesanan ke memori sementara, melayani pelanggan berikutnya, lalu memanggil kembali pesanan pertama via "Retrieve Hold".</li>
+                        <li><strong>Kalkulator Dinamis & Numpad:</strong> Layar kasir dilengkapi Numpad digital layar sentuh. Pajak (PPN 10%) dan pemotongan Diskon/Promo dihitung secara <em>real-time</em> setiap kali item ditambahkan.</li>
+                        <li><strong>Sistem Quick Memo:</strong> Kasir tidak perlu mengetik "Tidak Pedas, Ekstra Sambal" secara manual. Tersedia tombol template memo yang mempercepat pencatatan pesanan khusus per item.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">🧾</div>
+                <h4 class="menu-title" style="margin:0;">Pesanan Masuk (Kitchen Display System / KDS)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Menggantikan kertas struk dapur yang mudah hilang dengan monitor digital interaktif. Sinkronisasi dua arah antara Kasir dan Dapur.</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Siklus Status Order (Status Pipeline):</strong> Pesanan masuk berstatus kuning (Baru). Koki mengklik untuk mengubahnya menjadi biru (Diproses), lalu hijau (Siap Diambil). Siklus ini memastikan tidak ada pesanan yang terlewat.</li>
+                        <li><strong>AI Voice Announcer (Robot Pemanggil):</strong> Dilengkapi integrasi <em>Web Speech API</em>. Saat pesanan diubah ke status "Siap Diambil", sistem secara otomatis memutar suara robot memanggil nama pelanggan atau nomor meja via <em>speaker</em> restoran.</li>
+                        <li><strong>Soft-Delete (Hide):</strong> Jika pesanan sudah selesai, cukup diklik "Hapus dari Layar". Data tidak hilang dari laporan keuangan, melainkan hanya disembunyikan dari layar antrean dapur agar monitor tetap bersih.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">🔲</div>
+                <h4 class="menu-title" style="margin:0;">QR Meja (Self-Ordering Generator)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Mesin pembuat Barcode/QR dinamis untuk memfasilitasi pesanan mandiri (Self-Ordering) langsung dari HP pelanggan di meja mereka.</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Injeksi Nomor Meja (Metadata):</strong> Saat meng-generate QR untuk "Meja 12", sistem menanamkan parameter khusus di dalam link (contoh: <code>?meja=12</code>). Saat pelanggan menyeken, pesanan mereka akan otomatis terikat ke Meja 12 tanpa perlu input manual.</li>
+                        <li><strong>Watermark & Custom Logo:</strong> QR Code otomatis disisipkan logo restoran di tengahnya untuk keperluan <em>branding</em> dan estetika meja.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">🕐</div>
+                <h4 class="menu-title" style="margin:0;">Reservasi (Manajemen Booking)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Buku tamu digital untuk mendata acara rombongan, VIP, atau <em>meeting</em> agar tidak terjadi tabrakan/double-booking meja.</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Kalender Ketersediaan (Matrix View):</strong> Menampilkan kalender visual bulanan. Setiap reservasi yang masuk akan digambar sebagai blok warna sesuai ruangan (Biru = Indoor, Hijau = Outdoor).</li>
+                        <li><strong>Manajemen Down Payment (DP):</strong> Mencatat uang muka beserta request fasilitas (AC, Mic, Proyektor). Dilengkapi fitur <strong>Cetak Bukti Reservasi</strong> untuk diberikan kepada PIC rombongan sebagai tanda terima sah.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-break"></div>
+
+        <h2>B. Promosi, Diskon, & Loyalitas Pelanggan</h2>
+        
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">💰</div>
+                <h4 class="menu-title" style="margin:0;">Input Point (Loyalty CRM)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Mengganti sistem kartu member fisik menjadi 100% digital berbasis Nomor WhatsApp. Berfungsi untuk meningkatkan <em>Customer Retention Rate</em>.</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Lookup Real-time:</strong> Kasir cukup memasukkan No WA. Sistem memanggil API ke Database Pelanggan untuk memunculkan nama pelanggan yang terdaftar.</li>
+                        <li><strong>Mesin Konversi Otomatis:</strong> Kasir menginput nominal belanja (Misal Rp 50.000). Sistem secara matematis membagi 100 untuk menghasilkan 500 Poin. Poin langsung terkirim (push) ke saldo di HP pelanggan detik itu juga tanpa jeda.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">🎫</div>
+                <h4 class="menu-title" style="margin:0;">Validasi Voucher (Anti-Fraud Gate)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Pos keamanan mutlak untuk mencegah kerugian toko akibat "Voucher Bodong" atau klaim ganda oleh pelanggan/kasir curang.</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Algoritma Kode Dinamis 1x Pakai:</strong> Saat pelanggan menukar poin, sistem menghasilkan 5 digit kode unik (Cth: `A3B7X`). Saat kasir memvalidasi kode ini, sistem mengubah statusnya di database menjadi "Terklaim".</li>
+                        <li><strong>Deteksi Manipulasi:</strong> Jika kode yang sama dicoba diklaim untuk kedua kalinya, layar kasir akan menyala merah, menolak transaksi, dan mencatat waktu percobaan kecurangan tersebut.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">🏷️</div>
+                <h4 class="menu-title" style="margin:0;">Promo & Diskon (Rule Engine)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Mesin cerdas untuk menciptakan program pemasaran yang kompleks secara mandiri tanpa harus meminta bantuan programmer.</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Multitarget Scope:</strong> Manajer dapat menentukan apakah diskon berlaku untuk "Satu Struk Penuh" (Per-Bill), atau hanya memotong harga pada "Item/Kategori Tertentu Saja" (Per-Item).</li>
+                        <li><strong>Validasi Syarat Otomatis (Auto-Apply):</strong> Dilengkapi parameter "Minimal Belanja" dan "Kuota Maksimal Penggunaan". Jika kasir mencentang "Auto Apply", diskon akan otomatis menempel di keranjang pelanggan jika syaratnya terpenuhi. Kasir tidak perlu menghafal promo yang sedang berjalan.</li>
+                        <li><strong>Happy Hour Filter:</strong> Promo dapat dikunci berdasarkan jam (misal: Diskon Kopi khusus jam 14.00 - 16.00). Di luar jam tersebut, promo tidak bisa ditekan.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">🎁</div>
+                <h4 class="menu-title" style="margin:0;">Kelola Hadiah (Reward Catalog)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Panel untuk mengatur etalase hadiah (Merchandise / Voucher Makan) yang bisa ditukarkan oleh poin pelanggan.</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li>Mendukung unggah foto hadiah yang otomatis di-kompres menggunakan teknologi Base64 di latar belakang agar loading aplikasi pelanggan tetap sangat cepat.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-break"></div>
+
+        <h2>C. Manajemen Produk & Inventaris Toko</h2>
+        
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">🍔</div>
+                <h4 class="menu-title" style="margin:0;">Kelola Menu (Master Data Katalog)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Pusat komando untuk mengatur harga dan ketersediaan menu. Sekali diubah di sini, menu di layar Kasir dan di HP Pelanggan (QR Code) langsung sinkron berubah dalam hitungan detik.</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Otoritas Multi-Toko Independen:</strong> Owner dapat menerapkan strategi harga berbeda (Misal: Nasi Goreng di cabang Surabaya Rp20.000, di cabang Sidoarjo Rp25.000) karena data tersimpan di "Node Outlet" yang terpisah di database Firebase.</li>
+                        <li><strong>Status Stok Cerdas (Toggle Tersedia/Habis):</strong> Daripada menghapus menu yang bahannya sedang kosong, manajer cukup menekan tombol "Habis". Menu otomatis ditandai abu-abu dan diblokir dari klik pelanggan.</li>
+                        <li><strong>Routing Printer per Item:</strong> Mendukung konfigurasi spesifik tingkat lanjut. Contoh: Item "Kopi Susu" diatur agar selalu ditembakkan secara paksa ke IP Printer Bar, tidak peduli pesanan utama ada makanannya atau tidak.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">📊</div>
+                <h4 class="menu-title" style="margin:0;">Stok Barang (Inventori Harian)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Matriks kontrol pergerakan bahan baku dan barang dagangan. Menghitung HPP dan sisa aset secara sistematis.</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Logika Pengurangan Otomatis (Auto-Deduct):</strong> Menu yang terhubung dengan kategori <em>Sales</em> akan otomatis dikurangkan kuantitas stoknya detik itu juga ketika Kasir menekan tombol "Bayar", mencegah kecurangan barang keluar tanpa struk.</li>
+                        <li><strong>Sistem Tiga Keranjang (Sales, Fruits, Non-Sales):</strong> Mengelompokkan barang berdasarkan sifat fisiknya agar kontrol *Stock Opname (SO)* di akhir bulan lebih presisi, memisahkan barang utuh, barang olahan, dan barang limbah (Waste).</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">📋</div>
+                <h4 class="menu-title" style="margin:0;">Lihat Inventaris (Fixed Asset)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Modul <em>Fixed Asset</em> (Aset Tetap). Pendataan alat kerja restoran harian untuk mencegah kerugian aset "tak kasat mata".</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li>Mendata aset statis seperti jumlah piring, sendok, wajan, kulkas, hingga mesin EDC. Digunakan untuk audit/opname pergantian shift agar alat operasional terpantau tidak hilang atau tidak sengaja terbuang.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-break"></div>
+
+        <h2>D. Laporan & Keuangan (Back-Office)</h2>
+        
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">📊</div>
+                <h4 class="menu-title" style="margin:0;">Dashboard Keuangan (Executive View)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Dasbor pimpinan (Overview) yang menyatukan data Penjualan Kasir dan Modul Kas Kecil (Pengeluaran) menjadi bagan visual yang cantik secara instan, tanpa perlu Microsoft Excel.</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Integrasi Pustaka <em>Chart.js</em>:</strong> Menarik ribuan baris data penjualan dan mengkonversinya menjadi Grafik Garis (Cashflow Pendapatan vs Pengeluaran Harian) yang interaktif.</li>
+                        <li><strong>Multi-Granularity Filter:</strong> Pemilik bisnis dapat mengubah perspektif grafik dari harian (Daily) membesar menjadi tren Bulanan (Monthly) atau Tahunan (Yearly) hanya dengan satu klik filter.</li>
+                        <li><strong>Perbandingan Cabang (A/B Outlet):</strong> Menampilkan grafik lingkaran (Donut Chart) untuk mengadu kinerja omset Cabang A melawan Cabang B, sehingga Owner tahu outlet mana yang menjadi "Sapi Perah" (Cash Cow) perusahaan.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">📈</div>
+                <h4 class="menu-title" style="margin:0;">Laporan Pendapatan (X/Z Report)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Laporan akuntansi baku dan absolut yang digunakan untuk pergantian shift kasir (X-Report) atau saat tutup toko akhir hari (Z-Report).</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Formula Akuntansi Final:</strong> Laporan membedah omset mentah secara jujur menjadi: <code>Gross Sales</code> (Penjualan Kasar) - <code>Diskon Item</code> - <code>Diskon Struk</code> + <code>Pajak (PPN)</code> = <code>Net Sales</code> (Penjualan Bersih).</li>
+                        <li><strong>Pemisahan Metode Uang (Tender Split):</strong> Uang dipecah secara rinci berdasarkan metode masuknya (Berapa Rupiah Tunai masuk laci? Berapa masuk EDC BCA? Berapa QRIS?). Sangat vital untuk proses pencocokan dengan mutasi rekening bank Owner esok paginya.</li>
+                        <li><strong>Generator PDF/Excel & Cetak Thermal:</strong> Laporan ini bisa diekspor langsung ke file .xlsx untuk tim Akunting, atau diprint menjadi struk panjang lewat printer thermal kasir untuk ditandatangani.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">💵</div>
+                <h4 class="menu-title" style="margin:0;">Petty Cash (Kas Kecil)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Fitur anti-bocor untuk mencatat pergerakan uang harian yang diambil langsung secara tunai dari laci kasir (contoh: uang beli es batu dadakan, retribusi keamanan, bayar parkir).</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Bukti Transaksi Wajib (Upload Nota):</strong> Kasir <u>diwajibkan</u> memotret atau mengunggah foto struk belanja/nota fisik setiap kali memasukkan data pengeluaran. Hal ini menutup celah korupsi uang kas kecil oleh oknum staf restoran.</li>
+                        <li><strong>Sistem Antrian Offline (Offline-First):</strong> Jika internet toko terputus, data pengeluaran dan foto nota ini akan disimpan (ditahan) di dalam Memori Browser komputer. Begitu internet stabil, data akan ditembakkan (push) serentak ke server.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">📒</div>
+                <h4 class="menu-title" style="margin:0;">Pembukuan (Rekonsiliasi Shift Akhir)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Ritual serah-terima (Setoran Kasir). Modul wajib yang digunakan Kepala Toko di penghujung hari operasional untuk "Tutup Buku".</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Logika Deteksi Selisih (Blind Match):</strong> Sistem menampilkan total omset Tunai. Kasir bertugas menghitung dan memasukkan "Uang Fisik Lembaran di Laci" secara manual. Komputer akan mengurangkan kedua angka tersebut dan memunculkan label <strong>SELISIH</strong> (Minus/Plus). Jika minus Rp15.000, kasir wajib memberikan catatan penjelasan.</li>
+                        <li><strong>Jurnal Setoran Bank (Kas Keluar):</strong> Memiliki formulir khusus untuk mencatat "Uang yang dibawa dan disetorkan ke Bank", sehingga saldo laci kasir secara logis kembali menjadi 0 untuk digunakan keesokan harinya.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">💸</div>
+                <h4 class="menu-title" style="margin:0;">Pengajuan Dana (Birokrasi Sistem)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Mengubah proses permintaan uang lewat "Chat WhatsApp yang berantakan" menjadi sistem Birokrasi Digital (Approval Workflow) yang terstruktur antara Manajer dan Owner.</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Manajemen Pengajuan Besar:</strong> Manajer cabang mengisi form pengajuan untuk tagihan besar (Contoh: Invoice Supplier Daging Rp 8 Juta) lengkap dengan unggahan foto nota dan nomor rekening bank supplier.</li>
+                        <li><strong>Logika Panel Keputusan Owner:</strong> Pengajuan ini statusnya tertahan (Pending). Di sisi HP Owner, muncul daftar pengajuan tersebut. Owner cukup memeriksa lalu menekan tombol hijau "Setujui (ACC)" atau merah "Tolak". Status otomatis terupdate ke cabang.</li>
+                        <li><strong>Algoritma Kompresi Gambar:</strong> Dibekali kecerdasan kompresi gambar di sisi klien (Client-Side Compression). Foto nota 5MB akan diperkecil otomatis menjadi &lt;300KB sebelum dikirim, menghemat memori server secara drastis.</li>
+                        <li><strong>Laporan Email Terpadu:</strong> Rekapitulasi pengajuan bisa dikirim langsung menjadi format HTML rapi ke alamat Gmail Owner untuk keperluan pengarsipan pajak tahunan.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-break"></div>
+
+        <h2>E. Manajemen SDM & Kehadiran (HRD)</h2>
+
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">📅</div>
+                <h4 class="menu-title" style="margin:0;">Absensi & Jadwal (Bedah Tuntas)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Jantung Operasional HRD dan Penggajian (Payroll). Aplikasi Kasir ini bertindak sebagai Software HRIS mandiri yang menggantikan software luar.</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">1. Fitur Filter Utama</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Filter Outlet & Siklus Gaji:</strong> Memuat <em>hanya</em> daftar karyawan berdasarkan cabang. Pengaturan rentang kalender otomatis mengikat Tabel Absen, Jadwal, dan Kalkulator Gaji secara serentak (Cut-off payroll).</li>
+                    </ul>
+
+                    <h5 style="margin: 15px 0 5px 0; color: #1e40af; font-size: 11pt;">2. Tombol Aksi (Action Buttons)</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Export Eksternal:</strong> Pengeksporan langsung ke PDF (rapi untuk meeting) atau Excel mentah (untuk HRD edit di Microsoft Excel).</li>
+                        <li><strong>Print Format Mading:</strong> Tombol khusus mencetak format hitam-putih ramah printer untuk ditempel di papan pengumuman karyawan restoran.</li>
+                    </ul>
+
+                    <h5 style="margin: 15px 0 5px 0; color: #1e40af; font-size: 11pt;">3. Tabel Matriks Gaji & Kehadiran</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Sistem Cuti Bertingkat:</strong> Manajemen kuota cuti tahunan (AL), libur hari besar (PH), dan Day-off Payment (DP) tergabung di tabel dan terpotong presisi.</li>
+                        <li><strong>Kalkulator Payroll (Rekap Gaji):</strong> Sistem di tab Gaji menyedot data kehadiran Matriks lalu mengalikan rumusnya. Format baku: <code>Gaji Pokok + Uang Makan/Hari - Potongan Telat Absen GPS - Kasbon/Hutang Karyawan = Gaji Diterima</code>.</li>
+                        <li><strong>Cetak Slip Gaji Email:</strong> Owner dapat mencetak potongan slip gaji kertas untuk diamplopkan, atau mengirim rincian slip PDF langsung ke Email/WA pekerja cukup dengan 1 kali klik.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-item">
+            <div class="menu-icon">📍</div>
+            <div class="menu-content">
+                <h4 class="menu-title">Absensi GPS (Presensi Shift)</h4>
+                <p class="menu-desc">Sistem deteksi jam masuk untuk membasmi praktek kecurangan "Titip Absen" di kalangan pekerja restoran.</p>
+                <ul class="menu-bullet">
+                    <li><strong>Geo-Fencing (Pagar GPS):</strong> Manajemen mengunci titik koordinat map restoran. Karyawan hanya bisa menekan tombol "Masuk" di HP-nya jika ia berada pada radius < 50 Meter dari titik dapur restoran tersebut.</li>
+                    <li><strong>Selfie Wajah Langsung:</strong> Saat tombol ditekan, kamera HP akan menjepret foto wajah secara <em>real-time</em> (tidak bisa ambil dari galeri) dan diberi cap jam (Watermark Timestamp).</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="menu-item">
+            <div class="menu-icon">📍</div>
+            <div class="menu-content">
+                <h4 class="menu-title">Rekap Absensi GPS</h4>
+                <p class="menu-desc">Audit trail dari menu Absen GPS. Menampilkan bukti kebohongan jika karyawan telat.</p>
+                <ul class="menu-bullet">
+                    <li>Menampilkan tabel jam masuk, jam pulang, dan jam istirahat lengkap dengan foto wajah karyawan. Menyorot warna merah terang (Flagging) jika terjadi "Lupa Pulang" atau "Keterlambatan (Late)".</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="menu-item">
+            <div class="menu-icon">📤</div>
+            <div class="menu-content">
+                <h4 class="menu-title">Input Absensi Manual (Dev/Root Only)</h4>
+                <p class="menu-desc">Menu Darurat tersembunyi yang hanya bisa diakses oleh level Developer/Root Admin.</p>
+                <ul class="menu-bullet">
+                    <li>Berfungsi untuk meng-inject dan merekayasa jam absen karyawan secara manual ke Database, digunakan apabila HP karyawan rusak, HP error signal GPS, atau keperluan koreksi database darurat dengan fasilitas Upload via Excel.</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>F. Pengaturan & Sistem Pusat</h2>
+
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">📱</div>
+                <h4 class="menu-title" style="margin:0;">Web Customer (Bedah Tuntas)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Pengaturan <em>Front-End</em>. Fitur CMS (Content Management System) ini memberi Owner kekuatan tanpa-koding (No-Code) layaknya programmer untuk mendesain ulang (re-skin) Aplikasi Pelanggan.</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">1. Tampilan & Konten</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Branding Dinamis (White-labeling):</strong> Dilengkapi fitur Color Picker. Jika warna tema Hex dirubah menjadi merah, seluruh tombol navigasi, garis tepi, dan aksen di layar HP pelanggan akan berubah menjadi merah secara instan tanpa perlu memodifikasi kode.</li>
+                        <li><strong>Media Promosi:</strong> Upload gambar banner <em>Slideshow</em> bergerak, pasang Popup iklan penyambutan, dan pasang "Teks Berjalan" (Marquee) untuk promosi hari itu.</li>
+                        <li><strong>Injeksi Link Eksternal:</strong> Menyediakan slot tombol khusus di beranda aplikasi pelanggan untuk menautkan/mengarahkan pelanggan (redirect) langsung ke halaman profil lapak restoran Anda di aplikasi pihak ketiga (GrabFood / ShopeeFood).</li>
+                    </ul>
+
+                    <h5 style="margin: 15px 0 5px 0; color: #1e40af; font-size: 11pt;">2. Manajemen Lokasi / Outlet</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Sistem On/Off Belanja:</strong> Master Toggle. Jika tombol "Pesan" digeser ke "OFF", seluruh tombol "Tambah ke Keranjang" pada web pelanggan lenyap. Aplikasi mendadak berubah dari e-Commerce/Pesan Antar menjadi sekadar Buku Katalog Digital Menu Restoran.</li>
+                        <li><strong>Pusat Arsitektur Database (Outlet Generation):</strong> Form pembuatan cabang baru. Saat cabang baru ditambah di sini, sistem secara ajaib (di balik layar) membuat "Pipa Database" tersendiri yang akan mengikat semua aliran data (Laporan Omset khusus cabang itu, Pengaturan GPS peta khusus, dan target koneksi WhatsApp kasir cabang tersebut) tanpa mengganggu data cabang lama.</li>
+                    </ul>
+
+                    <h5 style="margin: 15px 0 5px 0; color: #1e40af; font-size: 11pt;">3. Konfigurasi Fitur & Informasi</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Sakelar Modul Sosial:</strong> Fitur hiburan pelengkap (seperti Robot Chatbot AI, Grup Obrolan Komunitas, atau Mini Game) dapat dinyalakan/dimatikan sesuka hati sesuai konsep <em>crowd</em> yang diinginkan restoran Anda.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">💾</div>
+                <h4 class="menu-title" style="margin:0;">Data & Penyimpanan (Database Control)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Ruang mesin server khusus untuk staf Administrator TI (IT). Pusat komando pengelolaan <em>database architecture</em>.</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Visualisasi Ruang Data:</strong> Menampilkan indikator persentase (Bar Chart) yang mengkalkulasi besaran <em>bytes</em> memori yang sedang terpakai di server Google Firebase per masing-masing Node (Tabel), memberikan alarm dini sebelum <em>quota</em> server penuh.</li>
+                        <li><strong>Mesin Ekstraksi (Backup) & Injeksi (Restore):</strong> Tombol fungsional untuk mengunduh seluruh isi database aplikasi menjadi satu file mentah <code>.json</code> sebagai <em>hard-copy backup</em>. Anda juga dapat melakukan <strong>Merge</strong> (menimpa/menggabungkan data lama dengan data file json) melalui modal konfirmasi berlapis untuk pemulihan (Disaster Recovery).</li>
+                        <li><strong>Pembersih Server (Purge):</strong> Fasilitas untuk melakukan <em>Hard-Delete</em> massal pada riwayat transaksi tua yang membebani <em>loading</em> aplikasi.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-item" style="flex-direction: column;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div class="menu-icon">⚙️</div>
+                <h4 class="menu-title" style="margin:0;">Pengaturan (Sistem Inti & Kredensial)</h4>
+            </div>
+            <div class="menu-content" style="width: 100%;">
+                <p class="menu-desc"><strong>Fungsi:</strong> Akses Tertinggi (Root Setup) dalam aplikasi. Jika salah konfigurasi di halaman ini, maka pencetakan atau alur operasional dapat terhenti.</p>
+                <div style="margin-left: 20px;">
+                    <h5 style="margin: 10px 0 5px 0; color: #1e40af; font-size: 11pt;">Fitur & Logika Utama:</h5>
+                    <ul class="menu-bullet">
+                        <li><strong>Pembuatan Akun & Hirarki Kredensial:</strong> Pengaturan <em>Role-Based Access Control</em>. Anda menciptakan <em>Username & Password</em> karyawan di sini, dan menetapkan Level-nya: <strong>Owner</strong> (Dapat melihat rahasia laporan semua cabang), <strong>Manajer Cabang</strong> (Hanya melihat laporan cabangnya sendiri), atau <strong>Staff</strong> (Hanya bisa klik menu kasir, buta terhadap laporan uang).</li>
+                        <li><strong>Pengikatan Jaringan Printer (IP Bind):</strong> Menghubungkan aplikasi web browser Anda dengan dunia perangkat keras fisik. Mengatur pemetaan statis Alamat IP (contoh: <code>192.168.1.100</code>) untuk <strong>Printer Kasir</strong>, <strong>Printer Dapur</strong>, dan <strong>Checker</strong>, agar fitur <em>Auto-Print LAN</em> bekerja sempurna.</li>
+                        <li><strong>Opsi Suara & Modul Pembayaran:</strong> Menghidupkan matikan opsi "Autoplay Sound" pada notifikasi pesanan dan menyusun daftar Tipe/Metode Pembayaran (Cash, EDC, BCA, dll) yang akan tampil secara dinamis pada saat proses <em>Tender/Checkout</em> (bayar) di layar Kasir.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

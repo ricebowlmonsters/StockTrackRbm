@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RBM Pro</title>
+  <link rel="stylesheet" href="rbm-pro.css">
+</head>
+<body>
+<script>
+(function(){ var u = JSON.parse(localStorage.getItem('rbm_user') || '{}'); if (u.role === 'staff') { window.location.href = 'index.html'; } })();
+</script>
+<script>
+// [UX] Set bulan aktif secepat mungkin (tanpa nunggu rbm-pro.js).
+(function(){
+  function setMonthNow() {
+    try {
+      var el = document.getElementById('pc_bulan_filter');
+      if (!el) return;
+      var saved = localStorage.getItem('rbm_pc_last_month');
+      var now = new Date();
+      var ym = now.getFullYear() + '-' + ('0' + (now.getMonth()+1)).slice(-2);
+      if (saved && /^\d{4}-\d{2}$/.test(saved)) ym = saved;
+      if (!el.value) el.value = ym;
+    } catch(e) {}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setMonthNow);
+  else setMonthNow();
+})();
+</script>
+<header class="rbm-page-header">
+  <a href="index.html" class="rbm-back-btn">&#8249;</a>
+  <h1 class="rbm-page-title">Lihat Petty Cash</h1>
+</header>
+<div class="rbm-content-wrap">
+<section class="rbm-outlet-card" style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px;">
+  <div style="flex: 1; min-width: 200px;">
+    <label for="rbm-outlet-select" class="rbm-outlet-label">Pilih Outlet:</label>
+    <select id="rbm-outlet-select" class="rbm-outlet-select"></select>
+  </div>
+  <div style="flex: 0 0 auto; display: flex; gap: 8px;">
+    <button type="button" class="btn nav-button active" onclick="showView('lihat-petty-cash-view')">Lihat Petty Cash</button>
+    <button type="button" class="btn nav-button" onclick="showView('input-petty-cash-view')">Input Petty Cash</button>
+    <button type="button" class="btn btn-primary" style="background:#8b5cf6; border-color:#8b5cf6; color:white;" onclick="window.location.href='rbm-pengajuan.html?jenis=pengajuan-petty-cash'">Pengajuan Petty Cash</button>
+  </div>
+</section>
+<script>
+(function(){
+  var u = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+  var outlets = JSON.parse(localStorage.getItem('rbm_outlets') || '[]');
+  var names = JSON.parse(localStorage.getItem('rbm_outlet_names') || '{}');
+  var sel = document.getElementById('rbm-outlet-select');
+  if (sel) {
+    sel.innerHTML = '';
+    outlets.forEach(function(id) {
+      var opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = names[id] || (id.charAt(0).toUpperCase() + id.slice(1));
+      sel.appendChild(opt);
+    });
+    if (u.role === 'manager' && u.outlet) {
+      sel.value = u.outlet;
+      sel.disabled = true;
+    } else {
+      var last = localStorage.getItem('rbm_last_selected_outlet');
+      if (last && outlets.indexOf(last) >= 0) sel.value = last;
+      else if (outlets.length) sel.value = outlets[0];
+      sel.addEventListener('change', function() { localStorage.setItem('rbm_last_selected_outlet', sel.value); });
+    }
+  }
+})();
+</script>
+<div class="app-layout">
+  <main class="app-main" style="margin-left:0;">
+<div id="input-petty-cash-view" class="view-container" style="display:none;">
+  <div class="page-header">
+    <h2>Input Petty Cash</h2>
+    <p>Masukkan data pengeluaran dan pemasukan petty cash</p>
+  </div>
+  <div class="form-container">
+    <div class="form-section">
+      <label>Tanggal</label>
+      <input type="date" id="pc_input_tanggal">
+    </div>
+    <div class="form-section">
+      <label>Jenis Transaksi</label>
+      <select id="pc_input_jenis" onchange="createPettyCashInputRows()">
+        <option value="">-- Pilih Jenis --</option>
+        <option value="pengeluaran">Pengeluaran</option>
+        <option value="pemasukan">Pemasukan</option>
+      </select>
+    </div>
+    <div class="form-section">
+      <label>Detail Transaksi</label>
+      <div id="detail-container-petty-cash" class="detail-wrapper"></div>
+    </div>
+    <button id="submitButtonPettyCash" class="btn btn-primary" onclick="submitPettyCashData()">Simpan Data</button>
+    <p id="outputPettyCash" class="output-msg"></p>
+  </div>
+</div>
+<div id="lihat-petty-cash-view" class="view-container">
+  <div class="page-header">
+    <h2>Lihat Petty Cash</h2>
+    <p>Data transaksi petty cash yang sudah diinput</p>
+  </div>
+  <div class="form-container">
+    <div class="filter-row" style="flex-wrap: wrap; align-items: center; gap: 8px;">
+      <div class="filter-group">
+        <label>Pilih Bulan</label>
+        <input type="month" id="pc_bulan_filter" onchange="loadPettyCashData()">
+      </div>
+      <button type="button" class="btn btn-secondary" onclick="loadPettyCashData()">Tampilkan Data</button>
+      <button type="button" class="btn btn-secondary" onclick="loadPettyCashData()" title="Muat ulang data outlet terpilih" style="margin-left: 8px;">🔄 Refresh</button>
+      <button type="button" class="btn btn-secondary" onclick="triggerImportPettyCashExcel()" style="background: #0d6efd; color: white; border-color: #0d6efd; margin-left: 8px;">Import Excel</button>
+      <button type="button" class="btn btn-secondary" onclick="downloadTemplatePettyCashExcel()" style="background: #6c757d; color: white; border-color: #6c757d; margin-left: 8px;">Download Template Excel</button>
+      <button type="button" class="btn btn-secondary" onclick="exportPettyCashToExcel()" style="background: #198754; color: white; border-color: #198754; margin-left: 8px;">Export Excel</button>
+      <input type="file" id="import_petty_cash_file" accept=".xlsx,.xls" style="display:none" onchange="processImportPettyCashExcel(this)">
+      <button type="button" class="btn btn-secondary" onclick="printPettyCashReport()" style="background: #0d6efd; color: white; border-color: #0d6efd; margin-left: 8px;">Print</button>
+      <button type="button" class="btn btn-secondary" onclick="showView('rekap-petty-cash-view')" style="background: #6c757d; color: white; border-color: #6c757d; margin-left: 8px;">Rekap Petty Cash & Sisa Uang</button>
+        <!-- Placeholder agar layout tidak berubah saat JS inject -->
+        <div class="filter-group" id="pc_search_container" style="margin-left:8px; min-width: 220px;">
+          <label>Cari Keterangan</label>
+          <input type="text" id="pc_search" placeholder="Ketik kata kunci..." style="padding:6px; border:1px solid #ccc; border-radius:4px; width: 100%;" disabled>
+        </div>
+        <div class="filter-group" id="pc_admin_container" style="margin-left:8px; min-width: 200px;">
+          <label style="color:#b91c1c;">Admin</label>
+        </div>
+    </div>
+
+    <!-- Summary Petty Cash (ringan: dihitung per-bulan) -->
+    <div class="summary-grid" id="pc_summary" style="display:none;">
+      <div class="summary-card">
+        <div class="label">Saldo Awal</div>
+        <div class="value" id="pc_saldo_awal">Rp 0</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Total Debit (Pengeluaran)</div>
+        <div class="value" id="pc_total_debit">Rp 0</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Total Kredit (Pemasukan)</div>
+        <div class="value" id="pc_total_kredit">Rp 0</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Saldo Akhir</div>
+        <div class="value" id="pc_saldo_akhir">Rp 0</div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-wrapper">
+        <table class="data-table" id="pc_table">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Tanggal</th>
+              <th>Nama / Keterangan</th>
+              <th class="num">Jml</th>
+              <th>Satuan</th>
+              <th class="num">Harga</th>
+              <th class="num">Debit</th>
+              <th class="num">Kredit</th>
+              <th class="num">Saldo</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="pc_tbody">
+            <tr><td colspan="10" class="table-empty">Pilih rentang tanggal lalu klik "Tampilkan Data"</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="rekap-petty-cash-view" class="view-container" style="display:none;">
+  <div class="page-header">
+    <h2>Rekap Petty Cash & Sisa Uang</h2>
+    <p>Laporan harian, sisa saldo, dan opsi kirim laporan</p>
+  </div>
+  <div class="form-container">
+        
+        <!-- Sisa Uang Section -->
+        <div class="summary-card" style="margin-bottom: 24px; background: linear-gradient(135deg, #059669 0%, #047857 100%);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div>
+                    <div class="label" style="color:rgba(255,255,255,0.9); margin-bottom:4px;">SISA UANG TANGGAL</div>
+                    <input type="date" id="pengajuan_saldo_date" style="background: rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.3); color:white; padding: 6px; border-radius: 6px; font-family:inherit; cursor:pointer;" onchange="calculateSisaUangPengajuan()">
+                </div>
+                <div class="value" id="pengajuan_sisa_uang_val" style="font-size: 28px;">Rp 0</div>
+            </div>
+        </div>
+
+        <!-- Filter & Table -->
+        <div class="filter-row">
+            <div class="filter-group">
+                <label>Tanggal Dari</label>
+                <input type="date" id="pengajuan_filter_date_start">
+            </div>
+            <div class="filter-group">
+                <label>Tanggal Sampai</label>
+                <input type="date" id="pengajuan_filter_date_end">
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="loadLihatPengajuanData()">Tampilkan</button>
+            <button type="button" class="btn btn-secondary" onclick="exportRekapToExcel()" style="background: #198754; color: white; border-color: #198754;">Excel</button>
+            <button type="button" class="btn btn-secondary" onclick="printRekapReport()" style="background: #0d6efd; color: white; border-color: #0d6efd;">Print</button>
+            <button type="button" class="btn btn-secondary" onclick="sendRekapEmail()" style="background: #ea4335; color: white; border-color: #ea4335;">Kirim Gmail</button>
+        </div>
+
+        <div class="table-card">
+            <div class="table-wrapper">
+                <table class="data-table" id="rekap_table">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Tanggal</th>
+                            <th>Nama / Keterangan</th>
+                            <th class="num">Jml</th>
+                            <th>Satuan</th>
+                            <th class="num">Harga</th>
+                            <th class="num">Debit</th>
+                            <th class="num">Kredit</th>
+                            <th class="num">Saldo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pengajuan_tbody">
+                        <tr><td colspan="9" class="table-empty">Pilih tanggal dan klik Tampilkan Data</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+  </div>
+</div>
+
+  </main>
+</div>
+</div><span class="watermark">RBM Pro 2.3</span>
+<div id="imageModal" class="modal-overlay" onclick="closeImageModal()">
+  <span class="modal-close">&times;</span>
+  <img id="modalImage" class="modal-content">
+</div>
+<div id="gpsDetailModal" class="modal-overlay" style="display:none; align-items:center; justify-content:center;" onclick="closeGpsDetailModal()">
+  <div class="modal-content" style="background:white; padding:24px; max-width:420px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.15);" onclick="event.stopPropagation()">
+    <span class="modal-close" onclick="closeGpsDetailModal()" style="color:#333; top:10px; right:14px; cursor:pointer;">&times;</span>
+    <h3 id="gpsDetailModalTitle" style="margin:0 0 12px; font-size:18px;">Detail</h3>
+    <div id="gpsDetailModalBody" style="font-size:14px; line-height:1.6; color:#334155;"></div>
+    <p style="margin:12px 0 0; font-size:12px; color:#64748b;">Aturan: 10 menit telat = 1 jam (masuk ke Rekap Gaji)</p>
+  </div>
+</div>
+<div id="jadwalModal" class="modal-overlay" style="display:none; align-items:flex-start; padding-top: 50px; overflow-y: auto;">
+  <div class="modal-content" style="background:white; padding:20px; width:900px; max-width:95%; border-radius:8px; position: relative; height: auto; max-height: 90vh; display: flex; flex-direction: column;">
+    <span class="modal-close" onclick="closeJadwalModal()" style="color: #333; top: 10px; right: 15px;">&times;</span>
+    <h3 style="margin-top:0;">Preview & Print Jadwal</h3>
+    <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:15px; flex-wrap: wrap;">
+      <div><label style="font-size:12px; display:block; margin-bottom:4px;">Tanggal Mulai</label><input type="date" id="jadwal_preview_start" style="padding:8px;"></div>
+      <div><label style="font-size:12px; display:block; margin-bottom:4px;">Tanggal Selesai</label><input type="date" id="jadwal_preview_end" style="padding:8px;"></div>
+      <div style="flex-grow: 1; min-width: 200px;"><label style="font-size:12px; display:block; margin-bottom:4px;">Catatan Tambahan</label><input type="text" id="jadwal_notes" style="padding:8px; width: 100%; box-sizing: border-box;" placeholder="Ketik catatan..." oninput="updateJadwalPreview()"></div>
+      <button class="btn btn-primary" onclick="updateJadwalPreview()" style="margin-bottom:0; width:auto;">Lihat Preview</button>
+      <button class="btn btn-secondary" onclick="printJadwalPreview()" style="margin-bottom:0; width:auto; background: #0d6efd; color: white;">Print</button>
+      <button class="btn btn-secondary" onclick="saveJadwalImage()" style="margin-bottom:0; width:auto; background: #198754; color: white;">Save JPG</button>
+    </div>
+    <div id="jadwalPreviewArea" style="flex: 1; overflow: auto; border: 1px solid #eee; padding: 10px;"><p style="text-align:center; color:#888;">Silakan pilih tanggal dan klik Lihat Preview</p></div>
+  </div>
+</div>
+<div id="stokItemModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content" style="background:white; padding:20px; width:500px; max-width:95%; border-radius:8px; max-height: 80vh; overflow-y: auto;">
+    <span class="modal-close" onclick="document.getElementById('stokItemModal').style.display='none'" style="color:#333; top:10px; right:15px; font-size:24px;">&times;</span>
+    <h3 style="margin-top:0;">Kelola Item Stok</h3>
+    <div style="display:flex; gap:10px; margin-bottom:15px; justify-content: flex-end;">
+      <button class="btn-secondary" onclick="triggerStokImport()" style="font-size:12px; padding:5px 10px; background:#198754; color:white; border:none;">Import Excel</button>
+      <button class="btn-secondary" onclick="exportStokItemsToExcel()" style="font-size:12px; padding:5px 10px; background:#0d6efd; color:white; border:none;">Export Excel</button>
+      <input type="file" id="importStokInput" accept=".xlsx, .xls" style="display:none" onchange="processStokImport(this)">
+    </div>
+    <div style="margin-bottom: 15px; display: flex; gap: 8px; align-items: flex-end;">
+      <div style="flex:2;"><label style="font-size:11px; display:block; margin-bottom:2px; color:#666;">Nama Item</label><input type="text" id="new_stok_name" placeholder="Contoh: Saus Vietnam" style="width:100%;"></div>
+      <div style="flex:1;"><label style="font-size:11px; display:block; margin-bottom:2px; color:#666;">Satuan</label><input type="text" id="new_stok_unit" placeholder="Gr/Ml/Pcs" style="width:100%;"></div>
+      <div style="flex:1;"><label style="font-size:11px; display:block; margin-bottom:2px; color:#666;">Qty per Porsi</label><input type="number" id="new_stok_qty_porsi" placeholder="70" style="width:100%;"></div>
+      <button class="btn-primary" onclick="addStokItem()" style="width:auto; height:42px; margin-bottom:1px;">+</button>
+    </div>
+    <table class="data-table"><thead><tr><th>Nama</th><th>Satuan</th><th>Qty/Porsi</th><th>Aksi</th></tr></thead><tbody id="stok_item_tbody"></tbody></table>
+    <div style="margin-top:10px; font-size:11px; color:#666;">* <b>Qty per Porsi</b>: Jumlah satuan yang dibutuhkan untuk 1 porsi.</div>
+  </div>
+</div>
+<div id="memoModalOverlay" class="memo-modal-overlay" onclick="closeMemoPopup()">
+  <div class="memo-modal" onclick="event.stopPropagation()"><div id="memoModalContent"></div><button class="memo-modal-close" onclick="closeMemoPopup()">Tutup</button></div>
+</div>
+<div id="editInventarisModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content" style="background:white; padding:24px; width:320px; max-width:90%; border-radius:12px; text-align:center; height: auto; overflow: visible;">
+    <h3 style="margin-top:0;">Edit Inventaris</h3>
+    <p id="editInvInfo" style="font-size:14px; color:#64748b; margin-bottom:20px; line-height: 1.5;"></p>
+    <input type="hidden" id="editInvNama"><input type="hidden" id="editInvTanggal">
+    <div style="margin-bottom:20px;"><label style="text-align:left; display:block; margin-bottom:8px; font-weight:600; font-size:13px;">Jumlah Baru</label><input type="number" id="editInvJumlah" style="width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:8px; font-size:16px;"></div>
+    <div style="display:flex; gap:8px; justify-content:center;">
+      <button class="btn btn-primary" onclick="saveEditInventaris()" style="margin-top:0; flex:1;">Simpan</button>
+      <button class="btn btn-small-danger" onclick="deleteEditInventaris()" style="flex:1; font-size:14px;">Hapus</button>
+      <button class="btn btn-secondary" onclick="closeEditInventaris()" style="flex:1;">Batal</button>
+    </div>
+  </div>
+</div>
+<div id="editPettyCashModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closeEditPettyCashModal();">
+  <div class="modal-content" style="background:white; padding:24px; width:420px; max-width:95%; border-radius:12px; overflow-y:auto;" onclick="event.stopPropagation()">
+    <span class="modal-close" onclick="closeEditPettyCashModal()" style="color:#333; top:10px; right:14px; cursor:pointer;">&times;</span>
+    <h3 style="margin-top:0;">Edit Transaksi Petty Cash</h3>
+    <input type="hidden" id="editPcSource"><input type="hidden" id="editPcParentIdx"><input type="hidden" id="editPcTrxIdx"><input type="hidden" id="editPcFirebaseIndex"><input type="hidden" id="editPcFirebaseDate"><input type="hidden" id="editPcFirebaseIndexInDate">
+    <div style="margin-bottom:12px;"><label style="display:block; margin-bottom:4px; font-weight:600; font-size:13px;">Tanggal</label><input type="date" id="editPcTanggal" style="width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:8px;"></div>
+    <div style="margin-bottom:12px;"><label style="display:block; margin-bottom:4px; font-weight:600; font-size:13px;">Jenis</label><select id="editPcJenis" style="width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:8px;" onchange="toggleEditPcFields()"><option value="pengeluaran">Pengeluaran</option><option value="pemasukan">Pemasukan</option></select></div>
+    <div style="margin-bottom:12px;"><label style="display:block; margin-bottom:4px; font-weight:600; font-size:13px;">Nama / Keterangan</label><input type="text" id="editPcNama" style="width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:8px;" placeholder="Nama atau keterangan"></div>
+    <div id="editPcPengeluaranFields" style="margin-bottom:12px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+        <div><label style="display:block; margin-bottom:4px; font-size:12px;">Jumlah</label><input type="number" id="editPcJumlah" style="width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:8px;"></div>
+        <div><label style="display:block; margin-bottom:4px; font-size:12px;">Satuan</label><input type="text" id="editPcSatuan" style="width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:8px;"></div>
+        <div><label style="display:block; margin-bottom:4px; font-size:12px;">Harga</label><input type="number" id="editPcHarga" style="width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:8px;"></div>
+      </div>
+    </div>
+    <div id="editPcPemasukanFields" style="margin-bottom:12px; display:none;">
+      <label style="display:block; margin-bottom:4px; font-size:12px;">Nominal (Rp)</label><input type="number" id="editPcNominal" style="width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:8px;"></div>
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">
+      <button class="btn btn-secondary" onclick="closeEditPettyCashModal()">Batal</button>
+      <button class="btn btn-primary" onclick="saveEditPettyCashModal()">Simpan</button>
+    </div>
+  </div>
+</div>
+<script>window.RBM_PAGE = 'lihat-petty-cash-view';</script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+<script src="rbm-pro-storage.js"></script>
+<script src="firebase-storage.js"></script>
+<script src="rbm-pro.js"></script>
+<script>
+// [BARU] Helper functions untuk memastikan import berjalan di mode online/offline
+function useFirebaseBackend() {
+    if (typeof FirebaseStorage === 'undefined') return false;
+    try {
+        FirebaseStorage.init();
+        return FirebaseStorage.isReady();
+    } catch (e) { return false; }
+}
+
+function getRbmOutlet() {
+    var s = document.getElementById('rbm-outlet-select');
+    return (s && s.value) ? s.value : '';
+}
+
+function getRbmStorageKey(baseKey) {
+    var o = getRbmOutlet();
+    return o ? baseKey + '_' + o : baseKey;
+}
+
+function savePendingToLocalStorage(type, payload) {
+    try {
+        const key = getRbmStorageKey('RBM_PENDING_' + type);
+        const existing = JSON.parse(window.RBMStorage.getItem(key) || '[]');
+        const item = { ts: new Date().toISOString(), payload: payload };
+        existing.push(item);
+        window.RBMStorage.setItem(key, JSON.stringify(existing));
+        return true;
+    } catch (e) {
+        console.warn('Gagal menyimpan ke local storage', e);
+        return false;
+    }
+}
+// [BARU] Override fungsi untuk menangani format tanggal Excel dengan lebih baik
+window.downloadTemplatePettyCashExcel = function() {
+    // Lazy-load XLSX agar halaman tidak lag saat awal masuk
+    const run = () => {
+        const wb = XLSX.utils.book_new();
+        const wsData = [
+            ["Tanggal", "Keterangan", "Jenis", "Jumlah", "Satuan", "Harga", "Total Masuk"],
+            ["2026-03-08", "Contoh: Beli Sabun", "Pengeluaran", 2, "Pcs", 5000, ""],
+            ["2026-03-08", "Contoh: Tambahan Modal", "Pemasukan", "", "", "", 100000]
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        ws['!cols'] = [{wch:15}, {wch:30}, {wch:12}, {wch:8}, {wch:8}, {wch:12}, {wch:15}];
+        XLSX.utils.book_append_sheet(wb, ws, "Template Petty Cash");
+        XLSX.writeFile(wb, "Template_Petty_Cash_RBM.xlsx");
+    };
+    if (typeof XLSX !== 'undefined') { run(); return; }
+    const s = document.createElement('script');
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.onload = run;
+    s.onerror = () => alert('Gagal memuat library Excel. Cek koneksi internet.');
+    document.head.appendChild(s);
+};
+
+window.processImportPettyCashExcel = function(input) {
+    if (!input.files || !input.files[0]) return;
+    if (typeof XLSX === 'undefined') {
+        // Lazy-load XLSX dulu
+        const s = document.createElement('script');
+        s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+        s.onload = () => window.processImportPettyCashExcel(input);
+        s.onerror = () => alert('Gagal memuat library Excel. Cek koneksi internet.');
+        document.head.appendChild(s);
+        return;
+    }
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        // cellDates: true PENTING agar tanggal Excel dibaca sebagai Object Date, bukan angka serial
+        const workbook = XLSX.read(data, {type: 'array', cellDates: true});
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet, {defval: ""});
+        
+        if (jsonData.length === 0) { alert("File kosong."); return; }
+
+        const outlet = document.getElementById('rbm-outlet-select').value;
+        if (!outlet) { alert("Pilih outlet dulu."); return; }
+
+        const useFirebase = useFirebaseBackend();
+        const db = useFirebase ? firebase.database() : null;
+
+        const groupedByDateAndType = {};
+        let count = 0;
+        let errors = [];
+        let importedDates = [];
+
+        // Helper format tanggal
+        const fmtDate = (d) => {
+            if (!d) return new Date().toISOString().slice(0,10);
+            
+            // 1. Handle JS Date object (Gunakan local time agar tidak geser hari karena timezone)
+            if (d instanceof Date) {
+                if (isNaN(d.getTime())) return new Date().toISOString().slice(0,10);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
+            // 2. Handle Excel Serial Number
+            if (typeof d === 'number' && d > 20000) {
+                const dateObj = new Date((d - 25569) * 86400 * 1000);
+                if (!isNaN(dateObj.getTime())) return fmtDate(dateObj);
+            }
+
+            let str = String(d).trim();
+            
+            // 3. Handle YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+            // 4. Handle DD/MM/YYYY or DD-MM-YYYY or DD MMM YYYY
+            const indoMonths = {
+                'januari': '01', 'februari': '02', 'maret': '03', 'april': '04', 'mei': '05', 'juni': '06',
+                'juli': '07', 'agustus': '08', 'september': '09', 'oktober': '10', 'november': '11', 'desember': '12',
+                'feb': '02', 'mar': '03', 'apr': '04', 'mei': '05', 'jun': '06', 'jul': '07', 'agu': '08', 'sep': '09', 'okt': '10', 'nov': '11', 'des': '12',
+                'jan': '01', 'aug': '08', 'oct': '10', 'dec': '12'
+            };
+            
+            const match = str.match(/^(\d{1,2})[\s/\-.]+(\w+|\d{1,2})[\s/\-.]+(\d{2,4})$/);
+            if (match) {
+                const day = match[1].padStart(2, '0');
+                let monthName = match[2].toLowerCase();
+                let year = match[3];
+                if (year.length === 2) year = '20' + year;
+
+                if (indoMonths[monthName]) monthName = indoMonths[monthName];
+                else if (!isNaN(monthName)) monthName = String(monthName).padStart(2, '0');
+                
+                return `${year}-${monthName}-${day}`;
+            }
+
+            // 5. Handle DD/MM (Current Year)
+            const matchShort = str.match(/^(\d{1,2})[\s/\-.]+(\d{1,2})$/);
+            if (matchShort) {
+                const day = matchShort[1].padStart(2, '0');
+                const month = matchShort[2].padStart(2, '0');
+                const year = new Date().getFullYear();
+                return `${year}-${month}-${day}`;
+            }
+
+            const parsed = new Date(d);
+            if (!isNaN(parsed.getTime())) {
+                 const year = parsed.getFullYear();
+                 const month = String(parsed.getMonth() + 1).padStart(2, '0');
+                 const day = String(parsed.getDate()).padStart(2, '0');
+                 return `${year}-${month}-${day}`;
+            }
+            
+            return new Date().toISOString().slice(0,10);
+        };
+
+        // Helper Parse Number (Robust for ID/EN)
+        const parseNum = (v) => {
+            if (typeof v === 'number') return v;
+            if (!v) return 0;
+            let s = String(v).replace(/[^0-9,.-]/g, ''); // Hapus Rp, spasi, huruf
+            if (s.includes(',') && !s.includes('.')) s = s.replace(',', '.'); // 10,5 -> 10.5
+            else if (s.includes('.') && s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); // 10.000,50 -> 10000.50
+            else if (s.includes('.')) s = s.replace(/\./g, ''); // 10.000 -> 10000
+            return parseFloat(s) || 0;
+        };
+
+        // [DIUBAH] Iterasi untuk mengelompokkan data per tanggal & jenis
+        jsonData.forEach((row, index) => {
+            const rowNum = index + 2; // Header is row 1
+            const r = {};
+            Object.keys(row).forEach(k => r[k.toLowerCase().trim()] = row[k]);
+            
+            if (!r['tanggal'] && !r['keterangan'] && !r['nama']) return;
+
+            const tgl = fmtDate(r['tanggal']);
+            let jenis = (r['jenis']||'').toLowerCase();
+            const nominalMasuk = parseNum(r['total masuk'] || r['nominal (pemasukan)'] || r['pemasukan'] || r['kredit']);
+            const nominalKeluarDirect = parseNum(r['total keluar'] || r['pengeluaran'] || r['debit']);
+
+            if (!jenis) jenis = (nominalMasuk > 0) ? 'pemasukan' : 'pengeluaran';
+
+            const key = `${tgl}|${jenis}`;
+            if (!groupedByDateAndType[key]) {
+                groupedByDateAndType[key] = { tanggal: tgl, jenis: jenis, transactions: [] };
+            }
+
+            const transaction = { nama: r['keterangan']||r['nama']||'-', foto: null };
+
+            if (jenis.includes('pengeluaran')) {
+                transaction.jumlah = parseNum(r['jumlah'] || 1); 
+                transaction.satuan = r['satuan']||''; 
+                
+                if (r['harga']) {
+                    transaction.harga = parseNum(r['harga']);
+                    transaction.total = transaction.jumlah * transaction.harga;
+                } else if (nominalKeluarDirect > 0) {
+                    transaction.total = nominalKeluarDirect;
+                    transaction.harga = transaction.jumlah > 0 ? transaction.total / transaction.jumlah : 0;
+                } else {
+                    transaction.harga = 0;
+                    transaction.total = 0;
+                }
+
+                if (transaction.total <= 0) { errors.push(`Baris ${rowNum}: Total Pengeluaran 0`); return; }
+            } else {
+                transaction.total = nominalMasuk > 0 ? nominalMasuk : parseNum(r['harga'] || r['total'] || 0); 
+                if (transaction.total <= 0) { errors.push(`Baris ${rowNum}: Total Pemasukan 0`); return; }
+            }
+            
+            groupedByDateAndType[key].transactions.push(transaction);
+            if (!importedDates.includes(tgl)) importedDates.push(tgl);
+        });
+
+        const payloads = Object.values(groupedByDateAndType);
+        if (payloads.length === 0 && errors.length === 0) { alert("Tidak ada data valid untuk diimpor."); return; }
+
+        // [DIUBAH] Simpan ke Firebase atau Local Storage sesuai mode
+        if (useFirebase) {
+            payloads.forEach(payload => {
+                // Asumsi FirebaseStorage.savePettyCashTransactions ada dan berfungsi
+                FirebaseStorage.savePettyCashTransactions(payload, outlet);
+                count += payload.transactions.length;
+            });
+        } else {
+            payloads.forEach(payload => {
+                savePendingToLocalStorage('PETTY_CASH', payload);
+                count += payload.transactions.length;
+            });
+        }
+        
+        let msg = `Berhasil import ${count} data.`;
+        if (errors.length > 0) {
+            msg += `\n\n⚠️ Gagal import ${errors.length} data:\n` + errors.slice(0, 15).join('\n');
+            if (errors.length > 15) msg += `\n... dan ${errors.length - 15} lainnya.`;
+        } else if (count > 0) {
+            msg += `\n\nTabel akan dimuat ulang untuk menampilkan data baru.`;
+        }
+        
+        alert(msg); input.value = '';
+
+        // [BARU] Otomatis set filter tanggal dan muat ulang data
+        if (importedDates.length > 0) {
+            importedDates.sort();
+            document.getElementById('pc_bulan_filter').value = importedDates[0].slice(0, 7);
+        }
+
+        if (typeof loadPettyCashData === 'function') loadPettyCashData();
+    };
+    reader.readAsArrayBuffer(file);
+};
+</script>
+</body>
+</html>

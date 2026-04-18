@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pengaturan Diskon & Promo - RBM</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .card{background:#fff;padding:12px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.06);}
+    .muted{color:#6b7280}
+    .form-row{display:flex;gap:8px;margin-bottom:8px}
+    .form-row input, .form-row select{flex:1;padding:8px;border:1px solid #e5e7eb;border-radius:6px}
+    .list-item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #f3f4f6}
+    .btn{padding:8px 12px;border-radius:8px;border:none;cursor:pointer}
+    .btn.primary{background:#4C2A85;color:white}
+    .btn.danger{background:#ef4444;color:white}
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <a href="javascript:history.back()" class="back-btn">‹</a>
+      <h1 class="page-title">Pengaturan Diskon & Promo</h1>
+    </header>
+    <main class="content">
+      <section class="card">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+          <label style="font-weight:700;">Outlet</label>
+          <select id="outlet-select" style="padding:8px;border-radius:6px;border:1px solid #e5e7eb"></select>
+        </div>
+        <div style="margin-bottom:12px;">
+          <h3 style="margin:0 0 8px 0">Tambah/Edit Promo atau Diskon</h3>
+          <div class="form-row">
+            <input id="promo-name" placeholder="Nama (contoh: Diskon 10%)">
+            <select id="promo-kind">
+              <option value="discount">Diskon</option>
+              <option value="promo">Promo</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <select id="promo-type">
+              <option value="percent">Persen (%)</option>
+              <option value="fixed">Nominal (Rp)</option>
+            </select>
+            <input id="promo-value" placeholder="Nilai (contoh: 10 untuk 10%)">
+            <input id="promo-min-purchase" type="number" placeholder="Min. Belanja (Rp)" title="Minimal Total Belanja" style="flex:1;">
+            <input id="promo-max-usage" type="number" placeholder="Kuota (0=Unlim)" title="Batas Maksimal Penggunaan" style="flex:0 0 120px;">
+            <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="promo-active" checked> Aktif</label>
+          </div>
+          <div class="form-row">
+            <label style="flex:0 0 100px;display:flex;align-items:center;">Periode</label>
+            <input id="promo-start" type="date" />
+            <input id="promo-end" type="date" />
+          </div>
+          <div class="form-row">
+            <label style="flex:0 0 100px;display:flex;align-items:center;">Happy Hour</label>
+            <input id="promo-hour-start" type="time" title="Jam Mulai (Kosongkan jika berlaku seharian)" />
+            <span style="display:flex;align-items:center;padding:0 4px;">s/d</span>
+            <input id="promo-hour-end" type="time" title="Jam Selesai" />
+          </div>
+          <div class="form-row">
+            <select id="promo-scope">
+              <option value="bill">Per Bill (struk)</option>
+              <option value="item">Per Item</option>
+            </select>
+            <select id="promo-target-type">
+              <option value="all">Semua Item</option>
+              <option value="category">Berdasarkan Kategori</option>
+              <option value="item">Item Tertentu</option>
+            </select>
+            <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="promo-autoapply"> Auto-apply</label>
+          </div>
+          <div class="form-row" id="promo-target-item-row" style="display:none;align-items:flex-start;position:relative;">
+            <button id="btn-open-items" class="btn" type="button" style="display:none;margin-right:8px;">Pilih Item...</button>
+            <div id="promo-items-panel" style="display:none; position:absolute; z-index:40; left:0; top:44px; background:#fff; border:1px solid #e5e7eb; padding:8px; width:420px; max-height:320px; overflow:auto; border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,.08);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <strong>Pilih Item untuk Promo</strong>
+                <button id="btn-close-items" class="btn">Tutup</button>
+              </div>
+              <input type="text" id="promo-item-search" placeholder="Cari menu..." style="width:100%; margin-bottom:8px; padding:6px; border:1px solid #ddd; border-radius:4px;">
+              <div style="display:flex; gap:8px; margin-bottom:8px;">
+                <button id="btn-select-all-items" type="button" class="btn" style="padding:4px 8px; font-size:11px; background:#eef2ff; color:#4C2A85; border:1px solid #c7d2fe;">Pilih Semua</button>
+                <button id="btn-deselect-all-items" type="button" class="btn" style="padding:4px 8px; font-size:11px; background:#fff; border:1px solid #e5e7eb;">Hapus Semua</button>
+              </div>
+              <select id="promo-item-filter-category" style="width:100%; margin-bottom:8px; padding:6px; border:1px solid #ddd; border-radius:4px;">
+                <option value="">Semua Kategori</option>
+              </select>
+              <div id="promo-target-items-list" style="min-height:40px"></div>
+              <div style="margin-top:12px; padding-top:8px; border-top:1px solid #f3f4f6;">
+                <button id="btn-confirm-items" type="button" class="btn primary" style="width:100%">Simpan Pilihan</button>
+              </div>
+            </div>
+            <select id="promo-target-category" style="flex:0 0 220px; display:none;">
+              <option value="">Semua Kategori</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button id="btn-save-promo" class="btn primary">Simpan</button>
+            <button id="btn-clear-form" class="btn">Bersihkan</button>
+          </div>
+        </div>
+
+        <hr>
+        <h3>Daftar Promo / Diskon</h3>
+        <div id="promo-list">
+          <div class="muted">Memuat...</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <!-- Load local menu data as fallback for item list -->
+  <script src="menu.js"></script>
+  <script src="custom-ui.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDWQG53tP2zKILTwPSJQpiVzFNyvYLxLqw",
+      authDomain: "ricebowlmonst.firebaseapp.com",
+      databaseURL: "https://ricebowlmonst-default-rtdb.firebaseio.com",
+      projectId: "ricebowlmonst",
+      storageBucket: "ricebowlmonst.firebasestorage.app",
+      messagingSenderId: "723669558962",
+      appId: "1:723669558962:web:c17a1a4683a86cc5a88bab",
+      measurementId: "G-1G3JF6ZFRP"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const outletSel = document.getElementById('outlet-select');
+      const allOutlets = JSON.parse(localStorage.getItem('rbm_outlets') || '["sidoarjo","surabaya"]');
+      allOutlets.forEach(o=>{ const opt=document.createElement('option'); opt.value=o; opt.textContent=o.toUpperCase(); outletSel.appendChild(opt); });
+
+      const nameIn = document.getElementById('promo-name');
+      const kindIn = document.getElementById('promo-kind');
+      const typeIn = document.getElementById('promo-type');
+      const valueIn = document.getElementById('promo-value');
+      const minPurchaseIn = document.getElementById('promo-min-purchase');
+      const maxUsageIn = document.getElementById('promo-max-usage');
+      const happyHourStartIn = document.getElementById('promo-hour-start');
+      const happyHourEndIn = document.getElementById('promo-hour-end');
+      const activeIn = document.getElementById('promo-active');
+      const promoList = document.getElementById('promo-list');
+      const btnSave = document.getElementById('btn-save-promo');
+      const btnClear = document.getElementById('btn-clear-form');
+
+      let editingId = null;
+
+      // load products and categories for item checklist and category dropdown
+      async function loadProductsForOutlet() {
+        const outlet = outletSel.value;
+        const itemsContainer = document.getElementById('promo-target-items-list');
+        const catSel = document.getElementById('promo-target-category');
+        const filterCatSel = document.getElementById('promo-item-filter-category');
+        if (itemsContainer) itemsContainer.innerHTML = '<div style="color:#6b7280;padding:6px">Memuat menu...</div>';
+        if (catSel) catSel.innerHTML = '<option value="">Semua Kategori</option>';
+        if (filterCatSel) filterCatSel.innerHTML = '<option value="">Semua Kategori</option>';
+        try {
+          const snap = await db.ref(`products/${outlet}`).once('value');
+          const val = snap.val();
+          const itemsMap = new Map(); // name -> category
+          const categories = new Set();
+          
+          if (val) {
+            Object.values(val).forEach(item => {
+                if (!item) return;
+                // Handle flat structure (products/{id} = {name:...})
+                const itemName = item.name || item.nama || item.title;
+                if (itemName) {
+                    itemsMap.set(itemName, item.category || '');
+                    if (item.category) categories.add(item.category);
+                } 
+                // Handle grouped structure (products/{category}/{id} = {name:...})
+                else if (typeof item === 'object') {
+                    Object.values(item).forEach(subItem => {
+                        const subName = subItem && (subItem.name || subItem.nama || subItem.title);
+                        if (subName) {
+                            itemsMap.set(subName, subItem.category || '');
+                            if (subItem.category) categories.add(subItem.category);
+                        }
+                    });
+                }
+            });
+          }
+
+          // fallback: jika tidak ada data di `products/{outlet}`, coba gunakan RBM_MENU_DATA jika tersedia
+          if (itemsMap.size === 0 && typeof RBM_MENU_DATA !== 'undefined' && Array.isArray(RBM_MENU_DATA)) {
+            RBM_MENU_DATA.forEach(cat => {
+              if (cat && cat.items && Array.isArray(cat.items)) {
+                cat.items.forEach(it => {
+                  const nm = it.name || it.nama || it.title;
+                  if (nm) {
+                    const c = it.category || cat.category || '';
+                    itemsMap.set(nm, c);
+                    if (c) categories.add(c);
+                  }
+                });
+              }
+            });
+          }
+          
+          const uniqNames = Array.from(itemsMap.keys()).sort();
+          const uniqCats = Array.from(categories).sort();
+
+          if (itemsContainer) {
+            itemsContainer.innerHTML = '';
+            if (uniqNames.length === 0) {
+                itemsContainer.innerHTML = '<div style="color:#6b7280;padding:6px">Tidak ada item/menu untuk outlet ini.</div>';
+            } else {
+                uniqNames.forEach(n => {
+              const cat = itemsMap.get(n);
+              const id = 'chk_'+n.replace(/[^a-z0-9]/gi,'_');
+              const wrapper = document.createElement('div'); wrapper.style.padding='4px'; wrapper.dataset.category = cat || '';
+              const cb = document.createElement('input'); cb.type='checkbox'; cb.id = id; cb.value = n; cb.style.marginRight='8px';
+              const lbl = document.createElement('label'); lbl.htmlFor = id; lbl.textContent = n;
+              wrapper.appendChild(cb); wrapper.appendChild(lbl);
+              itemsContainer.appendChild(wrapper);
+            });
+            }
+          }
+          if (catSel) {
+            uniqCats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; catSel.appendChild(o); });
+          }
+          if (filterCatSel) {
+            uniqCats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; filterCatSel.appendChild(o); });
+          }
+        } catch (err) {
+          console.warn('Failed to load products for promos', err);
+          if (itemsContainer) itemsContainer.innerHTML = '<div style="color:red;padding:6px">Gagal memuat menu: ' + err.message + '</div>';
+        }
+      }
+
+      async function loadPromos() {
+        promoList.innerHTML = '<div class="muted">Memuat...</div>';
+        const outlet = outletSel.value;
+        try {
+          const snap = await db.ref(`promos/${outlet}`).once('value');
+          const val = snap.val() || {};
+          const items = Object.entries(val).map(([id,d])=>({ id, ...d }));
+          if (items.length === 0) {
+            promoList.innerHTML = '<div class="muted">Tidak ada promo</div>';
+            return;
+          }
+          promoList.innerHTML = '';
+          items.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'list-item';
+            let extra = '';
+            if (p.applyScope) extra += ` • scope:${p.applyScope}`;
+            if (p.minPurchase) extra += ` • Min: Rp ${parseInt(p.minPurchase).toLocaleString('id-ID')}`;
+            if (p.happyHourStart && p.happyHourEnd) extra += ` • ⏰ ${p.happyHourStart}-${p.happyHourEnd}`;
+            if (p.targetType && p.targetType !== 'all') {
+              if (p.targetType === 'item' && Array.isArray(p.targetItems) && p.targetItems.length) {
+                extra += ` • items:${p.targetItems.join(', ')}`;
+              } else {
+                extra += ` • ${p.targetType}:${p.targetValue||p.targetItem||''}`;
+              }
+            }
+            const usageCount = p.usageCount || 0;
+            const maxUsage = p.maxUsage || 0;
+            const usageText = maxUsage > 0 ? `${usageCount} / ${maxUsage}` : `${usageCount}x`;
+            div.innerHTML = `<div><div style="font-weight:700">${p.name} <span style="font-size:11px;background:#eff6ff;color:#1d4ed8;padding:2px 6px;border-radius:4px;margin-left:4px;">Terpakai: ${usageText}</span></div><div style="font-size:12px;color:#6b7280">${p.kind} • ${p.type==='percent'?p.value+'%':'Rp '+p.value} ${p.active?'<span style="color:#059669">(Aktif)</span>':'(Nonaktif)'} ${extra}</div></div>`;
+            const btnGroup = document.createElement('div');
+            const editBtn = document.createElement('button'); editBtn.className='btn'; editBtn.textContent='Edit';
+            editBtn.addEventListener('click', ()=>{ 
+              editingId=p.id; nameIn.value=p.name; kindIn.value=p.kind; typeIn.value=p.type; valueIn.value=p.value; 
+              minPurchaseIn.value=p.minPurchase||''; maxUsageIn.value=p.maxUsage||''; 
+              happyHourStartIn.value=p.happyHourStart||''; happyHourEndIn.value=p.happyHourEnd||''; 
+              activeIn.checked=!!p.active; 
+              document.getElementById('promo-start').value = p.start || '';
+              document.getElementById('promo-end').value = p.end || '';
+              document.getElementById('promo-scope').value = p.applyScope || 'bill';
+              document.getElementById('promo-target-type').value = p.targetType || 'all';
+              document.getElementById('promo-autoapply').checked = !!p.autoApply;
+              updateTargetTypeVisibility();
+              window.scrollTo(0,0); 
+            });
+            const delBtn = document.createElement('button'); delBtn.className='btn danger'; delBtn.textContent='Hapus';
+            delBtn.addEventListener('click', async ()=>{ if(!await CustomUI.confirm('Hapus promo ini?', 'Hapus Promo', true))return; await db.ref(`promos/${outlet}/${p.id}`).remove(); loadPromos(); });
+            btnGroup.appendChild(editBtn); btnGroup.appendChild(delBtn);
+            div.appendChild(btnGroup);
+            promoList.appendChild(div);
+          });
+        } catch (err) {
+          promoList.innerHTML = `<div style="color:red">Error: ${err.message}</div>`;
+        }
+      }
+
+      btnSave.addEventListener('click', async () => {
+        const outlet = outletSel.value;
+        const name = nameIn.value.trim();
+        const kind = kindIn.value;
+        const type = typeIn.value;
+        const value = parseFloat(valueIn.value) || 0;
+        const minPurchase = parseFloat(minPurchaseIn.value) || 0;
+        const maxUsage = parseInt(maxUsageIn.value) || 0;
+        const happyHourStart = happyHourStartIn.value || null;
+        const happyHourEnd = happyHourEndIn.value || null;
+        const active = !!activeIn.checked;
+        const start = document.getElementById('promo-start').value || null;
+        const end = document.getElementById('promo-end').value || null;
+        const targetType = document.getElementById('promo-target-type').value;
+        const itemsContainer = document.getElementById('promo-target-items-list');
+        const targetItems = itemsContainer ? Array.from(itemsContainer.querySelectorAll('input[type=checkbox]:checked')).map(cb=>cb.value) : [];
+        const targetItem = targetItems.length ? targetItems[0] : '';
+        const targetCategory = document.getElementById('promo-target-category') ? document.getElementById('promo-target-category').value : '';
+        const autoApply = !!document.getElementById('promo-autoapply').checked;
+        const applyScope = document.getElementById('promo-scope').value || 'bill';
+        if (!name) { CustomUI.alert('Isi nama promo'); return; }
+        const payload = { name, kind, type, value, minPurchase, maxUsage, happyHourStart, happyHourEnd, active, start, end, targetType, targetValue: targetCategory, targetItem, targetItems, autoApply, applyScope, updatedAt: firebase.database.ServerValue.TIMESTAMP };
+        try {
+          if (editingId) {
+            await db.ref(`promos/${outlet}/${editingId}`).update(payload);
+            editingId = null;
+          } else {
+            const ref = db.ref(`promos/${outlet}`).push();
+            await ref.set(payload);
+          }
+          nameIn.value=''; valueIn.value=''; minPurchaseIn.value=''; maxUsageIn.value=''; happyHourStartIn.value=''; happyHourEndIn.value=''; activeIn.checked=true;
+          document.getElementById('promo-start').value='';
+          document.getElementById('promo-end').value='';
+          document.getElementById('promo-target-type').value='all';
+          if (document.getElementById('promo-target-category')) document.getElementById('promo-target-category').value='';
+          if (document.getElementById('promo-target-items-list')) {
+            const list = document.getElementById('promo-target-items-list');
+            list.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=false);
+          }
+          // ensure panel closed after save
+          const itemsPanel = document.getElementById('promo-items-panel'); if (itemsPanel) itemsPanel.style.display = 'none';
+          const btnOpen = document.getElementById('btn-open-items'); if (btnOpen) btnOpen.style.display = 'none';
+          document.getElementById('promo-autoapply').checked=false;
+          loadPromos();
+        } catch (err) { CustomUI.error('Gagal simpan: '+err.message); }
+      });
+
+      btnClear.addEventListener('click', ()=>{ editingId=null; nameIn.value=''; valueIn.value=''; minPurchaseIn.value=''; maxUsageIn.value=''; happyHourStartIn.value=''; happyHourEndIn.value=''; activeIn.checked=true; });
+
+      document.getElementById('promo-target-type').addEventListener('change', (e)=>{
+        const row = document.getElementById('promo-target-item-row');
+        const itemsList = document.getElementById('promo-target-items-list');
+        const catSel = document.getElementById('promo-target-category');
+        const btnOpen = document.getElementById('btn-open-items');
+        const panel = document.getElementById('promo-items-panel');
+        if (e.target.value === 'item') {
+          row.style.display = 'flex';
+          if (itemsList) itemsList.style.display = 'block';
+          if (catSel) catSel.style.display = 'none';
+          if (btnOpen) btnOpen.style.display = 'inline-block';
+          if (panel) panel.style.display = 'none';
+        } else if (e.target.value === 'category') {
+          row.style.display = 'flex';
+          // itemsList inside panel, panel hidden
+          if (catSel) catSel.style.display = 'block';
+          if (btnOpen) btnOpen.style.display = 'none';
+          if (panel) panel.style.display = 'none';
+        } else {
+          row.style.display = 'none';
+          // itemsList inside panel, panel hidden
+          if (catSel) catSel.style.display = 'none';
+          if (btnOpen) btnOpen.style.display = 'none';
+          if (panel) panel.style.display = 'none';
+        }
+      });
+
+      // [BARU] Handle visibility of target type based on scope
+      const scopeSel = document.getElementById('promo-scope');
+      const targetTypeSel = document.getElementById('promo-target-type');
+      
+      function updateTargetTypeVisibility() {
+        const isItemScope = scopeSel.value === 'item';
+        targetTypeSel.style.display = isItemScope ? '' : 'none';
+        // Trigger change on target type to update sub-options (category/item picker)
+        if (isItemScope) targetTypeSel.dispatchEvent(new Event('change'));
+        else document.getElementById('promo-target-item-row').style.display = 'none';
+      }
+      scopeSel.addEventListener('change', updateTargetTypeVisibility);
+
+      // Open/close item selection panel
+      const btnOpenItems = document.getElementById('btn-open-items');
+      const btnCloseItems = document.getElementById('btn-close-items');
+      const btnConfirmItems = document.getElementById('btn-confirm-items');
+      const itemsPanel = document.getElementById('promo-items-panel');
+      if (btnOpenItems) btnOpenItems.addEventListener('click', async ()=>{
+        // ensure latest items are loaded before opening
+        const itemsList = document.getElementById('promo-target-items-list');
+        if (itemsList) itemsList.style.display = 'block';
+        if (itemsPanel) itemsPanel.style.display = 'block'; // [PERBAIKAN] Tampilkan panel segera agar user melihat status 'Memuat...'
+        await loadProductsForOutlet();
+      });
+
+      if (btnCloseItems) btnCloseItems.addEventListener('click', ()=>{ if (itemsPanel) itemsPanel.style.display = 'none'; });
+      if (btnConfirmItems) btnConfirmItems.addEventListener('click', ()=>{ if (itemsPanel) itemsPanel.style.display = 'none'; });
+      
+      // Search functionality for items
+      const searchInput = document.getElementById('promo-item-search');
+      const filterCatSel = document.getElementById('promo-item-filter-category');
+
+      function filterItems() {
+        const term = searchInput ? searchInput.value.toLowerCase() : '';
+        const cat = filterCatSel ? filterCatSel.value : '';
+        const items = document.querySelectorAll('#promo-target-items-list > div');
+        items.forEach(div => {
+          const itemCat = div.dataset.category || '';
+          const itemText = div.textContent.toLowerCase();
+          const matchesSearch = !term || itemText.includes(term);
+          const matchesCat = !cat || itemCat === cat;
+          div.style.display = (matchesSearch && matchesCat) ? 'block' : 'none';
+        });
+      }
+
+      if (searchInput) {
+        searchInput.addEventListener('input', filterItems);
+      }
+      if (filterCatSel) {
+        filterCatSel.addEventListener('change', filterItems);
+      }
+
+      // Select All / Deselect All functionality
+      const btnSelectAll = document.getElementById('btn-select-all-items');
+      const btnDeselectAll = document.getElementById('btn-deselect-all-items');
+      
+      if (btnSelectAll) {
+        btnSelectAll.addEventListener('click', () => {
+          const visibleItems = Array.from(document.querySelectorAll('#promo-target-items-list > div')).filter(div => div.style.display !== 'none');
+          visibleItems.forEach(div => {
+            const cb = div.querySelector('input[type="checkbox"]');
+            if (cb) cb.checked = true;
+          });
+        });
+      }
+      
+      if (btnDeselectAll) {
+        btnDeselectAll.addEventListener('click', () => {
+          document.querySelectorAll('#promo-target-items-list input[type="checkbox"]').forEach(cb => cb.checked = false);
+        });
+      }
+
+      outletSel.addEventListener('change', ()=>{ loadPromos(); loadProductsForOutlet(); });
+      loadProductsForOutlet();
+      loadPromos();
+      updateTargetTypeVisibility();
+    });
+  </script>
+</body>
+</html>

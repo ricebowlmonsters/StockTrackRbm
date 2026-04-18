@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pesanan Masuk - RBM</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        .order-list {
+            display: grid;
+            gap: 16px;
+        }
+        .order-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            padding: 16px;
+            border-left: 6px solid #f59e0b; /* Kuning untuk pesanan baru */
+            transition: all 0.3s ease;
+        }
+        .order-card.status-diproses {
+            border-left-color: #3b82f6; /* Biru untuk diproses */
+        }
+        .order-card.status-selesai {
+            border-left-color: #10b981; /* Hijau untuk selesai */
+            opacity: 0.7;
+        }
+        /* [BARU] Tambahkan warna untuk status lainnya */
+        .order-card.status-sudah-dibayar {
+            border-left-color: #22c55e;
+        }
+        .order-card.status-siap-diambil {
+            border-left-color: #8b5cf6;
+        }
+        .order-card.status-belum-dibayar {
+            border-left-color: #ef4444;
+        }
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        .order-header h4 {
+            margin: 0;
+            font-size: 16px;
+        }
+        .order-header .timestamp {
+            font-size: 12px;
+            color: #6b7280;
+            flex-shrink: 0;
+            margin-left: 12px;
+        }
+        .order-details p {
+            margin: 4px 0;
+            font-size: 14px;
+        }
+        .order-items {
+            margin-top: 12px;
+            font-size: 14px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 12px;
+        }
+        .order-items ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .order-items li {
+            margin-bottom: 6px;
+        }
+        .order-actions {
+            margin-top: 16px;
+            display: flex;
+            gap: 10px;
+        }
+        .order-actions .btn {
+            flex-grow: 1;
+        }
+        .no-orders {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+        }
+        /* [BARU] Style untuk tombol pilihan outlet */
+        .outlet-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .outlet-btn {
+            flex: 1;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 2px solid var(--border, #e5e7eb);
+            background-color: var(--card, #ffffff);
+            color: var(--muted, #6b7280);
+            transition: all 0.2s ease;
+        }
+        .outlet-btn.active {
+            background-color: #eef2ff;
+            color: var(--primary, #4C2A85);
+            border-color: var(--primary, #4C2A85);
+        }
+    </style>
+    <script>
+        // Otomatis sembunyikan header ganda saat dibuka dari file:///
+        if (window.self !== window.top) {
+            document.addEventListener('DOMContentLoaded', function() {
+                document.body.classList.add('in-iframe');
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <a href="index.html" class="back-btn">‹</a>
+            <h1 class="page-title">Pesanan Masuk</h1>
+        </header>
+        <main class="content">
+            <div class="outlet-selector" id="outlet-selector"></div>
+
+            <div id="sound-permission-banner" style="display:none; background:#fffbeb; color:#b45309; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #fcd34d; text-align:center; cursor:pointer;">🔊 Klik di sini untuk mengaktifkan suara notifikasi</div>
+            <section id="order-list" class="order-list">
+                <div class="no-orders" id="no-orders-placeholder">
+                    <p>Pilih outlet di atas untuk melihat pesanan yang masuk.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Audio untuk notifikasi -->
+    <!-- [DIPERBAIKI] Hapus src default untuk mencegah error 404 saat load jika file tidak ada -->
+    <audio id="notification-sound"></audio>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="firebase-storage.js"></script>
+    
+    <!-- Voice Notifier untuk panggilan nomor meja -->
+    <script src="voice-notifier.js"></script>
+    <script src="custom-ui.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // [BARU] Flag untuk melacak interaksi pengguna
+            let userInteracted = false;
+            const soundBanner = document.getElementById('sound-permission-banner');
+
+            // [BARU] Inisialisasi Voice Notifier untuk mengatasi blokir autoplay browser
+            function initVoiceApi() {
+                userInteracted = true; // Tandai bahwa user sudah berinteraksi
+                // Cek apakah API didukung dan coba "bangunkan"
+                if ('speechSynthesis' in window) {
+                    // Panggilan 'dummy' ini, terutama setelah interaksi pengguna,
+                    // dapat "membangunkan" API di beberapa browser.
+                    if (speechSynthesis.paused) {
+                        speechSynthesis.resume();
+                    }
+                    // Jangan cancel/getVoices di sini jika tidak perlu, cukup tandai userInteracted
+                }
+                if(soundBanner) soundBanner.style.display = 'none';
+            }
+
+            // Tambahkan listener untuk interaksi pengguna pertama kali.
+            // Ini akan "membuka kunci" API suara.
+            document.addEventListener('click', initVoiceApi, { once: true });
+            document.addEventListener('keydown', initVoiceApi, { once: true });
+            document.addEventListener('touchstart', initVoiceApi, { once: true });
+            
+            // Tampilkan banner jika belum ada interaksi setelah 2 detik
+            setTimeout(() => {
+                if (!userInteracted && soundBanner) soundBanner.style.display = 'block';
+            }, 2000);
+
+            // [DIUBAH] Hardcode Konfigurasi agar permanen (tidak hilang saat ganti browser)
+            const firebaseConfig = {
+                apiKey: "AIzaSyDWQG53tP2zKILTwPSJQpiVzFNyvYLxLqw",
+                authDomain: "ricebowlmonst.firebaseapp.com",
+                databaseURL: "https://ricebowlmonst-default-rtdb.firebaseio.com",
+                projectId: "ricebowlmonst",
+                storageBucket: "ricebowlmonst.firebasestorage.app",
+                messagingSenderId: "723669558962",
+                appId: "1:723669558962:web:c17a1a4683a86cc5a88bab"
+            };
+            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+            const database = firebase.database();
+
+            const user = JSON.parse(localStorage.getItem('rbm_user'));
+            const orderListEl = document.getElementById('order-list');
+            const noOrdersPlaceholder = document.getElementById('no-orders-placeholder');
+            const notificationSound = document.getElementById('notification-sound');
+            const outletSelectorDiv = document.getElementById('outlet-selector');
+
+            let currentOutletId = null;
+            let ordersRef = null;
+            let outletButtons = [];
+
+            // [BARU] Kunci untuk menyimpan outlet terakhir
+            const LAST_OUTLET_KEY = 'rbm_last_selected_outlet'; 
+            const RBM_ACTIVE_OUTLETS = 'rbm_active_outlets';
+
+
+            // [BARU] Sinkronisasi Outlet dari Firebase (Agar sinkron dengan Customer Settings)
+            function syncOutletsFromFirebase() {
+                database.ref('customer_app_settings/outlets').once('value').then(snapshot => {
+                    const outletsData = snapshot.val();
+                    if (outletsData) {
+                        // Normalisasi data outlet
+                        const outletsList = Array.isArray(outletsData) 
+                            ? outletsData 
+                            : Object.values(outletsData).filter(i => i);
+                        
+                        const outletIds = outletsList.map(o => o.id).filter(id => id);
+                        
+                        // [BARU] Simpan mapping ID ke Nama untuk tampilan
+                        const outletNames = {};
+                        outletsList.forEach(o => {
+                            if(o.id) outletNames[o.id] = o.name;
+                        });
+                        localStorage.setItem('rbm_outlet_names', JSON.stringify(outletNames));
+
+                        // Simpan ke localStorage
+                        localStorage.setItem('rbm_outlets', JSON.stringify(outletIds));
+                        renderOutletButtons(); // Render ulang setelah sync
+                    }
+                });
+            }
+
+            // [BARU] Fungsi untuk membuat tombol outlet secara dinamis
+            function renderOutletButtons() {
+                const user = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+                const outletNames = JSON.parse(localStorage.getItem('rbm_outlet_names') || '{}'); // [BARU] Ambil nama
+                
+                // [DIUBAH] Logika pengambilan outlet: Prioritaskan Active Outlets, Fallback ke Master Outlets
+                let displayOutlets = [];
+
+                if (user.role === 'manager' && user.outlet) {
+                    displayOutlets = [user.outlet];
+                } else {
+                    let activeOutlets = JSON.parse(localStorage.getItem(RBM_ACTIVE_OUTLETS) || '[]');
+                    if (activeOutlets.length === 0) {
+                        activeOutlets = JSON.parse(localStorage.getItem('rbm_outlets') || '[]');
+                    }
+                    if (activeOutlets.length === 0) activeOutlets = ['sidoarjo', 'surabaya']; // Fallback
+                    displayOutlets = activeOutlets;
+                }
+
+                if (displayOutlets.length === 0) {
+                    outletSelectorDiv.innerHTML = '<p class="no-orders">Tidak ada outlet yang tersedia. Silakan tambah outlet di <b>Web Customer</b>.</p>';
+                    return;
+                }
+                outletSelectorDiv.innerHTML = '';
+                displayOutlets.forEach(outlet => {
+                    if (typeof outlet !== 'string') outlet = String(outlet.id || outlet);
+                    if (!outlet) return;
+                    const btn = document.createElement('button');
+                    btn.className = 'outlet-btn';
+                    btn.dataset.outlet = outlet;
+                    // [DIUBAH] Tampilkan Nama jika ada, jika tidak ID
+                    const displayName = outletNames[outlet] || (outlet.charAt(0).toUpperCase() + outlet.slice(1));
+                    btn.textContent = displayName;
+                    outletSelectorDiv.appendChild(btn);
+                });
+                outletButtons = document.querySelectorAll('.outlet-btn');
+                addEventListenersToOutletButtons();
+
+                // [BARU] LOGIKA OTOMATIS:
+                // Jika hanya ada 1 outlet, langsung pilih (tapi jangan disembunyikan).
+                if (displayOutlets.length === 1) {
+                    outletButtons[0].click();
+                    outletSelectorDiv.style.display = 'flex'; // Tetap tampilkan
+                } else {
+                    // Jika lebih dari 1, pilih yang terakhir kali dibuka
+                    const lastOutlet = localStorage.getItem(LAST_OUTLET_KEY);
+                    if (lastOutlet) {
+                        const lastOutletButton = document.querySelector(`.outlet-btn[data-outlet="${lastOutlet}"]`);
+                        lastOutletButton?.click();
+                    }
+                }
+            }
+            syncOutletsFromFirebase(); // [BARU] Panggil sync saat load
+            renderOutletButtons();
+
+            if (!user || !user.username) {
+                noOrdersPlaceholder.innerHTML = '<p>Anda harus login terlebih dahulu untuk melihat pesanan.</p>';
+                outletButtons.forEach(btn => btn.disabled = true);
+                return;
+            }
+
+            // [BARU] Kontrol cetak dari settings
+            const settings = JSON.parse(localStorage.getItem('rbm_settings') || '{}');
+            const autoPrintAll = settings.autoPrintAll !== false; // Default true - cetak semua pesanan baru
+            const autoPrintQris = settings.autoPrintQris !== false; // Default true - untuk fallback
+
+            const printedOrderIds = new Set(); // cegah cetak ganda
+
+            // [DIUBAH] Fungsi untuk mulai mendengarkan pesanan dari outlet tertentu
+            function listenToOrders(outletId) {
+                // Hentikan listener sebelumnya jika ada
+                if (ordersRef) {
+                    ordersRef.off();
+                }
+
+                // [BARU] Simpan outlet yang dipilih
+                if (outletId) {
+                    localStorage.setItem(LAST_OUTLET_KEY, outletId);
+                }
+
+                currentOutletId = outletId;
+                ordersRef = database.ref(`orders/${outletId}`);
+                var recentOrdersQuery = ordersRef.orderByChild('date').limitToLast(100); // [OPTIMASI] Batasi data historis
+                
+                // Kosongkan daftar pesanan dan tampilkan placeholder
+                orderListEl.innerHTML = '';
+                noOrdersPlaceholder.style.display = 'block';
+                noOrdersPlaceholder.innerHTML = '<p>Menunggu pesanan masuk...</p>';
+
+                // Mendengarkan pesanan baru (child_added)
+                ordersRef.orderByChild('date').on('child_added', (snapshot) => {
+                    const order = snapshot.val();
+                    if (order) {
+                        // [BARU] Filter pesanan dari POS agar tidak masuk ke Pesanan Masuk
+                        if (order.source === 'pos') return;
+
+                        // [BARU] Filter pesanan yang disembunyikan (Soft Delete) - Data tetap ada di DB tapi hilang dari layar
+                        if (order.hidden) return;
+
+                        noOrdersPlaceholder.style.display = 'none'; // Sembunyikan placeholder
+                        renderOrderCard(order);
+                        
+                        // [BARU] Mainkan suara notifikasi jika pesanan baru (sesuai pengaturan)
+                        if (order.status === 'Baru') {
+                            const settings = JSON.parse(localStorage.getItem('rbm_settings') || '{}');
+                            
+                            // Ambil nomor meja dari pesanan
+                            let tableNumber = null;
+                            if (order.details && order.details.type === 'Dine-in' && order.details.tableNumber) {
+                                tableNumber = order.details.tableNumber;
+                            } else if (order.details && order.details.tableNumber) {
+                                // Fallback jika ada tableNumber meskipun bukan Dine-in
+                                tableNumber = order.details.tableNumber;
+                            }
+                            
+                            // Putar suara notifikasi jika diaktifkan (HANYA INI YANG BERBUNYI untuk pesanan baru)
+                            // Suara diputar terlebih dahulu sebelum proses print untuk memastikan tidak terganggu
+                            if (settings.soundNotificationNewOrder !== false) { // Default true, coba putar meski belum interaksi (catch error nanti)
+                                try {
+                                    // [DIUBAH] Selalu gunakan Voice Notifier (Suara Robot)
+                                    VoiceNotifier.announceNewOrder(tableNumber);
+                                } catch (e) {
+                                    console.warn('Voice notification untuk pesanan baru gagal:', e);
+                                    // Fallback ke suara beep HANYA jika voice notification error (misal browser tidak dukung)
+                                    playFallbackSound(notificationSound);
+                                }
+                            }
+                        }
+
+                        // [BARU] Otomatis cetak untuk semua pesanan baru (jika autoPrintAll aktif)
+                        // atau hanya QRIS (jika autoPrintAll tidak aktif tapi autoPrintQris aktif)
+                        try {
+                            if (!order.printed && order.status === 'Baru') {
+                                const method = (order.payment?.method || '').toUpperCase();
+                                const isQris = method.includes('QRIS');
+                                
+                                // Cetak jika: (autoPrintAll aktif) ATAU (autoPrintAll tidak aktif DAN QRIS)
+                                if (autoPrintAll || (!autoPrintAll && autoPrintQris && isQris)) {
+                                    triggerPrint(order, autoPrintAll ? 'AUTO_ALL' : 'AUTO_QRIS');
+                                }
+                            }
+                        } catch (e) { console.warn('Auto print gagal:', e); }
+                    }
+                });
+
+                // Mendengarkan perubahan status pesanan (child_changed)
+                ordersRef.on('child_changed', (snapshot) => {
+                    const order = snapshot.val();
+
+                    // [FIX] Cegah error jika data null (misal koneksi putus)
+                    if (!order) return;
+                    
+                    // [BARU] Jika pesanan ditandai hidden, hapus kartunya dari layar
+                    if (order.hidden) {
+                        const card = document.getElementById(order.id);
+                        if (card) card.remove();
+                        return;
+                    }
+
+                    const card = document.getElementById(order.id);
+                    if (card) {
+                        // Hapus kartu lama dan render ulang dengan status baru
+                        card.remove();
+                        renderOrderCard(order);
+                    }
+
+                    // [BARU] Jika status berubah menjadi "Siap Diambil", panggil customer dengan voice notification
+                    if (order.status === 'Siap Diambil') {
+                        try {
+                            // Ambil nomor meja dari order
+                            let tableNumber = null;
+                            if (order.details && order.details.type === 'Dine-in' && order.details.tableNumber) {
+                                tableNumber = order.details.tableNumber;
+                            } else if (order.details && order.details.tableNumber) {
+                                // Fallback jika ada tableNumber meskipun bukan Dine-in
+                                tableNumber = order.details.tableNumber;
+                            }
+                            
+                            // [DIUBAH] Selalu gunakan Voice Notifier (Suara Robot)
+                            VoiceNotifier.announce(tableNumber);
+                        } catch (e) { 
+                            console.warn('Voice notification gagal:', e); 
+                            playFallbackSound(notificationSound);
+                        }
+                    }
+
+                    // [BARU] Jika kasir konfirmasi bayar, cetak otomatis (sekali)
+                    try {
+                        const method = (order.payment?.method || '').toUpperCase();
+                        if (!order.printed && !method.includes('QRIS') && order.status === 'Sudah Dibayar') {
+                            triggerPrint(order, 'AUTO_KASIR');
+                        }
+                    } catch (e) { console.warn('Auto print (kasir) gagal:', e); }
+                });
+            }
+
+            // [BARU] Fungsi untuk menambahkan listener ke tombol yang dinamis
+            function addEventListenersToOutletButtons() {
+                const outletNames = JSON.parse(localStorage.getItem('rbm_outlet_names') || '{}'); // [BARU]
+
+                outletButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        // Hapus kelas aktif dari semua tombol
+                        outletButtons.forEach(btn => btn.classList.remove('active'));
+                        // Tambahkan kelas aktif ke tombol yang diklik
+                        button.classList.add('active');
+                        
+                        const selectedOutlet = button.dataset.outlet;
+                        listenToOrders(selectedOutlet);
+
+                        // [BARU] Tampilkan Badge Lokasi di Judul Halaman agar tidak bingung
+                        const pageTitle = document.querySelector('.page-title');
+                        let badge = document.getElementById('location-badge');
+                        if (!badge) {
+                             badge = document.createElement('span');
+                             badge.id = 'location-badge';
+                             badge.style.cssText = 'font-size: 0.5em; background-color: #e6fffa; color: #00695c; padding: 4px 8px; border-radius: 4px; margin-left: 10px; vertical-align: middle; border: 1px solid #b2f5ea; font-weight: normal; text-transform: capitalize;';
+                             pageTitle.appendChild(badge);
+                        }
+                        // [DIUBAH] Gunakan nama display
+                        const displayName = outletNames[selectedOutlet] || selectedOutlet;
+                        badge.innerHTML = `📍 ${displayName}`;
+                    });
+                });
+            }
+
+
+            function renderOrderCard(order) {
+                const card = document.createElement('div');
+                // [DIPERBAIKI] Tambahkan fallback untuk status jika tidak ada, untuk mencegah error
+                const statusClass = (order.status || 'Baru').toLowerCase().replace(' ', '-');
+                card.className = `order-card status-${statusClass}`;
+                card.id = order.id;
+
+                const orderTime = new Date(order.date || Date.now()).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                const paymentMethod = order.payment?.method || 'N/A';
+                const orderType = (order.details && order.details.type === 'Dine-in') ? `Meja ${order.details.tableNumber}` : 'Bawa Pulang';
+
+                let itemsHtml = '<ul>';
+                (order.items || []).forEach(item => {
+                    itemsHtml += `<li>- ${item.name} (x${item.quantity})</li>`;
+                    if (item.note) {
+                        itemsHtml += `<li style="padding-left: 15px; font-style: italic; color: #6b7280;">Catatan: ${item.note}</li>`;
+                    }
+                });
+                itemsHtml += '</ul>';
+
+                card.innerHTML = `
+                    <div class="order-header">
+                        <h4>${orderType}</h4>
+                        <span class="timestamp">${orderTime}</span>
+                    </div>
+                    <div class="order-details">
+                        <p><strong>Total:</strong> ${formatPrice(order.payment?.total || 0)}</p>
+                        <p><strong>Pembayaran:</strong> ${paymentMethod}</p>
+                        <p><strong>Status:</strong> <span style="font-weight: bold;">${order.status}</span></p>
+                    </div>
+                    <div class="order-items">
+                        <strong>Pesanan:</strong>
+                        ${itemsHtml}
+                    </div>
+                    <div class="order-actions">
+                        ${order.status === 'Baru' ? `<button class="btn btn-primary" onclick="updateStatus('${order.id}', 'Sudah Dibayar')">Konfirmasi Bayar</button>` : ''}
+                        ${order.status === 'Sudah Dibayar' ? `<button class="btn btn-primary" onclick="updateStatus('${order.id}', 'Diproses')">Proses di Dapur</button>` : ''}
+                        ${order.status === 'Diproses' ? `<button class="btn" style="background-color: #8b5cf6; color: white;" onclick="updateStatus('${order.id}', 'Siap Diambil')">Siap Diambil</button>` : ''}
+                        ${order.status === 'Siap Diambil' ? `<button class="btn" style="background-color: #10b981; color: white;" onclick="updateStatus('${order.id}', 'Selesai')">Selesaikan</button>` : ''}
+                        ${order.status === 'Selesai' ? `<button class="btn" style="background-color: #ef4444; color: white;" onclick="hideOrder('${order.id}')">🗑️ Hapus dari Layar</button>` : ''}
+                        ${order.status === 'Siap Diambil' ? `<button class="btn" style="background-color: #f59e0b; color: white;" onclick="repeatVoiceNotification('${order.id}')" title="Putar ulang panggilan suara">🔊 Panggil Ulang</button>` : ''}
+                        <button class="btn btn-secondary" onclick="manualPrint('${order.id}')">Cetak Struk</button>
+                    </div>
+                `;
+
+                orderListEl.prepend(card); // Tambahkan pesanan baru di paling atas
+            }
+
+            window.updateStatus = function(orderId, newStatus) {
+                const updates = {};
+                updates[`/orders/${currentOutletId}/${orderId}/status`] = newStatus;
+                updates[`/orders/${currentOutletId}/${orderId}/date`] = firebase.database.ServerValue.TIMESTAMP; // [DIPERBAIKI] Selalu perbarui timestamp saat status berubah
+                database.ref().update(updates);
+            }
+
+            // [BARU] Fungsi untuk menyembunyikan pesanan dari layar (tetap ada di database)
+            window.hideOrder = function(orderId) {
+                if (!currentOutletId) return;
+                // Kita hanya update flag 'hidden' menjadi true, TIDAK menghapus data (remove)
+                const updates = {};
+                updates[`/orders/${currentOutletId}/${orderId}/hidden`] = true;
+                database.ref().update(updates);
+            }
+
+            // [BARU] Fungsi untuk memutar ulang voice notification
+            window.repeatVoiceNotification = function(orderId) {
+                if (!currentOutletId || !orderId) return;
+                
+                // Ambil data pesanan dari Firebase
+                database.ref(`orders/${currentOutletId}/${orderId}`).once('value').then(snapshot => {
+                    const order = snapshot.val();
+                    if (!order) {
+                        console.warn('Pesanan tidak ditemukan');
+                        return;
+                    }
+
+                    // Ambil nomor meja dari pesanan
+                    let tableNumber = null;
+                    if (order.details && order.details.type === 'Dine-in' && order.details.tableNumber) {
+                        tableNumber = order.details.tableNumber;
+                    } else if (order.details && order.details.tableNumber) {
+                        // Fallback jika ada tableNumber meskipun bukan Dine-in
+                        tableNumber = order.details.tableNumber;
+                    }
+                    
+                    // [DIUBAH] Panggil voice notification (dengan atau tanpa nomor meja)
+                    try {
+                        VoiceNotifier.announce(tableNumber);
+                    } catch (e) {
+                        console.warn('Voice notification gagal:', e);
+                        playFallbackSound(notificationSound);
+                    }
+                }).catch(error => {
+                    console.error('Error mengambil data pesanan:', error);
+                    CustomUI.error('Gagal mengambil data pesanan.');
+                });
+            }
+
+            // [BARU] Cetak: HTML ke thermal via dialog (bisa auto dengan Chrome --kiosk-printing)
+            function triggerPrint(order, reason) {
+                try {
+                    if (!order || printedOrderIds.has(order.id)) return;
+                    // Hindari print ganda untuk event child_added + child_changed
+
+                    const printerGroupsRaw = localStorage.getItem('rbm_printer_groups');
+                    let useGroupedPrint = false;
+                    if (printerGroupsRaw) {
+                        try {
+                            const g = JSON.parse(printerGroupsRaw);
+                            const hasKasir = g.printerKasir && (g.printers || []).some(p => (p.id || p.name) === g.printerKasir);
+                            const hasChecker = g.printerChecker && (g.printers || []).some(p => (p.id || p.name) === g.printerChecker);
+                            const hasItemPrinters = (order.items || []).some(it => it.printerId && String(it.printerId).trim());
+                            if (g.printers && g.printers.length > 0 && (hasKasir || hasChecker || hasItemPrinters)) useGroupedPrint = true;
+                        } catch (e) {}
+                    }
+
+                    if (useGroupedPrint) {
+                        triggerGroupedPrint(order);
+                    } else {
+                        const cashierHtml = buildCashierReceiptHtml(order);
+                        triggerSinglePrint(cashierHtml, order);
+                    }
+                    printedOrderIds.add(order.id);
+                } catch (e) {
+                    console.error('Gagal memicu proses cetak:', e);
+                    UIHelper?.showMessage?.('Gagal memicu cetak struk', 'error');
+                }
+            }
+
+            // [BARU] Cetak: struk kasir + printer checker (jika diatur); slip per item dari printerId di Kelola Menu
+            async function triggerGroupedPrint(order) {
+                const g = JSON.parse(localStorage.getItem('rbm_printer_groups') || '{}');
+                const printers = g.printers || [];
+                const printerKasir = (g.printerKasir || '').trim();
+                const printerChecker = (g.printerChecker || '').trim();
+                const printerMap = {};
+                printers.forEach(p => { printerMap[p.id || p.name] = p; });
+                let anySuccess = false;
+                const cashierHtml = buildCashierReceiptHtml(order);
+
+                // Struk kasir → printer kasir
+                if (printerKasir && printerMap[printerKasir] && printerMap[printerKasir].ip) {
+                    const ok = await printViaBridge(cashierHtml, printerKasir, printerMap[printerKasir].ip);
+                    if (ok) anySuccess = true;
+                }
+                // Salinan struk → printer checker
+                if (printerChecker && printerMap[printerChecker] && printerMap[printerChecker].ip) {
+                    const ok = await printViaBridge(cashierHtml, printerChecker, printerMap[printerChecker].ip);
+                    if (ok) anySuccess = true;
+                }
+
+                // Kelompokkan item pesanan per printer (printerId dari form Kelola Menu)
+                const byPrinter = {};
+                (order.items || []).forEach(it => {
+                    const pid = (it.printerId && String(it.printerId).trim()) || '';
+                    if (pid) {
+                        if (!byPrinter[pid]) byPrinter[pid] = [];
+                        byPrinter[pid].push(it);
+                    }
+                });
+
+                for (const pid of Object.keys(byPrinter)) {
+                    const pr = printerMap[pid];
+                    if (!pr || !pr.ip) continue;
+                    const items = byPrinter[pid];
+                    if (!items.length) continue;
+                    const label = pr.name || pr.id || pid;
+                    const htmlToPrint = buildReceiptHtml(order, label, items);
+                    const ok = await printViaBridge(htmlToPrint, pid, pr.ip);
+                    if (ok) anySuccess = true;
+                }
+
+                if (anySuccess) updatePrintedFlag(order.id);
+                else fallbackBrowserPrint(buildCashierReceiptHtml(order), order.id);
+            }
+
+            // [BARU] Konfigurasi Print Bridge (jika digunakan)
+            const PRINT_BRIDGE_URL = 'http://localhost:3000'; // URL print bridge server
+            const USE_PRINT_BRIDGE = true; // Set false untuk gunakan browser print biasa
+
+            // [BARU] Fungsi untuk print via Print Bridge (opsional: kirim printerIP dari Kelompok Printer)
+            async function printViaBridge(html, printerName, printerIP) {
+                try {
+                    const body = { printerName: printerName || null, content: html };
+                    if (printerIP) body.printerIP = printerIP;
+                    const response = await fetch(`${PRINT_BRIDGE_URL}/print`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        console.log(`✅ Print berhasil via bridge: ${printerName || printerIP}`);
+                        return true;
+                    }
+                    console.error('Print bridge error:', result.message);
+                    return false;
+                } catch (error) {
+                    console.warn('Print bridge tidak tersedia:', error);
+                    return false;
+                }
+            }
+
+            // [BARU] Fungsi untuk menangani satu kali cetak (baik native, bridge, atau browser)
+            async function triggerSinglePrint(html, order) {
+                // [DIUBAH] Ambil konfigurasi printer dari localStorage
+                const printerConfig = JSON.parse(localStorage.getItem('rbm_printer_config') || '{}');
+                // Gunakan PRINTER_UTAMA, jika tidak ada di setting browser, gunakan default string 'PRINTER_UTAMA' untuk bridge
+                const deviceName = printerConfig.PRINTER_UTAMA || 'PRINTER_UTAMA'; 
+
+                // Opsi 1: Electron (Native) - untuk aplikasi desktop
+                if (window.Native && typeof window.Native.printReceipt === 'function') {
+                    window.Native.printReceipt({ html, deviceName }).then(() => {
+                        updatePrintedFlag(order.id);
+                    }).catch(err => {
+                        console.warn('Native print gagal, fallback ke print bridge:', err);
+                        printViaBridge(html, deviceName).then(success => {
+                            if (success) updatePrintedFlag(order.id);
+                            else fallbackBrowserPrint(html, order.id);
+                        });
+                    });
+                    return;
+                }
+
+                // Opsi 2: Print Bridge (Auto-print tanpa dialog) - RECOMMENDED
+                if (USE_PRINT_BRIDGE) {
+                    const success = await printViaBridge(html, 'PRINTER_UTAMA');
+                    if (success) {
+                        updatePrintedFlag(order.id);
+                        return; // Berhasil print via bridge, tidak perlu fallback
+                    }
+                    // Jika bridge gagal, lanjut ke browser fallback
+                }
+
+                // Opsi 3: Browser Fallback (dengan dialog print)
+                fallbackBrowserPrint(html, order.id);
+            }
+
+            // [BARU] Fungsi untuk mencetak via browser (dipisahkan agar bisa dipanggil berulang)
+            function fallbackBrowserPrint(html, orderId) {
+                const iframe = document.createElement('iframe');
+                iframe.style.position = 'fixed';
+                iframe.style.right = '0';
+                iframe.style.bottom = '0';
+                iframe.style.width = '0';
+                iframe.style.height = '0';
+                iframe.style.border = '0';
+                document.body.appendChild(iframe);
+                const doc = iframe.contentWindow.document;
+                doc.open();
+                doc.write(html);
+                doc.close();
+                iframe.onload = () => {
+                    setTimeout(() => {
+                        const iw = iframe.contentWindow;
+                        if (iw) {
+                            const cleanup = () => {
+                                updatePrintedFlag(orderId);
+                                try { iframe.remove(); } catch (e) {}
+                                try { window.focus(); } catch (e) {}
+                            };
+                            iw.onafterprint = cleanup;
+                            setTimeout(cleanup, 4000); // Jaring pengaman jika onafterprint tidak jalan
+                            try { iw.focus(); } catch (e) {}
+                            iw.print();
+                        } else {
+                            window.print(); // Fallback paling akhir
+                            setTimeout(() => { try { iframe.remove(); } catch (e) {} }, 1000);
+                                }
+                    }, 50); // Jeda singkat agar iframe siap
+                }
+            }
+
+            window.manualPrint = function(orderId) {
+                if (printedOrderIds.has(orderId)) {
+                    CustomUI.alert('Order ini sudah dicetak');
+                    return;
+                }
+                if (!currentOutletId) return;
+                database.ref(`orders/${currentOutletId}/${orderId}`).once('value').then(snap => {
+                    const order = snap.val();
+                    if (order && !order.printed) {
+                        triggerPrint(order, 'MANUAL');
+                    } else {
+                        CustomUI.alert('Order ini sudah dicetak');
+                    }
+                }).catch(err => {
+                    console.error("Gagal manual print:", err);
+                });
+            };
+
+            // [BARU] Fungsi untuk update flag 'printed' di Firebase
+            function updatePrintedFlag(orderId) {
+                try {
+                    if (currentOutletId && orderId) {
+                        const updates = {};
+                        updates[`/orders/${currentOutletId}/${orderId}/printed`] = true;
+                        database.ref().update(updates);
+                    }
+                } catch (e) { console.warn('Gagal update flag printed:', e); }
+            }
+            // [BARU] Fungsi untuk mengkategorikan item
+            function getItemCategory(itemName) {
+                const name = (itemName || '').toLowerCase();
+                const makananKeywords = ['nasi', 'ayam', 'mie', 'geprek', 'bebek', 'telur', 'spaghetti', 'burger'];
+                const minumanKeywords = ['es', 'teh', 'kopi', 'juice', 'mineral', 'soda', 'latte', 'coklat'];
+                const checkerKeywords = ['checker']; // Jika ada item khusus untuk checker
+
+                if (checkerKeywords.some(k => name.includes(k))) return 'CHECKER';
+                if (makananKeywords.some(k => name.includes(k))) return 'MAKANAN';
+                if (minumanKeywords.some(k => name.includes(k))) return 'MINUMAN';
+                return 'LAIN-LAIN';
+            }
+
+            // [BARU] Fungsi untuk mengekstrak kategori dari HTML struk yang sudah dibuat
+            function getCategoryFromHtml(htmlStr) {
+                const match = html.match(/--- (MAKANAN|MINUMAN|CHECKER) ---/);
+                if (match && match[1]) {
+                    return match[1];
+                }
+                return 'LAIN-LAIN';
+            }
+
+
+            function buildReceiptHtml(order, category, items) {
+                const store = (currentOutletId || '').toUpperCase();
+                const time = new Date(order.date).toLocaleString('id-ID');
+                const method = order.payment?.method || 'N/A';
+                const total = formatPrice(order.payment?.total || 0).replace('Rp ', '');
+                const orderType = order.details?.type === 'Dine-in' ? `Meja ${order.details?.tableNumber || '-'}` : 'Bawa Pulang';
+
+                // [DIUBAH] Hanya render item dari kategori yang diberikan
+                let itemsHtml = '';
+                if (items && items.length > 0) {
+                    itemsHtml += `<div class="center" style="margin-top: 5px;">--- ${category} ---</div>`;
+                    items.forEach(it => {
+                        const note = it.note ? `<div style="font-size:10px;opacity:.8;padding-left:10px;">Catatan: ${it.note}</div>` : '';
+                        itemsHtml += `<div>${it.name} x${it.quantity}${note}</div>`;
+                    });
+                }
+
+                // [BARU] Struk per printer (bukan kasir) = tanpa harga; hanya kasir yang pakai buildCashierReceiptHtml
+                const isKitchenReceipt = category !== 'KASIR';
+
+                // [BARU] Buat bagian footer yang berisi harga, hanya jika BUKAN struk dapur
+                const priceFooter = isKitchenReceipt ? '' : `
+                    <div class="row"><span>Pembayaran</span><span>${method}</span></div>
+                    <div class="line"></div>
+                    <div style="font-size:12px;">${itemsHtml || '-'}</div>
+                    <div class="line"></div>
+                    <div class="row" style="font-size:14px;"><strong>Total</strong><strong>Rp ${total}</strong></div>
+                    <div style="margin-top:8px;" class="center muted">Terima kasih</div>`;
+
+                // Template thermal 80mm sederhana
+                return `<!DOCTYPE html>
+                <html><head><meta charset="utf-8">
+                <style>
+                    @page { size: 80mm 297mm; margin: 0; padding: 0; }
+                    body { font-family: 'Courier New', monospace; width: 76mm; margin: 0; padding: 2mm; font-size: 10px; line-height: 1.2; white-space: pre-wrap; }
+                    .center { text-align:center; }
+                    .line { border-top:1px dashed #000; margin:6px 0; }
+                    .muted { opacity:.9; font-size:9px; }
+                    .row { display:flex; justify-content:space-between; font-size:10px; }
+                </style></head>
+                <body>
+                    <div class="center"><strong>RICE BOWL MONSTER</strong></div>
+                    <div class="center muted">${store}</div>
+                    <div class="center muted">${time}</div>
+                    <div class="line"></div>
+                    <div class="row"><span>Tipe</span><span>${orderType}</span></div>`
+                    // [DIUBAH] Jika struk dapur, hanya tampilkan item. Jika tidak, tampilkan footer harga.
+                    + (isKitchenReceipt ? '<div class="line"></div><div style="font-size:10px;">' + (itemsHtml || '-') + '</div>' : priceFooter)
+                    + ` 
+                </body></html>`;
+            }
+
+            // [BARU] Fungsi untuk membuat struk lengkap untuk kasir
+            function buildCashierReceiptHtml(order) {
+                const store = (currentOutletId || '').toUpperCase();
+                const time = new Date(order.date).toLocaleString('id-ID');
+                const method = order.payment?.method || 'N/A';
+                const total = formatPrice(order.payment?.total || 0).replace('Rp ', '');
+                const orderType = order.details?.type === 'Dine-in' ? `Meja ${order.details?.tableNumber || '-'}` : 'Bawa Pulang';
+
+                // Render semua item tanpa pengelompokan
+                let itemsHtml = '';
+                (order.items || []).forEach(it => {
+                    const note = it.note ? `<div style="font-size:10px;opacity:.8;padding-left:10px;">Catatan: ${it.note}</div>` : '';
+                    itemsHtml += `<div>${it.name} x${it.quantity}${note}</div>`;
+                });
+
+                // Template ini mirip dengan yang lain, tapi headernya "KASIR" dan itemnya lengkap
+                return `<!DOCTYPE html>
+                <html><head><meta charset="utf-8">
+                <style>
+                    @page { size: 80mm 297mm; margin: 0; padding: 0; }
+                    body { font-family: 'Courier New', monospace; width: 76mm; margin: 0; padding: 2mm; font-size: 10px; line-height: 1.2; white-space: pre-wrap; }
+                    .center { text-align:center; }
+                    .line { border-top:1px dashed #000; margin:6px 0; }
+                    .muted { opacity:.9; font-size:9px; }
+                    .row { display:flex; justify-content:space-between; font-size:10px; }
+                </style></head>
+                <body>
+                    <div class="center"><strong>RICE BOWL MONSTER</strong></div>
+                    <div class="center muted">${store}</div>
+                    <div class="center muted">${time}</div>
+                    <div class="line"></div>
+                    <div class="center" style="margin-bottom: 5px; font-size:10px;">--- KASIR ---</div>
+                    <div class="row"><span>Tipe</span><span>${orderType}</span></div>
+                    <div class="row"><span>Pembayaran</span><span>${method}</span></div>
+                    <div class="line"></div>
+                    <div style="font-size:10px;">${itemsHtml || '-'}</div>
+                    <div class="line"></div>
+                    <div class="row" style="font-size:12px;"><strong>Total</strong><strong>Rp ${total}</strong></div>
+                    <div style="margin-top:8px;" class="center muted">Terima kasih</div>
+                </body></html>`;
+            }
+
+            function formatPrice(price) {
+                if (price === undefined || price === null) return 'Rp 0';
+                return `Rp ${Math.round(price).toLocaleString('id-ID')}`;
+            }
+
+            // [BARU] Fungsi helper untuk memutar suara dengan aman
+            function playFallbackSound(audioEl) {
+                if (!audioEl) return;
+                // Coba set src ke file mp3 jika belum ada
+                if (!audioEl.src) audioEl.src = "notification.mp3";
+                
+                audioEl.play().catch(e => {
+                    // Jika gagal (misal file tidak ada atau autoplay blocked), coba beep digital
+                    playBeepSound();
+                });
+            }
+            
+            // [BARU] Fungsi Beep menggunakan Web Audio API (Fallback jika MP3 gagal)
+            function playBeepSound() {
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioContext) return;
+                    
+                    const ctx = new AudioContext();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, ctx.currentTime); // Nada A5
+                    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.1);
+                    
+                    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+                    
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.1);
+                } catch (e) {
+                    console.warn("Beep sound failed:", e);
+                }
+            }
+        });
+    </script>
+</body>
+</html>     

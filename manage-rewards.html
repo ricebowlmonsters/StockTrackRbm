@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelola Hadiah - RBM Kasir</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .back-btn { text-decoration: none; font-size: 24px; color: #333; margin-right: 15px; }
+        .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 24px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #374151; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #4C2A85; color: white; }
+        .btn-primary:hover { background: #3c216b; }
+        .btn-danger { background: #ef4444; color: white; padding: 8px 16px; font-size: 12px; }
+        
+        .rewards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+        .reward-item { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); position: relative; border: 1px solid #e5e7eb; }
+        .reward-img { width: 100%; height: 150px; object-fit: cover; background: #f3f4f6; display: block; }
+        .reward-info { padding: 12px; }
+        .reward-name { font-weight: 700; margin-bottom: 4px; font-size: 16px; color: #374151; }
+        .reward-meta { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: #6b7280; }
+        .reward-badge { position: absolute; top: 10px; right: 10px; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; text-transform: uppercase; }
+        .badge-voucher { background: #f59e0b; }
+        .badge-merchandise { background: #8b5cf6; }
+        .delete-btn-wrapper { margin-top: 10px; text-align: right; }
+        .preview-img { width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-top: 8px; display: none; border: 1px solid #e5e7eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="display: flex; align-items: center;">
+                <a href="index.html" class="back-btn">‹</a>
+                <h1 style="margin: 0; font-size: 24px;">Kelola Hadiah & Voucher</h1>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-top: 0; margin-bottom: 20px; font-size: 18px;">Tambah Hadiah Baru</h2>
+            <form id="addRewardForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Nama Hadiah</label>
+                        <input type="text" id="rewardName" class="form-control" placeholder="Contoh: Voucher Diskon 10%" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Poin Dibutuhkan</label>
+                        <input type="number" id="rewardPoints" class="form-control" placeholder="Contoh: 300" required>
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Tipe</label>
+                        <select id="rewardType" class="form-control">
+                            <option value="voucher">Voucher</option>
+                            <option value="merchandise">Merchandise</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Foto Hadiah</label>
+                        <input type="file" id="rewardImageFile" class="form-control" accept="image/*">
+                        <input type="hidden" id="rewardImageBase64">
+                        <img id="imagePreview" class="preview-img" alt="Preview">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Simpan Hadiah</button>
+            </form>
+        </div>
+
+        <h2 style="margin-bottom: 15px; font-size: 18px;">Daftar Hadiah Aktif</h2>
+        <div id="rewardsList" class="rewards-grid">
+            <p style="grid-column: 1/-1; text-align: center; color: #6b7280;">Memuat data...</p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDWQG53tP2zKILTwPSJQpiVzFNyvYLxLqw",
+            authDomain: "ricebowlmonst.firebaseapp.com",
+            databaseURL: "https://ricebowlmonst-default-rtdb.firebaseio.com",
+            projectId: "ricebowlmonst",
+            storageBucket: "ricebowlmonst.firebasestorage.app",
+            messagingSenderId: "723669558962",
+            appId: "1:723669558962:web:c17a1a4683a86cc5a88bab",
+            measurementId: "G-1G3JF6ZFRP"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+        const rewardsRef = db.ref('rewards');
+
+        // Handle Image Upload
+        document.getElementById('rewardImageFile').addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        // Resize ke max width 300px agar ringan di database
+                        const maxWidth = 300;
+                        const scale = maxWidth / img.width;
+                        const width = (img.width > maxWidth) ? maxWidth : img.width;
+                        const height = (img.width > maxWidth) ? img.height * scale : img.height;
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        const dataUrl = canvas.toDataURL('image/png');
+                        document.getElementById('imagePreview').src = dataUrl;
+                        document.getElementById('imagePreview').style.display = 'block';
+                        document.getElementById('rewardImageBase64').value = dataUrl;
+                    }
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        // Add Reward
+        document.getElementById('addRewardForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('rewardName').value;
+            const points = parseInt(document.getElementById('rewardPoints').value);
+            const type = document.getElementById('rewardType').value;
+            const image = document.getElementById('rewardImageBase64').value;
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+
+            if (!image) {
+                alert('Mohon upload foto hadiah terlebih dahulu.');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Menyimpan & Mengunggah Foto...';
+
+            try {
+                let imageUrl = image;
+                
+                // Cek apakah image masih berupa Base64 (data:image/...)
+                if (image.startsWith('data:image')) {
+                    const storageRef = firebase.storage().ref();
+                    // Buat nama file unik
+                    const fileName = 'rewards/' + Date.now() + '_' + Math.random().toString(36).substring(7) + '.png';
+                    const fileRef = storageRef.child(fileName);
+                    
+                    // Unggah string Base64 ke Firebase Storage
+                    await fileRef.putString(image, 'data_url');
+                    imageUrl = await fileRef.getDownloadURL();
+                }
+
+                const newRewardRef = rewardsRef.push();
+                await newRewardRef.set({
+                    nama: name,
+                    point: points,
+                    type: type,
+                    foto: imageUrl, // Simpan URL, bukan base64
+                    createdAt: firebase.database.ServerValue.TIMESTAMP
+                });
+
+                alert('Hadiah berhasil ditambahkan!');
+                document.getElementById('addRewardForm').reset();
+                document.getElementById('imagePreview').style.display = 'none';
+                document.getElementById('rewardImageBase64').value = '';
+            } catch (err) {
+                console.error(err);
+                alert('Terjadi kesalahan: ' + err.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Simpan Hadiah';
+            }
+        });
+
+        // Load Rewards
+        rewardsRef.on('value', (snapshot) => {
+            const list = document.getElementById('rewardsList');
+            list.innerHTML = '';
+            
+            const data = snapshot.val();
+            if (data) {
+                Object.keys(data).forEach(key => {
+                    const item = data[key];
+                    const badgeClass = item.type === 'voucher' ? 'badge-voucher' : 'badge-merchandise';
+                    
+                    const el = document.createElement('div');
+                    el.className = 'reward-item';
+                    el.innerHTML = `
+                        <span class="reward-badge ${badgeClass}">${item.type}</span>
+                        <img src="${item.foto}" alt="${item.nama}" class="reward-img" onerror="this.src='https://placehold.co/300x200?text=No+Image'">
+                        <div class="reward-info">
+                            <div class="reward-name">${item.nama}</div>
+                            <div class="reward-meta">
+                                <span>💎 ${item.point} Poin</span>
+                            </div>
+                            <div class="delete-btn-wrapper">
+                                <button class="btn btn-danger" onclick="deleteReward('${key}')">Hapus</button>
+                            </div>
+                        </div>
+                    `;
+                    list.appendChild(el);
+                });
+            } else {
+                list.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #6b7280;">Belum ada hadiah yang ditambahkan.</p>';
+            }
+        });
+
+        window.deleteReward = function(key) {
+            if(confirm('Yakin ingin menghapus hadiah ini?')) {
+                rewardsRef.child(key).remove();
+            }
+        }
+    </script>
+</body>
+</html>

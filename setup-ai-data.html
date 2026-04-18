@@ -1,0 +1,183 @@
+<!-- c:\Users\RUFINA\Documents\Koding\Projek Kasir\wep app kasir\setup-ai-data.html -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Data AI - RBM</title>
+    <style>
+        body { font-family: sans-serif; padding: 40px; text-align: center; }
+        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #4C2A85; color: white; border: none; border-radius: 8px; }
+        button:hover { background: #3c216b; }
+        #status { margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Setup Data AI Chatbot</h1>
+    <p>Klik tombol di bawah untuk memasukkan semua respon AI default ke database Firebase.</p>
+    <button onclick="uploadData()">Upload Data Default</button>
+    <div id="status"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDWQG53tP2zKILTwPSJQpiVzFNyvYLxLqw",
+            authDomain: "ricebowlmonst.firebaseapp.com",
+            databaseURL: "https://ricebowlmonst-default-rtdb.firebaseio.com",
+            projectId: "ricebowlmonst",
+            storageBucket: "ricebowlmonst.firebasestorage.app",
+            messagingSenderId: "723669558962",
+            appId: "1:723669558962:web:c17a1a4683a86cc5a88bab"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const defaultResponses = [
+            {
+                keywords: "hay, hai, hallo, halo, hi, helo, tes, test, ping, holla, woi, bro, sis, kak",
+                response: "Hallo {name}! 👋 Ada yang bisa saya bantu? Mau cari menu enak apa hari ini?"
+            },
+            {
+                keywords: "pagi",
+                response: "Selamat pagi {name}! ☀️ Awali harimu dengan sarapan enak di Rice Bowl Monster!"
+            },
+            {
+                keywords: "siang",
+                response: "Selamat siang {name}! ☀️ Panas-panas gini enak minum Es Teh Tarik atau makan Rice Bowl nih!"
+            },
+            {
+                keywords: "sore",
+                response: "Selamat sore {name}! 🌇 Waktunya santai sambil ngemil snack Monster!"
+            },
+            {
+                keywords: "malam",
+                response: "Selamat malam {name}! 🌙 Lapar malam-malam? Tenang, kami siap melayani!"
+            },
+            {
+                keywords: "apa kabar, gimana kabarmu",
+                response: "Saya selalu sehat dan siap melayani pesananmu! 😄 Kamu gimana? Semoga sehat selalu ya!"
+            },
+            {
+                keywords: "siapa kamu, kamu siapa, nama kamu",
+                response: "Saya Monster Bot 🤖, asisten virtual Rice Bowl Monster yang paling kece! Siap bantuin kamu pilih makanan."
+            },
+            {
+                keywords: "makasih, thanks, terima kasih",
+                response: "Sama-sama! Senang bisa membantu. Jangan lupa pesan lagi ya! 😋"
+            },
+            {
+                keywords: "dadah, bye, sampai jumpa",
+                response: "Dadah! Hati-hati di jalan, sampai jumpa lagi! 👋"
+            },
+            {
+                keywords: "baik, sehat",
+                response: "Alhamdulillah! Senang mendengarnya. Semoga harimu menyenangkan ya! ✨"
+            },
+            {
+                keywords: "bodoh, stupid, jelek",
+                response: "Maaf kalau saya kurang pintar 😢. Saya masih belajar. Coba tanya tentang menu saja ya!"
+            },
+            {
+                keywords: "pintar, smart, keren",
+                response: "Wah, makasih pujiannya! Jadi makin semangat nih bantuin kamu! 😎"
+            },
+            {
+                keywords: "rekomendasi, enak, favorit, best seller",
+                response: "Menu favorit kami ada <b>Chicken Katsu Curry</b> dan <b>Beef Teriyaki</b>! 🍛 Banyak yang suka lho. Mau coba?"
+            },
+            {
+                keywords: "menu, daftar menu",
+                response: "Kami punya banyak menu lezat! Ada Rice Bowl (Beef/Chicken), Mie Monster, dan aneka Snack. Cek tab menu di atas ya! 👆"
+            },
+            {
+                keywords: "mie",
+                response: "Pecinta mie? Wajib coba <b>Mie Hot Monsters</b> kami! Pedasnya nampol! 🔥"
+            },
+            {
+                keywords: "ayam, chicken",
+                response: "Olahan ayam kami juara! Ada Chicken Katsu, Teriyaki, dan Salted Egg. 🍗"
+            },
+            {
+                keywords: "sapi, beef",
+                response: "Daging sapi kami premium lho! Coba Beef Teriyaki atau Blackpepper deh. 🥩"
+            },
+            {
+                keywords: "makanan, lapar, pesan",
+                response: "Kami punya aneka Rice Bowl lezat! 🍛<br><b>Best Seller:</b> Chicken Katsu Curry & Beef Teriyaki.<br>Mau pesan yang mana?"
+            },
+            {
+                keywords: "minum, haus",
+                response: "Segarkan harimu dengan <b>Es Teh Tarik</b>, <b>Lemon Tea</b>, atau <b>Es Coklat</b> kami! 🥤"
+            },
+            {
+                keywords: "snack, camilan, ngemil",
+                response: "Ngemil asik pakai <b>French Fries</b> atau <b>Sosis Bakar</b> aja! 🍟"
+            },
+            {
+                keywords: "harga, mahal, biaya, murah",
+                response: "Tenang kak, harga kami sangat terjangkau! Mulai <b>Rp 15.000</b> saja sudah bisa kenyang. Cek detail harga di menu ya."
+            },
+            {
+                keywords: "promo, diskon, potongan, voucher",
+                response: "Cek tab <b>'Diskon'</b> di menu bawah ya! Sering ada promo Happy Hour dan voucher spesial lho! 🏷️"
+            },
+            {
+                keywords: "buka, jam, tutup, jadwal",
+                response: "Kami buka setiap hari jam <b>10.00 - 22.00 WIB</b>. Ditunggu kedatangannya! 🕙"
+            },
+            {
+                keywords: "lokasi, alamat, cabang, dimana, tempat",
+                response: "Kami hadir di 2 kota! 🏙️<br><br>📍 <b>Sidoarjo:</b> Jl. Ponti (Sebelah GOR Delta).<br>📍 <b>Surabaya:</b> Jl. Darmokali (Dekat Taman Bungkul).<br><br>Klik menu <b>'Lokasi'</b> di bawah untuk peta lengkapnya ya!"
+            },
+            {
+                keywords: "wa, whatsapp, kontak, hubungi",
+                response: "Bisa hubungi admin kami via WhatsApp di menu <b>Akun</b> atau <b>Lokasi</b> ya! 📱"
+            },
+            {
+                keywords: "reservasi, booking, pesan tempat, acara",
+                response: "Mau reservasi? Bisa banget! 🎉<br><br>Hubungi admin via WhatsApp di menu Lokasi untuk booking tempat ya. Cocok buat ultah atau kumpul-kumpul!"
+            },
+            {
+                keywords: "delivery, antar, gojek, grab, shopee",
+                response: "Bisa pesan via <b>GoFood, GrabFood, atau ShopeeFood</b> ya! Cari aja 'Rice Bowl Monster'. 🛵"
+            },
+            {
+                keywords: "bayar, payment, qris, tunai",
+                response: "Kami menerima pembayaran <b>Tunai (Cash)</b> dan <b>QRIS</b> (GoPay, OVO, Dana, ShopeePay, dll). Praktis kan? 💳"
+            },
+            {
+                keywords: "pantun",
+                response: "Nasi uduk, nasi goreng... 🍚<br>Kalau kamu lagi bad mood, mending makan Rice Bowl Monster biar seneng! 🤪"
+            },
+            {
+                keywords: "lucu, kocak",
+                response: "Kenapa ayam nyebrang jalan? 🤔<br>Karena mau beli Rice Bowl Monster di seberang! Hahaha 🐔"
+            }
+        ];
+
+        function uploadData() {
+            const status = document.getElementById('status');
+            status.textContent = "Sedang mengupload...";
+            
+            // Hapus data lama dulu agar bersih
+            db.ref('ai_responses').remove().then(() => {
+                const promises = defaultResponses.map(item => {
+                    return db.ref('ai_responses').push({
+                        ...item,
+                        createdAt: firebase.database.ServerValue.TIMESTAMP
+                    });
+                });
+
+                Promise.all(promises).then(() => {
+                    status.textContent = "✅ Berhasil! Semua data AI sudah masuk ke database.";
+                    status.style.color = "green";
+                }).catch(err => {
+                    status.textContent = "❌ Gagal: " + err.message;
+                    status.style.color = "red";
+                });
+            });
+        }
+    </script>
+</body>
+</html>

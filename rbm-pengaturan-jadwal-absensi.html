@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pengaturan Jadwal & Absensi - RBM Pro</title>
+  <link rel="stylesheet" href="rbm-pro.css">
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+<script>
+(function(){
+  var u = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+  if (u.role !== 'owner') {
+    window.location.href = 'settings.html';
+    return;
+  }
+})();
+</script>
+<header class="rbm-page-header">
+  <a href="settings.html" target="_top" class="rbm-back-btn">&#8249;</a>
+  <h1 class="rbm-page-title">Pengaturan Jadwal & Absensi</h1>
+</header>
+<div class="rbm-content-wrap">
+<section class="rbm-outlet-card">
+  <label for="rbm-outlet-select" class="rbm-outlet-label">Pilih Outlet:</label>
+  <select id="rbm-outlet-select" class="rbm-outlet-select"></select>
+</section>
+<script>
+(function(){
+  var u = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+  var outlets = JSON.parse(localStorage.getItem('rbm_outlets') || '[]');
+  var names = JSON.parse(localStorage.getItem('rbm_outlet_names') || '{}');
+  var sel = document.getElementById('rbm-outlet-select');
+  if (sel) {
+    sel.innerHTML = '';
+    outlets.forEach(function(id) {
+      var opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = names[id] || (id.charAt(0).toUpperCase() + id.slice(1));
+      sel.appendChild(opt);
+    });
+    if (u.role === 'manager' && u.outlet) {
+      sel.value = u.outlet;
+      sel.disabled = true;
+    } else {
+      var last = localStorage.getItem('rbm_last_selected_outlet');
+      if (last && outlets.indexOf(last) >= 0) sel.value = last;
+      else if (outlets.length) sel.value = outlets[0];
+      sel.addEventListener('change', function() { 
+          localStorage.setItem('rbm_last_selected_outlet', sel.value); 
+          if (window.RBMStorage && typeof window.RBMStorage.loadFromFirebase === 'function') {
+              window.RBMStorage.loadFromFirebase().then(onOutletChange);
+          } else {
+              onOutletChange(); 
+          }
+      });
+    }
+  }
+  function onOutletChange() {
+    if (typeof loadJamConfig === 'function') loadJamConfig();
+    if (typeof loadEmployeesForFaceReg === 'function') loadEmployeesForFaceReg();
+  }
+  window.onOutletChange = onOutletChange;
+})();
+</script>
+<div class="app-layout">
+  <main class="app-main" style="margin-left:0;">
+  <div class="form-container" style="max-width: 720px; padding: 20px;">
+    <p style="font-size:12px; color:#64748b; margin-bottom:16px;">Lokasi kantor (Latitude, Longitude) dan <strong>Radius (Meter)</strong> untuk Absensi GPS diatur di <strong>Web Customer</strong> → data Outlet (tiap outlet punya lokasi &amp; radius sendiri).</p>
+
+    <!-- Pengaturan Jam per outlet - Daftar shift bisa ditambah/edit per outlet -->
+    <div class="form-section" style="background: #fefce8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="margin-top:0; font-size:14px;">Daftar Shift (ikut Pilih Outlet)</h3>
+        <p style="font-size:11px; color:#64748b; margin:0 0 10px;">Setiap outlet bisa punya shift berbeda. Tambah shift, isi Kode (untuk jadwal), Nama, Jam Masuk/Pulang, dan Durasi Istirahat. Digunakan untuk cek telat dan Rekap Gaji.</p>
+        <div style="overflow-x:auto;">
+            <table class="data-table" style="margin-bottom:10px;">
+                <thead>
+                    <tr>
+                        <th style="width:70px;">Kode</th>
+                        <th>Nama Shift</th>
+                        <th>Jam Masuk</th>
+                        <th>Jam Pulang</th>
+                        <th style="width:90px;">Istirahat (menit)</th>
+                        <th style="width:50px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="gps_shifts_tbody"></tbody>
+            </table>
+        </div>
+        <button type="button" class="btn-secondary" onclick="addGpsShiftRow()" style="font-size:11px; padding:5px 10px;">+ Tambah Shift</button>
+        
+        <div class="row-group" style="margin-top:14px; display:flex; flex-direction:column; gap:12px; background:#f8fafc; padding:12px; border-radius:6px; border:1px solid #cbd5e1;">
+            <div>
+                <label style="font-size:11px; font-weight:bold; color:#1e40af; display:block; margin-bottom:4px;">Perhitungan Telat (untuk Rekap Gaji)</label>
+                <div style="font-size:11px; display:flex; align-items:center; gap:6px;">Tiap <input type="number" id="gps_menit_telat_per_jam" placeholder="10" value="10" min="1" style="width:60px; padding:4px; border:1px solid #ccc; border-radius:4px;"> menit keterlambatan = dihitung 1 jam potongan.</div>
+            </div>
+            <div style="border-top:1px dashed #cbd5e1; padding-top:10px;">
+                <label style="font-size:11px; font-weight:bold; color:#b45309; display:block; margin-bottom:4px;">Potongan Lupa Absen (Fingerprint)</label>
+                <div style="font-size:11px; display:flex; align-items:center; gap:6px;">Denda <input type="number" id="gps_potongan_lupa_absen_jam" placeholder="7" value="7" min="0" step="0.5" style="width:60px; padding:4px; border:1px solid #ccc; border-radius:4px;"> jam potongan per kali karyawan lupa absen.</div>
+            </div>
+            <div style="border-top:1px dashed #cbd5e1; padding-top:10px;">
+                <label style="font-size:11px; font-weight:bold; color:#0f172a; display:block; margin-bottom:4px;">Toleransi Keterlambatan</label>
+                <div style="font-size:11px; display:flex; align-items:center; gap:6px;">Maklumi telat hingga <input type="number" id="gps_toleransi_telat_menit" placeholder="0" value="0" min="0" style="width:60px; padding:4px; border:1px solid #ccc; border-radius:4px;"> menit sebelum mulai dipotong.</div>
+            </div>
+        </div>
+        <button class="btn-secondary" onclick="saveJamConfig()" style="font-size:11px; padding:5px 10px; margin-top:10px;">Simpan Pengaturan Jam</button>
+    </div>
+
+    <!-- Registrasi Wajah Karyawan -->
+    <div class="form-section" style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="margin-top:0; font-size:14px; color:#166534;">Registrasi Wajah Karyawan (Face ID)</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
+            <p style="font-size:11px; color:#64748b; margin:0;">Daftarkan wajah karyawan untuk validasi absensi otomatis. Pastikan wajah terlihat jelas di kamera.</p>
+            <button type="button" class="btn-secondary" onclick="syncAllFacesToKiosk()" style="font-size:11px; padding:5px 10px; background:#3b82f6; color:white; border:none; border-radius:4px;">🔄 Perbaiki Sync GPS Kiosk</button>
+        </div>
+        <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:15px;">
+            <div style="flex:1; min-width:250px;">
+                <label style="font-size:12px; display:block; margin-bottom:5px;">Pilih Karyawan</label>
+                <select id="face_emp_select" style="width:100%; padding:8px; margin-bottom:10px; border:1px solid #ccc; border-radius:4px;"></select>
+                <button type="button" class="btn-secondary" onclick="startFaceRegistration()" id="btn_start_face_reg" style="font-size:12px; padding:8px 12px; width:100%; margin-bottom:10px;">Mulai Kamera</button>
+                <button type="button" class="btn-primary" onclick="captureAndSaveFace()" id="btn_capture_face" style="font-size:12px; padding:8px 12px; width:100%; display:none; background:#16a34a; color:white; border:none; border-radius:4px; margin-bottom:10px;">Ambil & Simpan Wajah</button>
+                <p id="face_status_msg" style="font-size:11px; font-weight:bold; margin:0;"></p>
+            </div>
+            <div style="flex:1; min-width:250px; text-align:center;">
+                <div style="position:relative; display:inline-block; width:100%; max-width:300px; background:#000; border-radius:8px; overflow:hidden; min-height:225px;">
+                    <video id="face_reg_video" autoplay playsinline style="width:100%; height:auto; display:none;"></video>
+                </div>
+            </div>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="data-table">
+                <thead><tr><th style="text-align:left;">Nama Karyawan</th><th style="text-align:center;">Status Wajah</th><th style="text-align:center;">Aksi</th></tr></thead>
+                <tbody id="face_registered_tbody"></tbody>
+            </table>
+        </div>
+    </div>
+  </div>
+  </main>
+</div>
+</div>
+<script>window.RBM_PAGE = 'pengaturan-jadwal-absensi';</script>
+<span class="watermark">RBM Pro 2.3</span>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="rbm-pro-storage.js"></script>
+<script src="firebase-storage.js"></script>
+<script src="rbm-pro.js"></script>
+<script>
+let isFaceApiLoaded = false;
+let faceRegStream = null;
+
+async function loadFaceApiModels() {
+    if (isFaceApiLoaded) return;
+    const msgEl = document.getElementById('face_status_msg');
+    msgEl.innerHTML = '<span class="rbm-spinner"></span> Memuat model AI...';
+    try {
+        const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+        
+        let waitCount = 0;
+        while (typeof faceapi === 'undefined' && waitCount < 20) {
+            await new Promise(r => setTimeout(r, 250));
+            waitCount++;
+        }
+        if (typeof faceapi === 'undefined') throw new Error("Library Face API tidak ditemukan.");
+
+        await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+        ]);
+        isFaceApiLoaded = true;
+        msgEl.textContent = "Model AI siap.";
+        msgEl.style.color = "#16a34a";
+    } catch (e) {
+        console.error(e);
+        msgEl.textContent = window.location.protocol === 'file:' ? "❌ Gagal: Jalankan via Live Server (Bukan file:///)" : "Gagal memuat model AI.";
+        msgEl.style.color = "#dc2626";
+    }
+}
+
+function loadEmployeesForFaceReg() {
+    const select = document.getElementById('face_emp_select');
+    const currentVal = select ? select.value : '';
+    if (select) select.innerHTML = '<option value="">-- Memuat Data... --</option>';
+
+    setTimeout(function() {
+        let employees = [];
+        try {
+            var key = typeof getRbmStorageKey === 'function' ? getRbmStorageKey('RBM_EMPLOYEES') : 'RBM_EMPLOYEES';
+            var rawData;
+            if (typeof getCachedParsedStorage === 'function') {
+                rawData = getCachedParsedStorage(key, []);
+            } else {
+                var rawStr = window.RBMStorage ? window.RBMStorage.getItem(key) : localStorage.getItem(key);
+                rawData = rawStr ? JSON.parse(rawStr) : [];
+            }
+            employees = Array.isArray(rawData) ? rawData : (rawData ? Object.values(rawData) : []);
+        } catch(e) {}
+
+        if (select) {
+            select.innerHTML = '<option value="">-- Pilih Karyawan --</option>';
+            employees.forEach(emp => {
+                if (emp && emp.name) {
+                    select.innerHTML += `<option value="${emp.name}">${emp.name} (${emp.jabatan || '-'})</option>`;
+                }
+            });
+            if (currentVal) select.value = currentVal;
+        }
+        renderRegisteredFaces(employees);
+    }, 50);
+}
+
+async function startFaceRegistration() {
+    const empName = document.getElementById('face_emp_select').value;
+    if (!empName) { alert("Pilih karyawan terlebih dahulu."); return; }
+
+    await loadFaceApiModels();
+    if (!isFaceApiLoaded) return;
+
+    const video = document.getElementById('face_reg_video');
+    try {
+        faceRegStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+        video.srcObject = faceRegStream;
+        video.style.display = 'block';
+        document.getElementById('btn_start_face_reg').style.display = 'none';
+        document.getElementById('btn_capture_face').style.display = 'inline-block';
+        const msgEl = document.getElementById('face_status_msg');
+        msgEl.textContent = "Posisikan wajah di kamera lalu klik Ambil & Simpan.";
+        msgEl.style.color = "#1e40af";
+    } catch (err) {
+        alert("Gagal mengakses kamera: " + err.message);
+    }
+}
+
+async function captureAndSaveFace() {
+    const empName = document.getElementById('face_emp_select').value;
+    const video = document.getElementById('face_reg_video');
+    if (!empName || !video.srcObject) return;
+
+    const msgEl = document.getElementById('face_status_msg');
+    msgEl.innerHTML = '<span class="rbm-spinner"></span><span class="pulse-text">Memproses wajah...</span>';
+    document.getElementById('btn_capture_face').disabled = true;
+    try {
+        const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.3 });
+        const detection = await faceapi.detectSingleFace(video, options).withFaceLandmarks().withFaceDescriptor();
+        
+        if (!detection) {
+            msgEl.textContent = "❌ Wajah tidak terdeteksi. Coba lagi.";
+            msgEl.style.color = "#dc2626";
+            document.getElementById('btn_capture_face').disabled = false;
+            return;
+        }
+
+        const faceKey = typeof getRbmStorageKey === 'function' ? getRbmStorageKey('RBM_FACE_DATA') : 'RBM_FACE_DATA';
+        let faceData = {};
+        try {
+            if (typeof getCachedParsedStorage === 'function') {
+                faceData = getCachedParsedStorage(faceKey, {});
+            } else {
+                const rawFace = window.RBMStorage ? window.RBMStorage.getItem(faceKey) : localStorage.getItem(faceKey);
+                faceData = JSON.parse(rawFace || '{}') || {};
+            }
+        } catch(e) {}
+        
+        // [PERBAIKAN] Pastikan data koordinat angka bersih, mencegah error Firebase "Invalid data"
+        var cleanDescriptor = Array.from(detection.descriptor).map(function(n) { return Number(n) || 0; });
+        faceData[empName] = cleanDescriptor;
+        
+        // Update local cache
+        window._rbmParsedCache = window._rbmParsedCache || {};
+        window._rbmParsedCache[faceKey] = { data: faceData };
+        try { localStorage.setItem(faceKey, JSON.stringify(faceData)); } catch(e) {}
+
+        // [PERBAIKAN] Simpan ke server dengan aman
+        if (window.RBMStorage && typeof window.RBMStorage.setItem === 'function') {
+            window.RBMStorage.setItem(faceKey, JSON.stringify(faceData)).catch(function(e){ console.warn("Save face error", e); });
+        }
+
+        try {
+          var outletF = typeof getRbmOutlet === 'function' ? getRbmOutlet() : '';
+          var empIdF = null;
+          var keyEmp = typeof getRbmStorageKey === 'function' ? getRbmStorageKey('RBM_EMPLOYEES') : 'RBM_EMPLOYEES';
+          var rawEm = typeof getCachedParsedStorage === 'function' ? getCachedParsedStorage(keyEmp, []) : [];
+          var arrEm = Array.isArray(rawEm) ? rawEm : (rawEm ? Object.values(rawEm) : []);
+          var foundF = arrEm.find(function(e) { return e && e.name === empName; });
+          // Stabilkan kunci Face ID untuk GPS Kiosk.
+          // Jika `id` tidak ada, jangan pakai indexOf (rawan beda urutan antar halaman/perangkat),
+          // tapi pakai `empName` yang deterministik.
+          if (foundF && foundF.id != null) empIdF = foundF.id;
+          else if (foundF) empIdF = empName;
+          if (typeof FirebaseStorage !== 'undefined' && FirebaseStorage.writeGpsKioskFace && empIdF != null) {
+            FirebaseStorage.writeGpsKioskFace(outletF, empIdF, empName, cleanDescriptor);
+          } else if (typeof firebase !== 'undefined' && firebase.database) {
+            var sfxF = outletF ? '_' + outletF.toLowerCase().replace(/[^a-z0-9_]/g, '_') : '';
+            firebase.database().ref('rbm_pro/employees' + sfxF).once('value').then(function(snapEm) {
+                var empsVal = snapEm.val();
+                var arrDb = Array.isArray(empsVal) ? empsVal : (empsVal ? Object.values(empsVal) : []);
+                var foundDb = arrDb.find(function(e) { return e && e.name === empName; });
+                var dbId = (foundDb && foundDb.id != null) ? foundDb.id : (foundDb ? arrDb.indexOf(foundDb) : null);
+                if (dbId != null && typeof FirebaseStorage !== 'undefined' && FirebaseStorage.writeGpsKioskFace) {
+                     FirebaseStorage.writeGpsKioskFace(outletF, dbId, empName, cleanDescriptor);
+                }
+            }).catch(function(){});
+          }
+        } catch (eFk) {}
+
+        msgEl.textContent = "✅ Wajah berhasil didaftarkan untuk " + empName;
+        msgEl.style.color = "#16a34a";
+        
+        if (faceRegStream) {
+            faceRegStream.getTracks().forEach(track => track.stop());
+            faceRegStream = null;
+        }
+        video.style.display = 'none';
+        document.getElementById('btn_start_face_reg').style.display = 'inline-block';
+        document.getElementById('btn_capture_face').style.display = 'none';
+        document.getElementById('btn_capture_face').disabled = false;
+
+        renderRegisteredFaces();
+    } catch (e) {
+        console.error(e);
+        msgEl.textContent = "Error: " + e.message;
+        msgEl.style.color = "#dc2626";
+        document.getElementById('btn_capture_face').disabled = false;
+    }
+}
+
+function syncAllFacesToKiosk() {
+    const msgEl = document.getElementById('face_status_msg');
+    msgEl.innerHTML = '<span class="rbm-spinner"></span> Membaca data terbaru dari server...';
+    
+    var outletF = typeof getRbmOutlet === 'function' ? getRbmOutlet() : '';
+    var sfx = outletF ? '_' + outletF.toLowerCase().replace(/[^a-z0-9_]/g, '_') : '';
+    
+    if (typeof firebase !== 'undefined' && firebase.database) {
+        var db = firebase.database();
+        Promise.all([
+            db.ref('rbm_pro/employees' + sfx).once('value'),
+            db.ref('rbm_pro/face_data' + sfx).once('value')
+        ]).then(function(snaps) {
+            var empsVal = snaps[0].val();
+            var facesVal = snaps[1].val();
+            
+            var employees = Array.isArray(empsVal) ? empsVal : (empsVal ? Object.values(empsVal) : []);
+            var faceData = facesVal || {};
+            
+            var promises = [];
+            if (typeof FirebaseStorage !== 'undefined' && FirebaseStorage.writeGpsKioskFace) {
+                employees.forEach(function(emp) {
+                    if (emp && emp.name && faceData[emp.name]) {
+                        // Gunakan fallback yang stabil untuk kunci face di kiosk.
+                        var empIdF = emp.id != null ? emp.id : (emp.name || employees.indexOf(emp));
+                        promises.push(FirebaseStorage.writeGpsKioskFace(outletF, empIdF, emp.name, faceData[emp.name]));
+                    }
+                });
+                if (promises.length === 0) {
+                    msgEl.textContent = "⚠️ Tidak ada wajah yang cocok dengan daftar karyawan di server.";
+                    msgEl.style.color = "#d97706";
+                    return;
+                }
+                msgEl.innerHTML = '<span class="rbm-spinner"></span> Menyinkronkan ' + promises.length + ' wajah...';
+                Promise.all(promises).then(function() {
+                    msgEl.textContent = "✅ " + promises.length + " Wajah berhasil disinkronkan ke GPS Kiosk.";
+                    msgEl.style.color = "#16a34a";
+                }).catch(function(e) { msgEl.textContent = "❌ Gagal: " + e.message; msgEl.style.color = "#dc2626"; });
+            } else { msgEl.textContent = "❌ Sistem Kiosk tidak tersedia."; }
+        }).catch(function(e) { msgEl.textContent = "❌ Error: " + e.message; msgEl.style.color = "#dc2626"; });
+    } else { msgEl.textContent = "❌ Firebase tidak terhubung."; msgEl.style.color = "#dc2626"; }
+}
+
+function renderRegisteredFaces(employees) {
+    const tbody = document.getElementById('face_registered_tbody');
+    if (!tbody) return;
+    
+    if (!employees && tbody.innerHTML.indexOf('Memuat') === -1) {
+        // Jangan kosongkan tbody untuk mencegah kedipan (flicker) jika sedang refresh cepat
+    } else {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Memuat data...</td></tr>';
+    }
+    
+    setTimeout(function() {
+        if (!employees) {
+            try {
+                var empKey = typeof getRbmStorageKey === 'function' ? getRbmStorageKey('RBM_EMPLOYEES') : 'RBM_EMPLOYEES';
+                var rawEmp;
+                if (typeof getCachedParsedStorage === 'function') {
+                    rawEmp = getCachedParsedStorage(empKey, []);
+                } else {
+                    var rawStr = window.RBMStorage ? window.RBMStorage.getItem(empKey) : localStorage.getItem(empKey);
+                    rawEmp = rawStr ? JSON.parse(rawStr) : [];
+                }
+                employees = Array.isArray(rawEmp) ? rawEmp : (rawEmp ? Object.values(rawEmp) : []);
+            } catch(e) {
+                employees = [];
+            }
+        }
+
+        const faceKey = typeof getRbmStorageKey === 'function' ? getRbmStorageKey('RBM_FACE_DATA') : 'RBM_FACE_DATA';
+        let faceData = {};
+        try {
+            if (typeof getCachedParsedStorage === 'function') {
+                faceData = getCachedParsedStorage(faceKey, {});
+            } else {
+                const rawFace = window.RBMStorage ? window.RBMStorage.getItem(faceKey) : localStorage.getItem(faceKey);
+                faceData = JSON.parse(rawFace || '{}') || {};
+            }
+        } catch(e) {}
+
+        let html = '';
+        let empArr = Array.isArray(employees) ? employees : (employees ? Object.values(employees) : []);
+        empArr.forEach(emp => {
+            if (!emp || !emp.name) return;
+            const hasFace = !!faceData[emp.name];
+            html += `<tr>
+                <td style="padding:8px; border-bottom:1px solid #ccc; text-align:left;">${emp.name}</td>
+                <td style="padding:8px; border-bottom:1px solid #ccc; text-align:center;"><span style="padding:4px 8px; border-radius:4px; font-size:11px; font-weight:bold; color:white; background:${hasFace ? '#16a34a' : '#dc2626'}">${hasFace ? 'Terdaftar' : 'Belum'}</span></td>
+                <td style="padding:8px; border-bottom:1px solid #ccc; text-align:center;">
+                    ${hasFace ? `<button type="button" style="background:#dc2626; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;" onclick="deleteFaceData('${emp.name.replace(/'/g, "\\'")}')">Hapus</button>` : '-'}
+                </td>
+            </tr>`;
+        });
+        if (empArr.length === 0) {
+            html = '<tr><td colspan="3" style="text-align:center;">Tidak ada data karyawan</td></tr>';
+        }
+        tbody.innerHTML = html;
+    }, 10);
+}
+
+function deleteFaceData(empName) {
+    if (!confirm("Hapus data wajah untuk " + empName + "?")) return;
+    const faceKey = typeof getRbmStorageKey === 'function' ? getRbmStorageKey('RBM_FACE_DATA') : 'RBM_FACE_DATA';
+    let faceData = {};
+    try {
+        if (typeof getCachedParsedStorage === 'function') {
+            faceData = getCachedParsedStorage(faceKey, {});
+        } else {
+            const rawFace = window.RBMStorage ? window.RBMStorage.getItem(faceKey) : localStorage.getItem(faceKey);
+            faceData = JSON.parse(rawFace || '{}') || {};
+        }
+    } catch(e) {}
+    delete faceData[empName];
+    if (window.RBMStorage) window.RBMStorage.setItem(faceKey, JSON.stringify(faceData)); else localStorage.setItem(faceKey, JSON.stringify(faceData));
+    
+    window._rbmParsedCache = window._rbmParsedCache || {};
+    window._rbmParsedCache[faceKey] = { data: faceData };
+
+    try {
+      var outletD = typeof getRbmOutlet === 'function' ? getRbmOutlet() : '';
+      var keyEmp2 = typeof getRbmStorageKey === 'function' ? getRbmStorageKey('RBM_EMPLOYEES') : 'RBM_EMPLOYEES';
+      var rawEm2 = typeof getCachedParsedStorage === 'function' ? getCachedParsedStorage(keyEmp2, []) : [];
+      var arrEm2 = Array.isArray(rawEm2) ? rawEm2 : (rawEm2 ? Object.values(rawEm2) : []);
+      var foundD = arrEm2.find(function(e) { return e && e.name === empName; });
+      // Konsistenkan dengan penulisan face di kiosk: jika `id` tidak ada, pakai nama.
+      var empIdD = (foundD && foundD.id != null) ? foundD.id : (foundD ? foundD.name : null);
+      if (typeof FirebaseStorage !== 'undefined' && FirebaseStorage.deleteGpsKioskFace && empIdD != null) {
+        FirebaseStorage.deleteGpsKioskFace(outletD, empIdD);
+      }
+    } catch (eDel) {}
+
+    renderRegisteredFaces();
+}
+
+(function() {
+  function runLoad() { 
+      if (typeof loadJamConfig === 'function') loadJamConfig(); 
+      setTimeout(loadEmployeesForFaceReg, 500);
+  }
+  runLoad(); // [OPTIMASI] Langsung render dari cache lokal tanpa tunggu Firebase
+  if (window.RBMStorage && typeof window.RBMStorage.ready === 'function') {
+    window.RBMStorage.ready().then(runLoad).catch(runLoad);
+  }
+})();
+</script>
+</body>
+</html>

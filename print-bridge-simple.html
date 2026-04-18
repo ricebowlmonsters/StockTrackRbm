@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Print Bridge Helper - Thermal Printer via LAN</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #4C2A85; }
+        .info-box {
+            background: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .step {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 5px;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #4C2A85;
+        }
+        .warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖨️ Print Bridge - Thermal Printer via LAN</h1>
+        
+        <div class="info-box">
+            <strong>Penjelasan Singkat:</strong><br>
+            File ini menjelaskan cara menggunakan print bridge untuk auto-print ke printer thermal via LAN tanpa dialog print.
+        </div>
+
+        <div class="step">
+            <h3>Metode 1: Menggunakan Browser (Paling Mudah)</h3>
+            <p>Untuk saat ini, sistem sudah bekerja dengan browser. Auto-print akan muncul dialog print, dan Anda hanya perlu klik OK.</p>
+            <div class="warning">
+                <strong>Tips:</strong> Set default printer di Windows ke printer thermal utama, maka dialog print akan langsung ke printer tersebut.
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Metode 2: Menggunakan Print Bridge Script (Auto-print Penuh)</h3>
+            <p>Jika Anda ingin benar-benar auto-print tanpa dialog sama sekali:</p>
+            
+            <h4>Langkah 1: Install Node.js</h4>
+            <ol>
+                <li>Download Node.js dari <a href="https://nodejs.org" target="_blank">nodejs.org</a></li>
+                <li>Install seperti aplikasi biasa</li>
+                <li>Buka Command Prompt / Terminal</li>
+                <li>Test: ketik <code>node --version</code> (harus muncul versi)</li>
+            </ol>
+
+            <h4>Langkah 2: Setup Print Bridge</h4>
+            <div class="code-block">
+# Masuk ke folder aplikasi kasir
+cd "C:\Users\RUFINA\Documents\Procejet kasir\wep app kasir"
+
+# Install dependencies
+npm install express body-parser
+
+# Edit file print-bridge.js, ganti IP printer sesuai printer Anda:
+# PRINTER_CONFIG = {
+#     'MAKANAN': '192.168.1.100',  # IP printer MAKANAN
+#     'MINUMAN': '192.168.1.101',  # IP printer MINUMAN
+#     'KASIR': '192.168.1.102',    # IP printer KASIR
+# }
+
+# Jalankan print bridge
+node print-bridge.js
+            </div>
+
+            <h4>Langkah 3: Update Web App untuk Menggunakan Bridge</h4>
+            <p>Web app perlu dikonfigurasi untuk mengirim request ke print bridge. (Perlu modifikasi kode JavaScript)</p>
+        </div>
+
+        <div class="step">
+            <h3>Metode 3: Menggunakan Electron App (Paling Lengkap)</h3>
+            <p>Membuat aplikasi desktop yang bisa auto-print tanpa dialog. Ini membutuhkan lebih banyak setup, tapi hasilnya aplikasi desktop yang standalone.</p>
+            <p><strong>Catatan:</strong> Metode ini lebih kompleks dan membutuhkan pengetahuan programming lebih lanjut.</p>
+        </div>
+
+        <div class="info-box">
+            <strong>Rekomendasi untuk Anda:</strong><br>
+            Jika printer sudah dikonfigurasi sebagai default printer di Windows, maka penggunaan browser biasa sudah cukup. 
+            Dialog print akan muncul, tapi cukup klik OK sekali, dan browser akan ingat pilihannya.
+        </div>
+
+        <div class="warning">
+            <strong>Penting:</strong> Pastikan printer thermal Anda support raw TCP/IP printing pada port 9100. 
+            Kebanyakan printer thermal modern sudah support ini.
+        </div>
+
+        <h3>Konfigurasi Printer di Windows (Untuk Browser Mode)</h3>
+        <ol>
+            <li>Pastikan printer thermal sudah terinstall di Windows</li>
+            <li>Buka <strong>Settings</strong> → <strong>Devices</strong> → <strong>Printers & scanners</strong></li>
+            <li>Klik printer thermal yang ingin jadi default</li>
+            <li>Klik <strong>Manage</strong> → <strong>Set as default</strong></li>
+            <li>Sekarang ketika auto-print, printer ini akan terpilih otomatis</li>
+        </ol>
+    </div>
+</body>
+</html>
+

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Generator - RBM Input Point</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Modal styles */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(2px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+      visibility: hidden; opacity: 0; transition: all 0.2s ease;
+    }
+    .modal-overlay.show { visibility: visible; opacity: 1; }
+    .modal { background: white; border-radius: 12px; width: 90%; max-width: 350px; padding: 20px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+    .modal-title { margin-top: 0; margin-bottom: 15px; font-size: 18px; font-weight: 700; color: #374151; }
+    /* [BARU] Agar preview QR Code resolusi tinggi tetap pas di layar */
+    #preview-qr-container canvas, #preview-qr-container img {
+      width: 100% !important;
+      height: auto !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <a href="index.html" class="back-btn">‹</a>
+      <h1 class="page-title">QR Code Generator</h1>
+    </header>
+    <main class="content">
+      <section class="card">
+        <h3 class="card-title">Buat QR Code untuk Meja</h3>
+        <!-- [DIUBAH] Input URL dimunculkan agar bisa diarahkan ke Web App Customer -->
+        <div class="form-group">
+          <label class="form-label" for="baseUrl">Link Web App Customer</label>
+          <input type="url" id="baseUrl" class="form-input" value="https://www.ricebowlmonsters.id/" placeholder="Masukkan Link Web App Customer">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="nomorMeja">Nomor Meja</label>
+          <input type="text" id="nomorMeja" class="form-input" placeholder="Contoh: 12 atau VIP-3" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="custom-logo">Logo (Upload jika logo tidak muncul/gagal)</label>
+          <input type="file" id="custom-logo" accept="image/*" class="form-input">
+        </div>
+
+        <button id="btn-generate" class="btn btn-primary">Buat QR Code</button>
+
+        <div id="qrcode-container" style="position: absolute; left: -9999px;">
+          <!-- QR Code akan muncul di sini -->
+        </div>
+      </section>
+
+      <!-- [BARU] Bagian Riwayat QR Code -->
+      <section class="card" style="margin-top: 24px;">
+        <h3 class="card-title">Penyimpanan QR Code</h3>
+        <div id="history-container">
+          <!-- Riwayat akan dimuat di sini oleh JavaScript -->
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal Preview QR -->
+  <div id="preview-modal" class="modal-overlay">
+    <div class="modal">
+      <h3 class="modal-title">Preview QR Code</h3>
+      <div id="preview-qr-container" style="margin-bottom: 15px;"></div>
+      <h4 id="preview-label" style="margin: 0 0 20px 0; color: #4C2A85;"></h4>
+      <div style="display: flex; gap: 10px; width: 100%;">
+        <button id="btn-download-preview" class="btn btn-primary" style="flex: 1;">Download</button>
+        <button id="btn-close-preview" class="btn btn-secondary" style="flex: 1;">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Library untuk membuat QR Code -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="app.js"></script>
+  <script src="custom-ui.js"></script>
+
+  <script>
+    // [BARU] Konfigurasi Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyDWQG53tP2zKILTwPSJQpiVzFNyvYLxLqw",
+        authDomain: "ricebowlmonst.firebaseapp.com",
+        databaseURL: "https://ricebowlmonst-default-rtdb.firebaseio.com",
+        projectId: "ricebowlmonst",
+        storageBucket: "ricebowlmonst.firebasestorage.app",
+        messagingSenderId: "723669558962",
+        appId: "1:723669558962:web:c17a1a4683a86cc5a88bab",
+        measurementId: "G-1G3JF6ZFRP"
+    };
+
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
+    const qrHistoryRef = db.ref('qr_history');
+
+    function generateQRCode(mejaFromHistory = null, isRedownload = false) {
+      const baseUrl = document.getElementById('baseUrl').value.trim();
+      const nomorMeja = mejaFromHistory || document.getElementById('nomorMeja').value.trim();
+      const qrCodeContainer = document.getElementById('qrcode-container');
+
+      if (!nomorMeja) {
+        CustomUI.alert("Nomor Meja tidak boleh kosong!");
+        return;
+      }
+
+      // Update input agar sesuai dengan yang digenerate
+      document.getElementById('nomorMeja').value = nomorMeja;
+      
+      qrCodeContainer.innerHTML = ""; // Hapus QR code dan tombol download lama
+
+      // Membuat URL dengan query parameter: https://website.com?meja=NILAI
+      const targetURL = `${baseUrl}?meja=${encodeURIComponent(nomorMeja)}`;
+
+      // Membuat QR Code baru
+      new QRCode(qrCodeContainer, {
+        text: targetURL,
+        width: 1000, // [DIUBAH] Resolusi diperbesar jadi 1000px
+        height: 1000,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+
+      // Simpan/Update riwayat HANYA jika bukan download ulang (agar urutan tidak berubah)
+      if (!isRedownload) {
+        saveTableToHistory(nomorMeja);
+      }
+
+      // Tambahkan tombol download setelah beberapa saat agar QR code selesai di-render
+      setTimeout(() => {
+        const qrCanvas = qrCodeContainer.querySelector('canvas');
+        if (qrCanvas) {
+          
+          const doDownload = () => {
+            try {
+              const downloadLink = document.createElement('a');
+              downloadLink.href = qrCanvas.toDataURL('image/png');
+              downloadLink.download = `QR_Meja_${nomorMeja}.png`;
+              document.body.appendChild(downloadLink);
+              downloadLink.click();
+              document.body.removeChild(downloadLink);
+              qrCodeContainer.innerHTML = "";
+            } catch (e) {
+              // Fallback jika gagal karena security error (logo)
+              console.warn("Gagal download dengan logo (Tainted Canvas). Mencoba tanpa logo...");
+              CustomUI.alert("Gagal menyertakan logo karena pembatasan keamanan browser (file://).\n\nSolusi: Silakan upload file logo secara manual pada kolom 'Logo' di atas agar bisa didownload.");
+              qrCodeContainer.innerHTML = "";
+              new QRCode(qrCodeContainer, {
+                text: targetURL, width: 1000, height: 1000, // [DIUBAH] Resolusi tinggi untuk fallback juga
+                colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H
+              });
+              setTimeout(() => {
+                const cleanCanvas = qrCodeContainer.querySelector('canvas');
+                const dl = document.createElement('a');
+                dl.href = cleanCanvas.toDataURL('image/png');
+                dl.download = `QR_Meja_${nomorMeja}.png`;
+                document.body.appendChild(dl);
+                dl.click();
+                document.body.removeChild(dl);
+                qrCodeContainer.innerHTML = "";
+              }, 50);
+            }
+          };
+
+          // [DIUBAH] Logika pemuatan gambar (Support Upload Manual)
+          const img = new Image();
+          const customLogoInput = document.getElementById('custom-logo');
+          
+          if (customLogoInput && customLogoInput.files && customLogoInput.files[0]) {
+            // Jika user upload logo, gunakan FileReader (Aman dari Tainted Canvas)
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              img.src = e.target.result;
+            };
+            reader.readAsDataURL(customLogoInput.files[0]);
+          } else {
+            // Default path (Bisa menyebabkan error di file://)
+            img.src = '../wep%20app%20customer/logo-rbm.png';
+          }
+
+          img.onload = () => {
+            const ctx = qrCanvas.getContext('2d');
+            const size = qrCanvas.width * 0.25; // Ukuran logo 25% dari QR
+            const pos = (qrCanvas.width - size) / 2;
+            
+            // Gambar background putih di belakang logo agar bersih
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(pos, pos, size, size);
+            ctx.drawImage(img, pos, pos, size, size);
+            doDownload();
+          };
+          
+          img.onerror = () => {
+            // Jika logo gagal load, tetap download tanpa logo
+            doDownload();
+          };
+        }
+      }, 100);
+    }
+
+    function saveTableToHistory(nomorMeja) {
+      // [DIUBAH] Simpan ke Firebase (Cek duplikat dulu)
+      qrHistoryRef.orderByChild('nomor').equalTo(nomorMeja).once('value', snapshot => {
+        if (snapshot.exists()) {
+          // Jika sudah ada, update timestamp agar naik ke atas
+          snapshot.forEach(child => {
+            child.ref.update({ timestamp: firebase.database.ServerValue.TIMESTAMP });
+          });
+        } else {
+          qrHistoryRef.push({
+            nomor: nomorMeja,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+          });
+        }
+      });
+    }
+
+    // [BARU] Fungsi Hapus Item
+    async function deleteHistoryItem(key) {
+      if (await CustomUI.confirm('Hapus QR ini dari penyimpanan?', 'Hapus QR', true)) {
+        qrHistoryRef.child(key).remove();
+      }
+    }
+
+    // [BARU] Fungsi Preview QR
+    function showPreview(nomorMeja) {
+      const modal = document.getElementById('preview-modal');
+      const container = document.getElementById('preview-qr-container');
+      const label = document.getElementById('preview-label');
+      const baseUrl = document.getElementById('baseUrl').value.trim();
+      
+      container.innerHTML = '';
+      label.textContent = `Meja: ${nomorMeja}`;
+      
+      // [BARU] Simpan nomor meja di tombol download
+      const downloadBtn = document.getElementById('btn-download-preview');
+      if(downloadBtn) downloadBtn.dataset.nomor = nomorMeja;
+
+      const targetURL = `${baseUrl}?meja=${encodeURIComponent(nomorMeja)}`;
+      
+      new QRCode(container, {
+        text: targetURL,
+        width: 1000, // [DIUBAH] Resolusi preview diperbesar (ditangani CSS agar fit)
+        height: 1000,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+      
+      // [BARU] Tambahkan Logo di Preview
+      setTimeout(() => {
+        const qrCanvas = container.querySelector('canvas');
+        if (qrCanvas) {
+          const img = new Image();
+          
+          // Cek upload manual juga untuk preview
+          const customLogoInput = document.getElementById('custom-logo');
+          if (customLogoInput && customLogoInput.files && customLogoInput.files[0]) {
+             const reader = new FileReader();
+             reader.onload = (e) => { img.src = e.target.result; };
+             reader.readAsDataURL(customLogoInput.files[0]);
+          } else {
+             img.src = '../wep%20app%20customer/logo-rbm.png';
+          }
+
+          img.onload = () => {
+            const ctx = qrCanvas.getContext('2d');
+            const size = qrCanvas.width * 0.25;
+            const pos = (qrCanvas.width - size) / 2;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(pos, pos, size, size);
+            ctx.drawImage(img, pos, pos, size, size);
+          };
+        }
+      }, 50);
+
+      modal.classList.add('show');
+    }
+
+    document.getElementById('btn-close-preview').addEventListener('click', () => {
+      document.getElementById('preview-modal').classList.remove('show');
+    });
+
+    // [BARU] Listener untuk tombol download di preview
+    const btnDownloadPreview = document.getElementById('btn-download-preview');
+    if (btnDownloadPreview) {
+        btnDownloadPreview.addEventListener('click', () => {
+            const nomorMeja = btnDownloadPreview.dataset.nomor;
+            const container = document.getElementById('preview-qr-container');
+            // Cari canvas atau img
+            let qrElement = container.querySelector('canvas');
+            
+            try {
+                let dataUrl = '';
+                if (qrElement) {
+                    dataUrl = qrElement.toDataURL('image/png');
+                } else {
+                    qrElement = container.querySelector('img');
+                    if (qrElement) dataUrl = qrElement.src;
+                }
+
+                if (dataUrl && nomorMeja) {
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = dataUrl;
+                    downloadLink.download = `QR_Meja_${nomorMeja}.png`;
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                }
+                // Tutup modal setelah download
+                document.getElementById('preview-modal').classList.remove('show');
+            } catch (e) {
+                CustomUI.alert("Gagal download dengan logo (Security Error). Mendownload versi polos...");
+                // Regenerate clean QR
+                container.innerHTML = "";
+                const baseUrl = document.getElementById('baseUrl').value.trim();
+                const targetURL = `${baseUrl}?meja=${encodeURIComponent(nomorMeja)}`;
+                
+                new QRCode(container, {
+                    text: targetURL, width: 1000, height: 1000, // [DIUBAH] Resolusi tinggi
+                    colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H
+                });
+                
+                setTimeout(() => {
+                    const cleanCanvas = container.querySelector('canvas');
+                    const dl = document.createElement('a');
+                    dl.href = cleanCanvas.toDataURL('image/png');
+                    dl.download = `QR_Meja_${nomorMeja}.png`;
+                    document.body.appendChild(dl);
+                    dl.click();
+                    document.body.removeChild(dl);
+                    document.getElementById('preview-modal').classList.remove('show');
+                }, 100);
+            }
+        });
+    }
+
+    // [DIUBAH] Render Riwayat dari Firebase
+    function renderHistory(snapshot) {
+      const historyContainer = document.getElementById('history-container');
+      historyContainer.innerHTML = ''; // Kosongkan kontainer
+
+      if (!snapshot || !snapshot.exists()) {
+        historyContainer.innerHTML = '<p style="text-align: center; color: #6b7280;">Belum ada data tersimpan.</p>';
+        return;
+      }
+
+      const list = document.createElement('ul');
+      list.style.listStyle = 'none';
+      list.style.padding = '0';
+      list.style.margin = '0';
+
+      // Konversi snapshot ke array
+      const historyData = [];
+      snapshot.forEach(child => {
+        // Sertakan key untuk keperluan hapus
+        historyData.push({ key: child.key, ...child.val() });
+      });
+      // Urutkan descending (terbaru di atas)
+      historyData.sort((a, b) => b.timestamp - a.timestamp);
+
+      historyData.forEach(item => {
+        const nomor = item.nomor;
+        const listItem = document.createElement('li');
+        listItem.style.display = 'flex';
+        listItem.style.justifyContent = 'space-between';
+        listItem.style.alignItems = 'center';
+        listItem.style.padding = '12px 0';
+        listItem.style.borderBottom = '1px solid #e5e7eb';
+
+        const text = document.createElement('span');
+        text.textContent = `Meja: ${nomor}`;
+        text.style.fontWeight = '600';
+
+        const btnGroup = document.createElement('div');
+        btnGroup.style.display = 'flex';
+        btnGroup.style.gap = '8px';
+
+        const button = document.createElement('button');
+        button.textContent = 'Download Ulang';
+        button.className = 'btn'; // Menggunakan style .btn yang lebih sederhana
+        button.style.padding = '6px 12px';
+        button.style.fontSize = '12px';
+        button.onclick = () => generateQRCode(nomor, true); // true = isRedownload
+
+        const previewBtn = document.createElement('button');
+        previewBtn.textContent = '👁️';
+        previewBtn.className = 'btn';
+        previewBtn.style.padding = '6px 10px';
+        previewBtn.style.fontSize = '12px';
+        previewBtn.style.background = '#dbeafe';
+        previewBtn.style.color = '#1e40af';
+        previewBtn.style.border = 'none';
+        previewBtn.title = 'Lihat QR';
+        previewBtn.onclick = () => showPreview(nomor);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = '🗑️';
+        deleteBtn.className = 'btn';
+        deleteBtn.style.padding = '6px 10px';
+        deleteBtn.style.fontSize = '12px';
+        deleteBtn.style.background = '#fee2e2';
+        deleteBtn.style.color = '#dc2626';
+        deleteBtn.style.border = 'none';
+        deleteBtn.title = 'Hapus';
+        deleteBtn.onclick = () => deleteHistoryItem(item.key);
+
+        btnGroup.appendChild(button);
+        btnGroup.appendChild(previewBtn);
+        btnGroup.appendChild(deleteBtn);
+
+        listItem.appendChild(text);
+        listItem.appendChild(btnGroup);
+        list.appendChild(listItem);
+      });
+
+      historyContainer.appendChild(list);
+    }
+
+    document.getElementById('btn-generate').addEventListener('click', function() {
+      generateQRCode(null, false);
+    });
+    document.getElementById('nomorMeja').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        generateQRCode(null, false);
+      }
+    });
+
+    // [BARU] Listen perubahan data di Firebase
+    qrHistoryRef.on('value', renderHistory);
+  </script>
+</body>
+</html>

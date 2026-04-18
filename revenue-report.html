@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Pendapatan - RBM</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- [BARU] Tambahkan library Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- [BARU] Library untuk Export PDF & Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    .filters {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .filters .form-input, .filters select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* [DIUBAH] Agar responsif untuk 4 kartu */
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat-card {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      padding: 14px;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .table th, .table td {
+      padding: 10px 12px;
+      font-size: 13px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+    }
+    .table th {
+      background: #f9fafb;
+      font-weight: 600;
+      color: #374151;
+    }
+    .muted {
+      color: #6b7280;
+    }
+    /* [BARU] Style untuk Radio Card */
+    .report-radio-card {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: white;
+    }
+    .report-radio-card:hover { background: #f9fafb; border-color: #d1d5db; }
+    .report-radio-card input { margin-right: 12px; transform: scale(1.2); }
+    .report-radio-card.selected { border-color: #4C2A85; background-color: #eef2ff; }
+
+    /* [BARU] Grid Responsif untuk Pilihan Laporan */
+    .report-options-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .report-section-header {
+      margin: 0; 
+      font-size: 14px; 
+      color: #374151; 
+      border-bottom: 2px solid #e5e7eb; 
+      padding-bottom: 8px;
+    }
+
+    /* [BARU] Style Modal Preview yang Lebih Bagus */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(2px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+      visibility: hidden; opacity: 0; transition: all 0.2s ease;
+    }
+    .modal-overlay.show { visibility: visible; opacity: 1; }
+    
+    .modal {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 600px; /* [DIUBAH] Diperlebar agar muat tampilan A4 */
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      max-height: 90vh;
+    }
+    
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex; justify-content: space-between; align-items: center;
+      background: #fff;
+    }
+    .modal-title { font-size: 16px; font-weight: 700; margin: 0; color: #111827; }
+    
+    .modal-body {
+      padding: 8px 0px;
+      background: #f9fafb;
+      overflow-y: auto;
+      display: flex; justify-content: center;
+      align-items: flex-start;
+    }
+    
+    .receipt-preview {
+      background: #ffffff;
+      padding: 8px 12px;
+      display: inline-block;
+      width: auto;
+      max-width: 100%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.35;
+      white-space: pre; /* preserve spacing exactly like receipt */
+      overflow-wrap: anywhere;
+      color: #1f2937;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      margin: 8px;
+    }
+    
+    .modal-actions {
+      padding: 16px 20px;
+      border-top: 1px solid #e5e7eb;
+      background: #fff;
+      display: flex; justify-content: flex-end; gap: 10px;
+    }
+    /* [BARU] Style Tombol Preset */
+    .btn-preset {
+      padding: 6px 12px;
+      border: 1px solid #d1d5db;
+      background: #fff;
+      border-radius: 15px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #374151;
+    }
+    .btn-preset:hover {
+      background: #f3f4f6;
+      border-color: #4C2A85;
+      color: #4C2A85;
+    }
+    
+    /* [BARU] Print Style untuk A4 dan Thermal */
+    @media print {
+      * {
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box;
+      }
+      body {
+        background: white !important;
+        font-family: 'Courier New', Courier, monospace !important;
+      }
+      .app-container, header, main, .content {
+        all: unset;
+        display: block;
+      }
+      
+      /* Pengaturan untuk ukuran A4 */
+      @page {
+        size: A4;
+        margin: 10mm;
+      }
+      
+      /* Untuk Thermal 80mm */
+      .receipt-preview {
+        width: 80mm !important;
+        max-width: 80mm !important;
+        margin: 0 auto !important;
+        padding: 2mm !important;
+        line-height: 1 !important;
+        font-size: 9pt !important;
+        white-space: pre !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+      }
+      
+      /* Sembunyikan elemen yang tidak perlu diprint */
+      .app-header, .filters, .btn-group, .report-options-grid, 
+      .modal-header, .modal-actions, .stats-grid, .card,
+      .revenueChart, #revenueChart {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <a href="index.html" class="back-btn">‹</a>
+      <h1 class="page-title">Laporan Pendapatan</h1>
+    </header>
+    <main class="content">
+      <section class="card">
+        <div class="filters">
+          <div style="grid-column: 1 / -1; display: flex; gap: 12px;">
+            <select id="outlet" aria-label="Pilih outlet" style="flex: 1;">
+              <option value="sidoarjo">Sidoarjo</option>
+              <option value="surabaya">Surabaya</option>
+            </select>
+            <select id="cashier" aria-label="Pilih kasir" style="flex: 1;">
+              <option value="all">Semua Kasir</option>
+            </select>
+          </div>
+          <!-- [BARU] Tombol Preset Tanggal -->
+          <div style="grid-column: 1 / -1; display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;">
+            <button class="btn-preset" data-range="today">Hari Ini</button>
+            <button class="btn-preset" data-range="yesterday">Kemarin</button>
+            <button class="btn-preset" data-range="thisMonth">Bulan Ini</button>
+            <button class="btn-preset" data-range="lastMonth">Bulan Lalu</button>
+          </div>
+          <div style="display: flex; gap: 8px;">
+              <input id="dateFrom" type="date" class="form-input" style="flex: 2;" />
+              <input id="timeFrom" type="time" class="form-input" value="00:00" style="flex: 1;" />
+            </div>
+          <div style="display: flex; gap: 8px;">
+            <input id="dateTo" type="date" class="form-input" style="flex: 2;" />
+            <input id="timeTo" type="time" class="form-input" value="23:59" style="flex: 1;" />
+          </div>
+
+          <div class="btn-group" style="grid-column: 1 / -1; display:flex;gap:8px;align-items:center;">
+            <label style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="apply-filter-toggle" style="width:18px;height:18px;" checked>
+              <span style="font-size:14px;font-weight:600;">Gunakan Filter</span>
+            </label>
+            <button id="btn-refresh" class="btn btn-primary" style="flex:1;">Terapkan Filter</button>
+          </div>
+
+        </div>
+          <script>
+          (function(){
+            const dateFrom = document.getElementById('dateFrom');
+            const dateTo = document.getElementById('dateTo');
+            const timeFrom = document.getElementById('timeFrom');
+            const timeTo = document.getElementById('timeTo');
+            const outlet = document.getElementById('outlet');
+            const cashier = document.getElementById('cashier');
+            const btnRefresh = document.getElementById('btn-refresh');
+            const applyToggle = document.getElementById('apply-filter-toggle');
+            const presets = document.querySelectorAll('.btn-preset');
+
+            function pad(n){ return n<10 ? '0'+n : n; }
+            function toInputDate(d){ return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
+
+            // Default tanggal sesuai permintaan (15/01/2026)
+            const defaultDate = '2026-01-15';
+            if(dateFrom) dateFrom.value = defaultDate;
+            if(dateTo) dateTo.value = defaultDate;
+            if(timeFrom) timeFrom.value = '00:00';
+            if(timeTo) timeTo.value = '23:59';
+
+            presets.forEach(btn=>{
+              btn.addEventListener('click', ()=>{
+                const r = btn.dataset.range;
+                const now = new Date();
+                let from = new Date(), to = new Date();
+                if(r==='today'){ from = new Date(now); to = new Date(now); }
+                else if(r==='yesterday'){ from = new Date(now); from.setDate(now.getDate()-1); to = new Date(from); }
+                else if(r==='thisMonth'){ from = new Date(now.getFullYear(), now.getMonth(), 1); to = new Date(now); }
+                else if(r==='lastMonth'){ from = new Date(now.getFullYear(), now.getMonth()-1, 1); to = new Date(now.getFullYear(), now.getMonth(), 0); }
+                if(dateFrom) dateFrom.value = toInputDate(from);
+                if(dateTo) dateTo.value = toInputDate(to);
+              });
+            });
+
+            if(btnRefresh){
+              btnRefresh.addEventListener('click', async ()=>{
+                if(!applyToggle || !applyToggle.checked){ CustomUI.alert('Filter tidak aktif'); return; }
+                const radios = document.querySelectorAll('input[name="reportOption"]');
+                let reportOption = null;
+                radios.forEach(r=>{ if(r.checked) reportOption = r.value; });
+
+                const payload = {
+                  outlet: outlet ? outlet.value : null,
+                  cashier: cashier ? cashier.value : 'all',
+                  from: (dateFrom ? dateFrom.value : '') + ' ' + (timeFrom ? timeFrom.value : ''),
+                  to: (dateTo ? dateTo.value : '') + ' ' + (timeTo ? timeTo.value : ''),
+                  reportOption
+                };
+                console.log('Apply filter:', payload);
+                CustomUI.alert('Filter diterapkan:\n' + JSON.stringify(payload, null, 2));
+              });
+            }
+
+            // helper untuk memilih radio card
+            window.selectRadio = function(el){
+              document.querySelectorAll('.report-radio-card').forEach(c=>c.classList.remove('selected'));
+              el.classList.add('selected');
+              const input = el.querySelector('input[type=radio]');
+              if(input) input.checked = true;
+            };
+          })();
+          </script>
+        
+      </section>
+
+      <!-- [BARU] Bagian Laporan Kasir (X/Z Report) -->
+      <section class="card">
+        <h3 class="card-title">Laporan Kasir (POS)</h3>
+        
+        <!-- [BARU] Tombol Aksi di Atas -->
+        <div class="btn-group" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <!-- A4 format checkbox removed -->
+            <button id="btn-action-print" class="btn btn-primary" style="flex: 1; background-color: #4C2A85;">🖨️ Go & Print</button>
+            <button id="btn-action-preview" class="btn btn-secondary" style="flex: 1;">👁️ Preview</button>
+            <div style="flex: 1; position: relative;">
+                <button id="btn-action-save" class="btn btn-secondary" style="width: 100%; background-color: #059669; color: white;">💾 Save</button>
+                <div id="save-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 50; overflow: hidden; margin-top: 4px;">
+                    <button id="btn-save-pdf" style="width: 100%; padding: 12px; text-align: left; border: none; background: white; cursor: pointer; border-bottom: 1px solid #f3f4f6; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                        <span style="color: #dc2626;">📄</span> PDF
+                    </button>
+                    <button id="btn-save-excel" style="width: 100%; padding: 12px; text-align: left; border: none; background: white; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                        <span style="color: #16a34a;">📊</span> Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- [BARU] Pilihan Radio Button 4 Opsi -->
+        <div class="report-options-grid">
+            <!-- Kolom Kiri: Laporan Shift -->
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <h4 class="report-section-header">Laporan Shift (Kasir)</h4>
+                
+                <label class="report-radio-card selected" onclick="selectRadio(this)">
+                    <input type="radio" name="reportOption" value="SHIFT_X" checked>
+                    <div><strong>X - Shift</strong><br><small style="color: #666;">Review Shift</small></div>
+                </label>
+
+                <label class="report-radio-card" onclick="selectRadio(this)">
+                    <input type="radio" name="reportOption" value="SHIFT_Z">
+                    <div><strong>Z - Shift</strong><br><small style="color: #dc2626;">End of Shift</small></div>
+                </label>
+            </div>
+
+            <!-- Kolom Kanan: Laporan Harian -->
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <h4 class="report-section-header">Laporan Harian (Toko)</h4>
+                
+                <label class="report-radio-card" onclick="selectRadio(this)">
+                    <input type="radio" name="reportOption" value="DAY_X">
+                    <div><strong>X - Day</strong><br><small style="color: #666;">Review Day</small></div>
+                </label>
+
+                <label class="report-radio-card" onclick="selectRadio(this)">
+                    <input type="radio" name="reportOption" value="DAY_Z">
+                    <div><strong>Z - Day</strong><br><small style="color: #dc2626;">End of Day</small></div>
+                </label>
+            </div>
+        </div>
+      </section>
+
+      <!-- [BARU] Bagian untuk Grafik -->
+      <section class="card">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+            <div>
+                <h3 class="card-title">Grafik Pendapatan Harian</h3>
+                <div style="position: relative; height: 300px; width: 100%;"><canvas id="revenueChart"></canvas></div>
+            </div>
+            <div>
+                <h3 class="card-title">Sumber Pesanan (Kasir vs Web)</h3>
+                <div style="position: relative; height: 300px; width: 100%; display: flex; justify-content: center;"><canvas id="sourceChart"></canvas></div>
+            </div>
+        </div>
+      </section>
+
+      <section class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Transaksi</div>
+          <div id="stat-count" class="stat-value">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Item Sales (Gross)</div>
+          <div id="stat-item-sales" class="stat-value" style="color: #4C2A85;">Rp 0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Item Discount</div>
+          <div id="stat-item-disc" class="stat-value" style="color: #ef4444;">Rp 0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Bill Discount</div>
+          <div id="stat-bill-disc" class="stat-value" style="color: #ef4444;">Rp 0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Sales (Net)</div>
+          <div id="stat-net-sales" class="stat-value" style="color: #059669;">Rp 0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">PPN</div>
+          <div id="stat-tax" class="stat-value" style="color: #d97706;">Rp 0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Grand Total (Omzet)</div>
+          <div id="stat-total" class="stat-value" style="font-size: 20px; color: #111827;">Rp 0</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3 class="card-title">Ringkasan Per Metode Pembayaran</h3>
+        <table class="table" id="payment-summary">
+          <thead>
+            <tr>
+              <th>Metode</th>
+              <th>Jumlah Transaksi</th>
+              <th>Total (Sebelum PPN)</th>
+              <th>Total (Sesudah PPN)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="4" class="muted">Tidak ada data</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- [BARU] Tombol Navigasi Detail -->
+      <section class="card" style="display: flex; gap: 16px; flex-wrap: wrap;">
+        <button id="btn-view-menu" class="btn btn-secondary" style="flex: 1; min-width: 200px; padding: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <span>📋</span> Lihat Rincian Menu Terjual
+        </button>
+        <button id="btn-view-transactions" class="btn btn-secondary" style="flex: 1; min-width: 200px; padding: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <span>📄</span> Lihat Detail Transaksi
+        </button>
+        <button id="btn-view-category" class="btn btn-secondary" style="flex: 1; min-width: 200px; padding: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <span>📊</span> Lihat Laporan Kategori
+        </button>
+      </section>
+    </main>
+  </div>
+
+  <!-- [BARU] Modal Preview Laporan -->
+  <div id="report-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="report-modal-title">Preview Laporan</h3>
+        <button id="btn-close-modal" style="background:none; border:none; font-size:24px; cursor:pointer; color:#6b7280;">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="report-modal-content" class="receipt-preview"></div>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-report-print" class="btn btn-primary">🖨️ Print</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="custom-ui.js"></script>
+  <script src="firebase-storage.js"></script>
+  <script>
+    function formatRupiah(n) {
+      if (!n) return '0';
+      return Math.round(n).toLocaleString('id-ID');
+    }
+    function toStartOfDay(date) {
+      const d = new Date(date);
+      d.setHours(0,0,0,0);
+      return d.getTime();
+    }
+    function toEndOfDay(date) {
+      const d = new Date(date);
+      d.setHours(23,59,59,999);
+      return d.getTime();
+    }
+    function fmtTime(ts) {
+      // Handle string (old) and number (new) timestamps
+      const d = new Date(typeof ts === 'string' ? Date.parse(ts) : ts);
+      return d.toLocaleString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+      if (!user || !user.username) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      // [DIUBAH] Gunakan initRbmDB dari custom-ui.js
+      const db = initRbmDB();
+
+      const outletSel = document.getElementById('outlet');
+      const cashierSel = document.getElementById('cashier'); // [BARU]
+      const dateFrom = document.getElementById('dateFrom');
+      const dateTo = document.getElementById('dateTo');
+      const timeFrom = document.getElementById('timeFrom');
+      const timeTo = document.getElementById('timeTo');
+      const applyFilterToggle = document.getElementById('apply-filter-toggle');
+      const btnRefresh = document.getElementById('btn-refresh');
+      const statCount = document.getElementById('stat-count');
+      const statTotal = document.getElementById('stat-total');
+      // [BARU] Elemen statistik rinci
+      const statItemSales = document.getElementById('stat-item-sales');
+      const statItemDisc = document.getElementById('stat-item-disc');
+      const statBillDisc = document.getElementById('stat-bill-disc');
+      const statNetSales = document.getElementById('stat-net-sales');
+      const statTax = document.getElementById('stat-tax');
+      const paymentSummary = document.querySelector('#payment-summary tbody');
+
+      // [BARU] Helper parsing angka yang lebih kuat (mengatasi string "30.000" atau "Rp 30.000")
+      // Didefinisikan di scope luar agar bisa dipakai oleh load() dan prepareReport()
+      const parseNumber = (v) => {
+          if (typeof v === 'number') return v;
+          if (!v) return 0;
+          // Hapus karakter non-numeric kecuali koma dan minus. Hapus titik (pemisah ribuan).
+          let str = String(v).replace(/[^0-9,-]/g, ''); 
+          str = str.replace(',', '.'); // Ubah koma jadi titik desimal
+          return parseFloat(str) || 0;
+      };
+
+      let revenueChartInstance = null; // [BARU] Untuk menyimpan instance chart
+      let sourceChartInstance = null; // [BARU] Instance untuk pie chart
+
+      // [BARU] Fungsi untuk mengisi filter outlet berdasarkan pengaturan
+      function populateOutletFilter() {
+        const activeOutlets = JSON.parse(localStorage.getItem('rbm_active_outlets') || '[]');
+        let allOutlets = JSON.parse(localStorage.getItem('rbm_outlets') || '[]');
+        if (!Array.isArray(allOutlets) || allOutlets.length === 0) allOutlets = ['sidoarjo', 'surabaya'];
+        
+        // Gunakan outlet aktif jika ada, jika tidak, gunakan semua outlet sebagai fallback
+        const outletsToDisplay = activeOutlets.length > 0 ? activeOutlets : allOutlets;
+
+        outletSel.innerHTML = ''; // Hapus opsi yang ada
+        const outletNames = JSON.parse(localStorage.getItem('rbm_outlet_names') || '{}');
+
+        if (outletsToDisplay.length === 0) {
+          outletSel.innerHTML = '<option disabled>Tidak ada outlet</option>';
+          btnRefresh.disabled = true;
+        } else {
+          outletsToDisplay.forEach(outlet => {
+            if (typeof outlet !== 'string') outlet = String(outlet.id || outlet);
+            if (!outlet) return;
+            const option = document.createElement('option');
+            option.value = outlet;
+            option.textContent = outletNames[outlet] || (outlet.charAt(0).toUpperCase() + outlet.slice(1));
+            outletSel.appendChild(option);
+          });
+        }
+
+        // [BARU] Logika Role Manager
+        const user = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+        if (user.role === 'manager') {
+            // Kunci ke outlet manager
+            if (user.outlet) {
+                outletSel.value = user.outlet;
+                outletSel.disabled = true;
+            }
+        }
+      }
+
+      // [BARU] Fungsi untuk mengisi filter kasir dari localStorage
+      function populateCashierFilter() {
+        const users = JSON.parse(localStorage.getItem('rbm_users') || '[]');
+        cashierSel.innerHTML = '<option value="all">Semua Kasir</option>';
+        
+        if (users.length > 0) {
+            users.forEach(u => {
+                // Tampilkan username sebagai opsi
+                const option = document.createElement('option');
+                option.value = u.username;
+                option.textContent = u.username + (u.role ? ` (${u.role})` : '');
+                cashierSel.appendChild(option);
+            });
+        }
+      }
+
+      // [DIUBAH] Secara default, atur tanggal ke HARI INI (sesuai permintaan)
+      const today = new Date();
+      const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+      
+      dateFrom.value = iso(today);
+      dateTo.value = iso(today);
+
+      // [BARU] Logic Preset Tanggal
+      document.querySelectorAll('.btn-preset').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const range = btn.dataset.range;
+          const now = new Date();
+          let start, end;
+          
+          const fmt = d => {
+             const year = d.getFullYear();
+             const month = String(d.getMonth() + 1).padStart(2, '0');
+             const day = String(d.getDate()).padStart(2, '0');
+             return `${year}-${month}-${day}`;
+          };
+
+          if (range === 'today') {
+            start = new Date();
+            end = new Date();
+          } else if (range === 'yesterday') {
+            start = new Date();
+            start.setDate(start.getDate() - 1);
+            end = new Date(start);
+          } else if (range === 'thisMonth') {
+            start = new Date(now.getFullYear(), now.getMonth(), 1);
+            end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          } else if (range === 'lastMonth') {
+            start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            end = new Date(now.getFullYear(), now.getMonth(), 0);
+          }
+
+          if (start && end) {
+            dateFrom.value = fmt(start);
+            dateTo.value = fmt(end);
+            timeFrom.value = '00:00';
+            timeTo.value = '23:59';
+            load(); // Auto refresh
+          }
+        });
+      });
+
+      async function load() {
+        const outlet = outletSel.value;
+        const selectedCashier = cashierSel.value; // [BARU]
+        // [DIUBAH] Gunakan waktu dari input untuk filter yang lebih presisi
+        const start = new Date(`${dateFrom.value}T${timeFrom.value || '00:00'}:00`).getTime();
+        const end = new Date(`${dateTo.value}T${timeTo.value || '23:59'}:59`).getTime();
+
+        // Ambil semua orders di outlet, kemudian filter di client
+        // [DIPERBAIKI] Query diubah untuk mengambil data berdasarkan rentang tanggal.
+        // Pastikan Anda sudah menambahkan index pada field 'date' di Firebase Rules.
+        const snap = await db.ref('orders/' + outlet).orderByChild('date').startAt(start).endAt(end).once('value');
+        const val = snap.val() || {};
+        // [DIUBAH] Filter hanya pesanan yang sudah dibayar/diproses (Revenue)
+        const validStatuses = ['Sudah Dibayar', 'Diproses', 'Siap Diambil', 'Selesai'];
+        
+        let orders = Object.values(val).filter(o => validStatuses.includes(o.status));
+
+        // [BARU] Filter berdasarkan Kasir jika dipilih
+        if (selectedCashier !== 'all') {
+            orders = orders.filter(o => (o.cashier || '').toLowerCase() === selectedCashier.toLowerCase());
+        }
+
+        orders.sort((a,b) => (b.date||0) - (a.date||0));
+
+        // [DIUBAH] Logika Perhitungan Ringkasan Detail
+        let totalItemSales = 0;    // Gross Sales (Harga x Qty)
+        let totalItemDisc = 0;     // Diskon per item
+        let totalBillDisc = 0;     // Diskon struk
+        let totalNetSales = 0;     // Penjualan Bersih
+        let totalTax = 0;
+        let totalGrandTotal = 0;   // Omzet Akhir
+
+        const byMethod = {}; // [BARU] Ringkasan per metode pembayaran
+        const bySource = {}; // [BARU] Variabel untuk menampung data per asal pesanan
+
+        orders.forEach(o => {
+            let orderItemSales = 0;
+            let orderItemDisc = 0;
+
+            // 1. Hitung dari items (Item Sales & Item Discount)
+            // [PERBAIKAN] Handle items sebagai Array atau Object (Firebase sering mengembalikan Object)
+            const items = o.items ? (Array.isArray(o.items) ? o.items : Object.values(o.items)) : [];
+            
+            // [BARU] Hitung total item sales dulu untuk proporsi
+            let currentOrderItemSales = 0;
+            if (items.length > 0) {
+                items.forEach(i => {
+                    const price = parseNumber(i.price);
+                    const qty = parseNumber(i.quantity);
+                    const disc = parseNumber(i.discount); 
+                    
+                    currentOrderItemSales += (price * qty);
+                    orderItemDisc += (disc * qty);
+                });
+            }
+            orderItemSales = currentOrderItemSales;
+
+            // 2. Ambil data payment (Bill Discount, Tax, Grand Total)
+            const payment = o.payment || {};
+            const billDisc = parseNumber(payment.discount);
+            let tax = parseNumber(payment.tax);
+            const grandTotal = parseNumber(payment.total);
+
+            // 3. Hitung Net Sales (Penjualan Bersih)
+            // Rumus: (ItemSales - ItemDisc) - BillDisc
+            let netSales = (orderItemSales - orderItemDisc) - billDisc;
+
+            // [PERBAIKAN] Jika tidak ada item (orderItemSales 0) tapi ada Grand Total,
+            // Asumsikan Net Sales = Grand Total (agar tidak 0)
+            if (orderItemSales === 0 && grandTotal > 0) {
+                netSales = grandTotal;
+            }
+
+            // [PERBAIKAN] Hitung Tax otomatis jika 0, berdasarkan selisih GrandTotal - NetSales
+            // Contoh: Net 65.900, Total 72.490 -> Selisih 6.590 adalah Tax
+            if (tax === 0 && grandTotal > netSales) {
+                const diff = grandTotal - netSales;
+                if (diff > 100) tax = diff; // Anggap selisih valid jika > 100 (hindari error pembulatan kecil)
+            }
+
+            // [BARU] Distribusi Grand Total ke Menu (untuk estimasi Sesudah PPN)
+            // Ratio = GrandTotal / GrossItemSales
+            const distributionRatio = currentOrderItemSales > 0 ? (grandTotal / currentOrderItemSales) : 0;
+
+            if (items.length > 0) {
+                items.forEach(i => {
+                    const price = parseNumber(i.price);
+                    const qty = parseNumber(i.quantity);
+                    const gross = price * qty;
+                    const net = gross * distributionRatio;
+                });
+            }
+
+            // Akumulasi
+            totalItemSales += orderItemSales;
+            totalItemDisc += orderItemDisc;
+            totalBillDisc += billDisc;
+            totalNetSales += netSales;
+            totalTax += tax;
+            totalGrandTotal += grandTotal;
+
+            // [BARU] Akumulasi per Asal Pesanan (Source)
+            const src = o.source === 'pos' ? 'Kasir (POS)' : 'Web App';
+            if (!bySource[src]) bySource[src] = { count: 0, net: 0, gross: 0 };
+            bySource[src].count += 1;
+            bySource[src].net += netSales;
+            bySource[src].gross += grandTotal;
+
+            // [BARU] Akumulasi per Metode Pembayaran
+            const m = o.payment?.method || 'N/A';
+            if (!byMethod[m]) byMethod[m] = { count: 0, net: 0, gross: 0 };
+            byMethod[m].count += 1;
+            byMethod[m].net += netSales;
+            byMethod[m].gross += grandTotal;
+        });
+
+        statCount.textContent = String(orders.length);
+        
+        // Update Tampilan Statistik Baru
+        statItemSales.textContent = formatRupiah(totalItemSales);
+        statItemDisc.textContent = formatRupiah(totalItemDisc);
+        statBillDisc.textContent = formatRupiah(totalBillDisc);
+        statNetSales.textContent = formatRupiah(totalNetSales);
+        statTax.textContent = formatRupiah(totalTax);
+        statTotal.textContent = formatRupiah(totalGrandTotal);
+
+        // [BARU] Render grafik
+        renderChart(orders);
+        renderSourceChart(bySource); // [BARU] Render Pie Chart Sumber
+
+        // [DIUBAH] Render Tabel Ringkasan Per Metode Pembayaran
+        paymentSummary.innerHTML = '';
+        const methods = Object.keys(byMethod);
+        
+        let totalTxCount = 0;
+        let totalTxNet = 0;
+        let totalTxGross = 0;
+
+        if (methods.length === 0) {
+          paymentSummary.innerHTML = '<tr><td colspan="4" class="muted">Tidak ada data</td></tr>';
+        } else {
+          methods.forEach(m => {
+            totalTxCount += byMethod[m].count;
+            totalTxNet += byMethod[m].net;
+            totalTxGross += byMethod[m].gross;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${m}</td><td>${byMethod[m].count}</td><td>${formatRupiah(byMethod[m].net)}</td><td>${formatRupiah(byMethod[m].gross)}</td>`;
+            paymentSummary.appendChild(tr);
+          });
+          // [BARU] Baris Total Keseluruhan Metode Pembayaran
+          const trTotal = document.createElement('tr');
+          trTotal.style.cssText = 'font-weight: bold; background-color: #f3f4f6; border-top: 2px solid #e5e7eb;';
+          trTotal.innerHTML = `<td>TOTAL KESELURUHAN</td><td>${totalTxCount}</td><td>${formatRupiah(totalTxNet)}</td><td>${formatRupiah(totalTxGross)}</td>`;
+          paymentSummary.appendChild(trTotal);
+        }
+      }
+
+      // [BARU] Fungsi untuk merender grafik
+      function renderChart(orders) {
+        const dailyData = {};
+        const dailyDiscount = {}; // [BARU] Data diskon harian
+
+        orders.forEach(o => {
+          const dateKey = new Date(o.date).toISOString().split('T')[0];
+          dailyData[dateKey] = (dailyData[dateKey] || 0) + (o.payment?.total || 0);
+          dailyDiscount[dateKey] = (dailyDiscount[dateKey] || 0) + parseNumber(o.payment?.discount); // [BARU] Hitung diskon
+        });
+
+        const sortedDates = Object.keys(dailyData).sort();
+        const chartLabels = sortedDates.map(date => new Date(date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }));
+        const chartData = sortedDates.map(date => dailyData[date]);
+        const discountData = sortedDates.map(date => dailyDiscount[date] || 0); // [BARU] Data diskon
+
+        const ctx = document.getElementById('revenueChart').getContext('2d');
+
+        if (revenueChartInstance) {
+          revenueChartInstance.destroy();
+        }
+
+        revenueChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: chartLabels,
+            datasets: [{
+              label: 'Pendapatan Harian',
+              data: chartData,
+              borderColor: '#4C2A85',
+              backgroundColor: 'rgba(76, 42, 133, 0.1)',
+              fill: true,
+              tension: 0.1
+            },
+            { // [BARU] Dataset Diskon
+              label: 'Diskon Promo',
+              data: discountData,
+              borderColor: '#ef4444',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              fill: true,
+              tension: 0.1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false, // [DIUBAH] Agar menyesuaikan container height 300px
+            interaction: {
+              mode: 'index',
+              intersect: false,
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) label += ': ';
+                            if (context.parsed.y !== null) label += formatRupiah(context.parsed.y);
+                            return label;
+                        }
+                    }
+                }
+            }
+          }
+        });
+      }
+
+      // [BARU] Fungsi untuk merender Pie Chart Sumber Pesanan
+      function renderSourceChart(bySource) {
+        const ctx = document.getElementById('sourceChart').getContext('2d');
+
+        if (sourceChartInstance) {
+          sourceChartInstance.destroy();
+        }
+
+        const labels = Object.keys(bySource);
+        const dataValues = labels.map(k => bySource[k].gross);
+        
+        // Warna: Kasir (Ungu RBM), Web App (Biru/Hijau)
+        const bgColors = labels.map(l => l.includes('POS') ? '#4C2A85' : '#3b82f6');
+
+        sourceChartInstance = new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: dataValues,
+              backgroundColor: bgColors,
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom'
+              },
+              tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let val = context.raw || 0;
+                        return context.label + ': ' + formatRupiah(val);
+                    }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      btnRefresh.addEventListener('click', load);
+      // [BARU] Panggil fungsi untuk mengisi outlet sebelum memuat data
+      populateOutletFilter();
+      // [BARU] Isi filter kasir
+      populateCashierFilter();
+
+      // Muat otomatis saat pertama
+      load();
+
+      // [BARU] Event Listener untuk tombol navigasi halaman detail
+      document.getElementById('btn-view-menu').addEventListener('click', () => {
+        const params = new URLSearchParams({
+            outlet: outletSel.value,
+            dateFrom: dateFrom.value,
+            dateTo: dateTo.value
+        });
+        window.location.href = `report-menu.html?${params.toString()}`;
+      });
+
+      document.getElementById('btn-view-transactions').addEventListener('click', () => {
+        const params = new URLSearchParams({
+            outlet: outletSel.value,
+            dateFrom: dateFrom.value,
+            dateTo: dateTo.value
+        });
+        window.location.href = `report-transactions.html?${params.toString()}`;
+      });
+
+      document.getElementById('btn-view-category').addEventListener('click', () => {
+        const params = new URLSearchParams({
+            outlet: outletSel.value,
+            dateFrom: dateFrom.value,
+            dateTo: dateTo.value
+        });
+        window.location.href = `report-category.html?${params.toString()}`;
+      });
+
+      // ==========================================
+      // [BARU] LOGIKA X/Z REPORT (SHIFT & DAY)
+      // ==========================================
+      
+      const reportModal = document.getElementById('report-modal');
+      const reportModalTitle = document.getElementById('report-modal-title');
+      const reportModalContent = document.getElementById('report-modal-content');
+      const btnCloseModal = document.getElementById('btn-close-modal');
+      const btnReportPrint = document.getElementById('btn-report-print');
+      /* A4 checkbox removed; useA4 will default to false */
+
+      let currentReportData = null;
+      let currentReportType = null; // 'SHIFT' or 'DAY'
+      let isClosingReport = false; // true for Z, false for X
+
+      // [BARU] Helper untuk mendapatkan opsi yang dipilih
+      function getSelectedOption() {
+        const selected = document.querySelector('input[name="reportOption"]:checked');
+        if (!selected) return null;
+        const parts = selected.value.split('_'); // SHIFT_X -> ['SHIFT', 'X']
+        return {
+            type: parts[0], // SHIFT atau DAY
+            mode: parts[1]  // X atau Z
+        };
+      }
+
+      // [BARU] Event Listener Tombol Aksi
+      document.getElementById('btn-action-preview').addEventListener('click', () => {
+        const opt = getSelectedOption();
+        const useA4 = false;
+        const applyFilters = applyFilterToggle ? applyFilterToggle.checked : false;
+        if (opt) prepareReport(opt.type, false, true, useA4, applyFilters); // Preview mode = true
+      });
+
+      document.getElementById('btn-action-print').addEventListener('click', () => {
+        const opt = getSelectedOption();
+        const useA4 = false;
+        const applyFilters = applyFilterToggle ? applyFilterToggle.checked : false;
+        // Jika mode Z dipilih, maka isClosing = true. Jika X, false.
+        if (opt) prepareReport(opt.type, opt.mode === 'Z', false, useA4, applyFilters); // Preview = false
+      });
+
+      btnCloseModal.addEventListener('click', () => {
+        // [DIUBAH] Logika tombol X: Jika di Halaman 1 -> Ke Halaman 2. Jika di Halaman 2 -> Tutup.
+        if (isPage1) {
+            isPage1 = false;
+            updateModalView();
+        } else {
+            reportModal.classList.remove('show');
+        }
+      });
+
+      btnReportPrint.addEventListener('click', async () => {
+        if (!currentReportData) return;
+
+        // 1. Print Laporan
+        const printSuccess = await printReport(currentReportData);
+        
+        // 2. Jika Z Report (Closing) dan Print Berhasil (atau user maksa), Update Firebase
+        if (isClosingReport) {
+            if (await CustomUI.confirm(`Konfirmasi Tutup ${currentReportType === 'SHIFT' ? 'Shift' : 'Hari'}?\nData akan di-reset untuk periode berikutnya.`, 'Tutup Buku', true)) {
+                await closeBook(currentReportType);
+                CustomUI.success(`${currentReportType === 'SHIFT' ? 'Shift' : 'Hari'} berhasil ditutup.`);
+                load(); // Reload data dashboard
+            }
+        }
+
+        reportModal.classList.remove('show');
+      });
+
+      // [BARU] Logika Navigasi Halaman Modal (Page 1 <-> Page 2)
+      let reportPage1 = '';
+      let reportPage2 = '';
+      let isPage1 = true;
+      let currentReportRaw = null; // [BARU] Menyimpan data mentah untuk export Excel
+
+      function updateModalView() {
+        if (isPage1) {
+            currentReportData = reportPage1;
+            reportModalContent.textContent = reportPage1;
+        } else {
+            currentReportData = reportPage2;
+            reportModalContent.textContent = reportPage2;
+        }
+        // Reset scroll ke atas saat ganti halaman
+        const body = document.querySelector('.modal-body');
+        if(body) body.scrollTop = 0;
+      }
+
+      async function prepareReport(type, isClosing, isPreviewMode = false, useA4 = false, applyFilters = false) {
+        const outlet = outletSel.value;
+        const selectedCashier = cashierSel.value; // [BARU]
+        currentReportType = type;
+        isClosingReport = isClosing;
+
+        // 1. Ambil waktu closing terakhir
+        const lastClosedSnap = await db.ref(`closings/${outlet}/${type}/last_closed`).once('value');
+        const lastClosed = lastClosedSnap.val() || 0;
+        const now = Date.now();
+
+        // 2. Ambil pesanan: jika pengguna memilih Apply Filter, gunakan rentang tanggal/waktu dari input,
+        //    jika tidak, gunakan lastClosed..now seperti semula.
+        let snap;
+        let startRange = lastClosed + 1;
+        let endRange = now;
+        if (applyFilters) {
+          // Gabungkan tanggal + waktu dari input
+          const tf = timeFrom && timeFrom.value ? timeFrom.value : '00:00';
+          const tt = timeTo && timeTo.value ? timeTo.value : '23:59';
+          const startStr = `${dateFrom.value}T${tf}:00`;
+          const endStr = `${dateTo.value}T${tt}:59`;
+          const startMs = new Date(startStr).getTime();
+          const endMs = new Date(endStr).getTime();
+          if (!isNaN(startMs) && !isNaN(endMs)) {
+            startRange = startMs;
+            endRange = endMs;
+          }
+        }
+        snap = await db.ref(`orders/${outlet}`).orderByChild('date').startAt(startRange).endAt(endRange).once('value');
+        const val = snap.val() || {};
+        const validStatuses = ['Sudah Dibayar', 'Diproses', 'Siap Diambil', 'Selesai'];
+        let orders = Object.values(val).filter(o => validStatuses.includes(o.status));
+
+        // [BARU] Filter Kasir di Laporan
+        if (selectedCashier !== 'all') {
+            orders = orders.filter(o => (o.cashier || '').toLowerCase() === selectedCashier.toLowerCase());
+        }
+
+        // 3. Hitung Statistik
+        let totalTx = orders.length;
+        
+        // Variabel Akumulasi
+        let totalItemSales = 0;
+        let totalItemDisc = 0;
+        let totalBillDisc = 0;
+        let totalNetSales = 0;
+        let totalTax = 0;
+        let totalGrandTotal = 0;
+        
+        // [BARU] Counters untuk QTY di ringkasan
+        let countItemDisc = 0;
+        let countBillDisc = 0;
+        let countTax = 0;
+        
+        const byMethod = {};
+        const menuStats = {};
+        const bySource = {}; // [BARU] Variabel untuk menampung data per asal pesanan
+
+        orders.forEach(o => {
+            let orderItemSales = 0;
+            let orderItemDisc = 0;
+
+            // Hitung dari items
+            const items = o.items ? (Array.isArray(o.items) ? o.items : Object.values(o.items)) : [];
+            if (items.length > 0) {
+                items.forEach(i => {
+                    const price = parseNumber(i.price);
+                    const qty = parseNumber(i.quantity);
+                    const disc = parseNumber(i.discount); 
+                    orderItemSales += (price * qty);
+                    orderItemDisc += (disc * qty);
+
+                    // [BARU] Agregasi Menu untuk Laporan X
+                    const iName = i.name || 'Unknown';
+                    if (!menuStats[iName]) menuStats[iName] = { qty: 0, amount: 0 };
+                    menuStats[iName].qty += qty;
+                    menuStats[iName].amount += (price * qty);
+                });
+            }
+
+            // Ambil data payment
+            const payment = o.payment || {};
+            const billDisc = parseNumber(payment.discount);
+            let tax = parseNumber(payment.tax);
+            const grandTotal = parseNumber(payment.total);
+
+            // Hitung Net Sales
+            let netSales = (orderItemSales - orderItemDisc) - billDisc;
+
+            // Fallback jika item sales 0 tapi ada grand total
+            if (orderItemSales === 0 && grandTotal > 0) {
+                netSales = grandTotal;
+            }
+
+            // Fallback Tax
+            if (tax === 0 && grandTotal > netSales) {
+                const diff = grandTotal - netSales;
+                if (diff > 100) tax = diff;
+            }
+
+            // Akumulasi Global
+            totalItemSales += orderItemSales;
+            totalItemDisc += orderItemDisc;
+            totalBillDisc += billDisc;
+            totalNetSales += netSales;
+            totalTax += tax;
+            totalGrandTotal += grandTotal;
+
+            // Update counters
+            if (orderItemDisc > 0) countItemDisc++;
+            if (billDisc > 0) countBillDisc++;
+            if (tax > 0) countTax++;
+
+            // [BARU] Akumulasi per Asal Pesanan (Source)
+            const src = o.source === 'pos' ? 'Kasir (POS)' : 'Web App';
+            if (!bySource[src]) bySource[src] = { count: 0, net: 0, gross: 0 };
+            bySource[src].count += 1;
+            bySource[src].net += netSales;
+            bySource[src].gross += grandTotal;
+
+            // Akumulasi per Metode
+            const m = payment.method || 'N/A';
+            if (!byMethod[m]) byMethod[m] = { count: 0, net: 0, gross: 0 };
+            byMethod[m].count += 1;
+            byMethod[m].net += netSales;
+            byMethod[m].gross += grandTotal;
+        });
+
+        // 4. Buat Data Laporan (Definisi variabel dipindah ke sini agar bisa dipakai di currentReportRaw)
+        const reportTitle = `${isClosing ? 'Z' : 'X'} ${type} REPORT`;
+        const startTimeStr = applyFilters ? `${dateFrom.value} ${timeFrom.value || '00:00'}` : (lastClosed === 0 ? 'Awal' : new Date(lastClosed).toLocaleString('id-ID'));
+        const endTimeStr = applyFilters ? `${dateTo.value} ${timeTo.value || '23:59'}` : new Date(now).toLocaleString('id-ID');
+
+        // [BARU] Simpan data mentah untuk keperluan Export Excel
+        currentReportRaw = {
+            outlet: outlet,
+            cashier: selectedCashier !== 'all' ? selectedCashier : 'All', // [BARU]
+            type: type,
+            mode: isClosing ? 'Z' : 'X',
+            start: startTimeStr,
+            end: endTimeStr,
+            totalTx: totalTx,
+            itemSales: totalItemSales,
+            itemDisc: totalItemDisc,
+            countItemDisc: countItemDisc,
+            billDisc: totalBillDisc,
+            countBillDisc: countBillDisc,
+            netSales: totalNetSales,
+            tax: totalTax,
+            grandTotal: totalGrandTotal,
+            source: bySource, // [BARU] Simpan data source untuk export
+            media: byMethod,
+            menuStats: menuStats
+        };
+
+        // [DIUBAH] Helper formatting: 42 char untuk Thermal (80mm), 70 char untuk A4
+        const WIDTH = useA4 ? 70 : 42;
+
+        const pad = (str, len, align = 'left') => {
+            let s = String(str);
+            if (s.length > len) s = s.substring(0, len);
+            const spaces = len - s.length;
+            if (align === 'left') return s + ' '.repeat(spaces);
+            if (align === 'right') return ' '.repeat(spaces) + s;
+            const left = Math.floor(spaces / 2);
+            const right = spaces - left;
+            return ' '.repeat(left) + s + ' '.repeat(right);
+        };
+        const fmtRow = (label, qty, val) => {
+             // [DIUBAH] Tentukan lebar kolom dinamis
+             let col1, col2;
+             if (WIDTH >= 70) { // A4
+                 col1 = 35; col2 = 10;
+             } else if (WIDTH >= 40) { // Thermal 80mm (42 chars)
+                 col1 = 22; col2 = 6;
+             } else { // Thermal 58mm (32 chars)
+                 col1 = 14; col2 = 5;
+             }
+             const col3 = WIDTH - col1 - col2;
+             
+             const l = pad(label, col1, 'left');
+             const q = pad(qty !== null && qty !== undefined ? String(qty) : '', col2, 'center');
+             const v = pad(formatRupiah(val), col3, 'right');
+             return `${l}${q}${v}\n`;
+        };
+        const centerText = (text) => {
+            const textLen = text.length;
+            const dashLen = Math.max(0, WIDTH - textLen);
+            const leftDash = Math.floor(dashLen / 2);
+            const rightDash = dashLen - leftDash;
+            return '-'.repeat(leftDash) + text + '-'.repeat(rightDash) + '\n';
+        };
+        
+        const separator = '-'.repeat(WIDTH) + '\n';
+        const doubleSeparator = '='.repeat(WIDTH) + '\n';
+
+        let content = doubleSeparator;
+        content += pad("RICE BOWL MONSTER", WIDTH, 'center') + '\n';
+        content += pad(outlet.toUpperCase(), WIDTH, 'center') + '\n';
+        content += doubleSeparator;
+        // [BARU] Tampilkan nama kasir jika difilter
+        if (selectedCashier !== 'all') {
+            content += pad(`CASHIER: ${selectedCashier.toUpperCase()}`, WIDTH, 'center') + '\n';
+        }
+        content += reportTitle + '\n\n';
+        content += `Start : ${startTimeStr}\n`;
+        content += `End   : ${endTimeStr}\n`;
+        content += separator;
+        
+        // [DIUBAH] Header Tabel 1 Dinamis
+        let h1_c1, h1_c2;
+        if (WIDTH >= 70) { h1_c1 = 35; h1_c2 = 10; }
+        else if (WIDTH >= 40) { h1_c1 = 22; h1_c2 = 6; }
+        else { h1_c1 = 14; h1_c2 = 5; }
+        const h1_c3 = WIDTH - h1_c1 - h1_c2;
+        
+        content += pad("TYPE", h1_c1, 'left') + pad("QTY", h1_c2, 'center') + pad("AMOUNT", h1_c3, 'right') + '\n';
+        content += separator;
+        
+        content += fmtRow('Item Sales', totalTx, totalItemSales);
+        content += fmtRow('Item Disc', countItemDisc, totalItemDisc);
+        content += fmtRow('Bill Disc', countBillDisc, totalBillDisc);
+        content += '\n';
+        content += fmtRow('Net Sales', totalTx, totalNetSales);
+        
+        // [BARU] Bagian Laporan Asal Pesanan (Source)
+        content += centerText('Source');
+        for (const [src, data] of Object.entries(bySource)) {
+            content += fmtRow(src, data.count, data.gross);
+        }
+        
+        content += centerText('Media');
+        for (const [method, data] of Object.entries(byMethod)) {
+            content += fmtRow(method, data.count, data.gross);
+        }
+        content += fmtRow('Total', totalTx, totalGrandTotal);
+
+        content += centerText('TAX');
+        content += fmtRow('PPN 10%', '', totalTax);
+
+        content += separator;
+        content += fmtRow('Grand Total', '', totalGrandTotal);
+
+        content += doubleSeparator;
+        content += `Printed: ${new Date().toLocaleString('id-ID')}\n`;
+        content += `User: ${user.nama || 'Admin'}\n`;
+        content += doubleSeparator;
+
+        // Simpan Halaman 1 (Laporan Keuangan)
+        reportPage1 = content;
+
+        // Buat Halaman 2 (Rincian Menu) secara terpisah
+        let content2 = doubleSeparator;
+        content2 += pad("RINCIAN MENU TERJUAL", WIDTH, 'center') + '\n';
+        content2 += doubleSeparator;
+        
+        // [DIUBAH] Header Tabel 2 Dinamis
+        let cName, cPrice, cQty, cAmount;
+        if (WIDTH >= 70) { cName = 30; cPrice = 15; cQty = 5; cAmount = 20; }
+        else if (WIDTH >= 40) { cName = 16; cPrice = 10; cQty = 4; cAmount = 12; }
+        else { cName = 12; cPrice = 7; cQty = 3; cAmount = 10; }
+        
+        content2 += pad("MENU", cName, 'left') + pad("PRICE", cPrice, 'right') + pad("QTY", cQty, 'center') + pad("AMOUNT", cAmount, 'right') + '\n';
+        content2 += separator;
+
+        // [DIUBAH] Helper format baris menu 4 kolom
+        const fmtMenuRow = (n, p, q, a) => {
+            let cName, cPrice, cQty, cAmount;
+            if (WIDTH >= 70) { cName = 30; cPrice = 15; cQty = 5; cAmount = 20; }
+            else if (WIDTH >= 40) { cName = 16; cPrice = 10; cQty = 4; cAmount = 12; }
+            else { cName = 12; cPrice = 7; cQty = 3; cAmount = 10; }
+            
+            return pad(n, cName, 'left') + 
+                   pad(formatRupiah(p), cPrice, 'right') + 
+                   pad(String(q), cQty, 'center') + 
+                   pad(formatRupiah(a), cAmount, 'right') + '\n';
+        };
+
+        const sortedMenu = Object.entries(menuStats).sort((a,b) => b[1].qty - a[1].qty);
+        for (const [name, stat] of sortedMenu) {
+            const unitPrice = stat.qty ? (stat.amount / stat.qty) : 0;
+            content2 += fmtMenuRow(name, unitPrice, stat.qty, stat.amount);
+        }
+        content2 += separator;
+        content2 += `Printed: ${new Date().toLocaleString('id-ID')}\n`;
+        content2 += doubleSeparator;
+
+        reportPage2 = content2;
+
+        // 5. Tampilkan Modal
+        reportModalTitle.textContent = `${isClosing ? 'Konfirmasi Tutup' : 'Preview'} ${type === 'SHIFT' ? 'Shift' : 'Hari'}`;
+        
+        // Reset ke Halaman 1 saat pertama kali dibuka
+        isPage1 = true;
+        updateModalView();
+        
+        if (isPreviewMode) {
+            btnReportPrint.style.display = 'none'; // Sembunyikan tombol print jika hanya preview
+        } else {
+            btnReportPrint.style.display = 'block';
+            if (isClosing) {
+                btnReportPrint.textContent = '🔒 Print & Tutup Buku';
+            } else {
+                btnReportPrint.textContent = '🖨️ Print';
+            }
+        }
+        reportModal.classList.add('show');
+      }
+
+      async function closeBook(type) {
+        const outlet = outletSel.value;
+        const updates = {};
+        updates[`closings/${outlet}/${type}/last_closed`] = firebase.database.ServerValue.TIMESTAMP;
+        updates[`closings/${outlet}/${type}/closed_by`] = user.username;
+        await db.ref().update(updates);
+      }
+
+      // Fungsi Print (Menggunakan Print Bridge jika ada)
+      async function printReport(textData) {
+        const useA4 = false;
+        
+        // CSS untuk print
+        const css = useA4 
+            ? `@page { size: A4; margin: 8mm 5mm; padding: 0; } 
+               body { 
+                 font-family: 'Courier New', monospace; 
+                 width: 100%; 
+                 font-size: 10px; 
+                 white-space: pre-wrap; 
+                 margin: 0; 
+                 padding: 0; 
+                 line-height: 1.2;
+                 overflow: hidden;
+               }`
+            : `@page { size: 80mm auto; margin: 0; padding: 0; } 
+               body { 
+                 font-family: 'Courier New', monospace; 
+                 width: 76mm; 
+                 font-size: 9px; 
+                 white-space: pre-wrap; 
+                 margin: 0; 
+                 padding: 1mm; 
+                 line-height: 1.1;
+                 overflow: hidden;
+               }`;
+
+        // Konversi text plain ke HTML untuk print
+        // Escape HTML characters
+        const escaped = textData
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+            
+        const htmlContent = `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>${css}</style></head>
+<body>${escaped}</body></html>`;
+
+        const PRINT_BRIDGE_URL = 'http://localhost:3000';
+        
+        // Coba Print Bridge
+        try {
+            const response = await fetch(`${PRINT_BRIDGE_URL}/print`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    printerName: 'PRINTER_UTAMA',
+                    content: htmlContent
+                })
+            });
+            const result = await response.json();
+            if (result.status === 'success') {
+                return true;
+            }
+        } catch (e) {
+            console.warn('Print Bridge tidak tersedia, fallback ke browser print.');
+        }
+
+        // Fallback Browser Print
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+        iframe.contentWindow.document.open();
+        iframe.contentWindow.document.write(htmlContent);
+        iframe.contentWindow.document.close();
+        
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                setTimeout(() => {
+                    document.body.removeChild(iframe);
+                    resolve(true);
+                }, 1000);
+            }, 500);
+        });
+      }
+
+      // [BARU] Logic Dropdown Save & Export
+      const btnActionSave = document.getElementById('btn-action-save');
+      const saveDropdown = document.getElementById('save-dropdown');
+      
+      btnActionSave.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isVisible = saveDropdown.style.display === 'block';
+          saveDropdown.style.display = isVisible ? 'none' : 'block';
+      });
+      
+      document.addEventListener('click', () => {
+          if(saveDropdown) saveDropdown.style.display = 'none';
+      });
+
+          document.getElementById('btn-save-pdf').addEventListener('click', () => {
+            const opt = getSelectedOption();
+            const useA4 = false;
+            const applyFilters = applyFilterToggle ? applyFilterToggle.checked : false;
+            if (opt) {
+              // Generate report data first (preview mode)
+              prepareReport(opt.type, opt.mode === 'Z', true, useA4, applyFilters).then(() => {
+                exportToPDF();
+              });
+            }
+          });
+
+          document.getElementById('btn-save-excel').addEventListener('click', () => {
+            const opt = getSelectedOption();
+            const useA4 = false;
+            const applyFilters = applyFilterToggle ? applyFilterToggle.checked : false;
+            if (opt) {
+              prepareReport(opt.type, opt.mode === 'Z', true, useA4, applyFilters).then(() => {
+                exportToExcel();
+              });
+            }
+          });
+
+        function exportToPDF() {
+          if (!currentReportData) return;
+          const useA4 = false;
+          const { jsPDF } = window.jspdf;
+          
+          let doc;
+          if (useA4) {
+              // A4 dengan margin lebih kecil agar lebih rapat
+              doc = new jsPDF({
+                  orientation: 'portrait',
+                  unit: 'mm',
+                  format: 'a4'
+              });
+          } else {
+              // Thermal 80mm
+              doc = new jsPDF({
+                  orientation: 'portrait',
+                  unit: 'mm',
+                  format: [80, 200] // Lebih pendek untuk thermal, akan grow sesuai konten
+              });
+          }
+          
+          doc.setFont("Courier");
+          doc.setFontSize(useA4 ? 9 : 8);
+          
+          const printContent = (text, startPage = false) => {
+              const lines = text.split('\n');
+              let y = startPage ? 8 : 8; // Margin atas lebih kecil
+              const pageWidth = useA4 ? 210 : 80;
+              const pageHeight = useA4 ? 297 : 200;
+              const usableHeight = pageHeight - 10; // Ruang cetak tersedia
+              const lineHeight = useA4 ? 3.5 : 3; // Tinggi baris lebih kecil
+              const leftMargin = useA4 ? 5 : 2;
+              
+              lines.forEach(line => {
+                  // Split line jika terlalu panjang untuk lebar halaman
+                  const charPerLine = useA4 ? 80 : 42;
+                  if (line.length > charPerLine) {
+                      for (let i = 0; i < line.length; i += charPerLine) {
+                          const chunk = line.substring(i, i + charPerLine);
+                          if (y > usableHeight) { 
+                              doc.addPage(); 
+                              y = 8; 
+                          }
+                          doc.text(chunk, leftMargin, y);
+                          y += lineHeight;
+                      }
+                  } else {
+                      if (y > usableHeight) { 
+                          doc.addPage(); 
+                          y = 8; 
+                      }
+                      doc.text(line, leftMargin, y);
+                      y += lineHeight;
+                  }
+              });
+          };
+
+          printContent(reportPage1, true);
+          
+          if (reportPage2) {
+              doc.addPage();
+              printContent(reportPage2, false);
+          }
+
+          const filename = `Report_${currentReportRaw.outlet}_${currentReportRaw.type}_${currentReportRaw.mode}_${new Date().toISOString().slice(0,10)}.pdf`;
+          doc.save(filename);
+      }
+
+      function exportToExcel() {
+          if (!currentReportRaw) return;
+          const wb = XLSX.utils.book_new();
+          
+          // Sheet 1: Summary
+          const wsData = [
+              ["RICE BOWL MONSTER"],
+              [`OUTLET: ${currentReportRaw.outlet.toUpperCase()}`],
+              [`REPORT: ${currentReportRaw.mode} - ${currentReportRaw.type}`],
+              [`Start: ${currentReportRaw.start}`],
+              [`End: ${currentReportRaw.end}`],
+              [],
+              ["TYPE", "QTY", "AMOUNT"],
+              ["Item Sales", currentReportRaw.totalTx, currentReportRaw.itemSales],
+              ["Item Disc", currentReportRaw.countItemDisc, currentReportRaw.itemDisc],
+              ["Bill Disc", currentReportRaw.countBillDisc, currentReportRaw.billDisc],
+              ["Net Sales", currentReportRaw.totalTx, currentReportRaw.netSales],
+              [],
+              ["SOURCE", "QTY", "AMOUNT"] // [BARU] Header Source di Excel
+          ];
+
+          // [BARU] Isi data Source ke Excel
+          if (currentReportRaw.source) {
+              for (const [src, data] of Object.entries(currentReportRaw.source)) {
+                  wsData.push([src, data.count, data.gross]);
+              }
+          }
+
+          // Lanjut ke bagian Media
+          const mediaRows = [
+              [],
+              ["MEDIA", "QTY", "AMOUNT"]
+          ];
+
+          // Gabungkan array
+          mediaRows.forEach(r => wsData.push(r));
+
+          for (const [method, data] of Object.entries(currentReportRaw.media)) {
+              wsData.push([method, data.count, data.gross]);
+          }
+          
+          wsData.push([], ["TAX", "", currentReportRaw.tax]);
+          wsData.push(["GRAND TOTAL", "", currentReportRaw.grandTotal]);
+          
+          const ws = XLSX.utils.aoa_to_sheet(wsData);
+          XLSX.utils.book_append_sheet(wb, ws, "Summary");
+          
+          // Sheet 2: Menu Details
+          const menuData = [["MENU ITEM", "PRICE", "QTY", "AMOUNT"]];
+          const sortedMenu = Object.entries(currentReportRaw.menuStats).sort((a,b) => b[1].qty - a[1].qty);
+          for (const [name, stat] of sortedMenu) {
+              const unitPrice = stat.qty ? (stat.amount / stat.qty) : 0;
+              menuData.push([name, unitPrice, stat.qty, stat.amount]);
+          }
+          
+          const wsMenu = XLSX.utils.aoa_to_sheet(menuData);
+          XLSX.utils.book_append_sheet(wb, wsMenu, "Menu Details");
+          
+          const filename = `Report_${currentReportRaw.outlet}_${currentReportRaw.type}_${currentReportRaw.mode}_${new Date().toISOString().slice(0,10)}.xlsx`;
+          XLSX.writeFile(wb, filename);
+      }
+
+    });
+
+    // [BARU] Fungsi visual untuk radio button card
+    function selectRadio(element) {
+        document.querySelectorAll('.report-radio-card').forEach(el => el.classList.remove('selected'));
+        element.classList.add('selected');
+        element.querySelector('input').checked = true;
+    }
+  </script>
+</body>
+</html>

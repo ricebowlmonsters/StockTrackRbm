@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pengaturan Web Customer - RBM</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .setting-item:last-child {
+      border-bottom: none;
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 28px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 28px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #4C2A85;
+    }
+    input:checked + .slider:before {
+      transform: translateX(22px);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <a href="index.html" class="back-btn">‹</a>
+      <h1 class="page-title">Pengaturan Web Customer</h1>
+    </header>
+    <main class="content">
+      <!-- Menu Navigasi Halaman (Top) -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 20px;">
+        <a href="customer-settings.html" style="background: #eef2ff; border-color: #4C2A85; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #4C2A85; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #4C2A85; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">📱</span>
+            <span style="font-size: 11px; font-weight: 600;">Pengaturan Web</span>
+        </a>
+        <a href="customer-account-settings.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">⚙️</span>
+            <span style="font-size: 11px; font-weight: 600;">Halaman Akun</span>
+        </a>
+        <a href="ai-settings.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">🤖</span>
+            <span style="font-size: 11px; font-weight: 600;">AI Chatbot</span>
+        </a>
+        <a href="global-chat-manager.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">💬</span>
+            <span style="font-size: 11px; font-weight: 600;">Community Chat</span>
+        </a>
+        <a href="storage-viewer.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">💾</span>
+            <span style="font-size: 11px; font-weight: 600;">Data & Storage</span>
+        </a>
+      </div>
+
+      <section class="card">
+        <h3 class="card-title">Tampilan & Konten</h3>
+        <p class="card-subtitle" style="margin-bottom: 16px; font-size: 12px;">Atur tampilan dan konten untuk aplikasi pelanggan (Logo, Promo, dll).</p>
+
+        <!-- Navigasi Cepat Bagian -->
+        <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 16px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; -webkit-overflow-scrolling: touch;">
+            <a href="#section-logo" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; text-decoration: none;">Logo</a>
+            <a href="#section-theme" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; text-decoration: none;">Tema</a>
+            <a href="#section-icons" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; text-decoration: none;">Ikon</a>
+            <a href="#section-promo" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; text-decoration: none;">Pop-up</a>
+            <a href="#section-banners" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; text-decoration: none;">Banner</a>
+            <a href="#section-offers" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; text-decoration: none;">Offers</a>
+            <a href="#section-outlets" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; text-decoration: none;">Outlet</a>
+            <a href="#section-features" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; text-decoration: none;">Fitur</a>
+            <a href="#section-info" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; text-decoration: none;">Info</a>
+        </div>
+
+        <!-- Logo Setting -->
+        <div class="form-group" id="section-logo" style="scroll-margin-top: 100px;">
+          <label class="form-label" for="cust-logo-file">Logo Toko (Header)</label>
+          <div style="display: flex; gap: 10px; align-items: flex-start;">
+            <div style="flex: 1;">
+              <input type="file" id="cust-logo-file" class="form-input" accept="image/*">
+              <input type="hidden" id="cust-logo-base64">
+              <p style="font-size: 11px; color: #6b7280; margin-top: 4px;">Format: PNG/JPG. Max 200px lebar.</p>
+            </div>
+            <div style="position: relative;">
+                <img id="cust-logo-preview" src="" style="width: 80px; height: 80px; object-fit: contain; border: 1px solid #e5e7eb; border-radius: 8px; display: none;">
+                <button id="btn-clear-logo" type="button" style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 10px; display: none; align-items: center; justify-content: center;">✕</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- [BARU] Theme Color Setting -->
+        <div class="form-group" id="section-theme" style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px; scroll-margin-top: 100px;">
+            <label class="form-label">Warna Tema Aplikasi</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="color" id="cust-theme-color" value="#4C2A85" style="width: 50px; height: 40px; border: 1px solid #e5e7eb; padding: 2px; border-radius: 6px; cursor: pointer;">
+                <input type="text" id="cust-theme-color-text" class="form-input" value="#4C2A85" placeholder="#4C2A85" style="width: 100px; text-transform: uppercase;">
+                <div style="flex: 1; font-size: 11px; color: #6b7280;">Warna dominan untuk header, tombol, dan aksen.</div>
+            </div>
+            
+            <!-- [BARU] Color Presets -->
+            <div style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
+                <span style="font-size: 11px; color: #6b7280;">Preset:</span>
+                <button type="button" class="btn-preset-color" data-color="#4C2A85" style="width: 24px; height: 24px; background: #4C2A85; border: 1px solid #e5e7eb; border-radius: 4px; cursor: pointer;" title="Default (Ungu)"></button>
+                <button type="button" class="btn-preset-color" data-color="#DC2626" style="width: 24px; height: 24px; background: #DC2626; border: 1px solid #e5e7eb; border-radius: 4px; cursor: pointer;" title="Merah"></button>
+                <button type="button" class="btn-preset-color" data-color="#059669" style="width: 24px; height: 24px; background: #059669; border: 1px solid #e5e7eb; border-radius: 4px; cursor: pointer;" title="Hijau"></button>
+                <button type="button" class="btn-preset-color" data-color="#2563EB" style="width: 24px; height: 24px; background: #2563EB; border: 1px solid #e5e7eb; border-radius: 4px; cursor: pointer;" title="Biru"></button>
+                <button type="button" class="btn-preset-color" data-color="#D97706" style="width: 24px; height: 24px; background: #D97706; border: 1px solid #e5e7eb; border-radius: 4px; cursor: pointer;" title="Oranye"></button>
+            </div>
+            
+            <!-- [BARU] Live Preview Container -->
+            <div id="theme-preview-container" style="margin-top: 12px; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
+                <div style="font-size: 11px; font-weight: 600; margin-bottom: 8px; color: #374151;">Preview Tampilan:</div>
+                <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+                    <!-- Mock Header (Mobile) -->
+                    <div style="width: 100px; height: 60px; background: white; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; display: flex; flex-direction: column;">
+                        <div id="preview-header" style="height: 12px; background: #4C2A85; width: 100%;"></div>
+                        <div style="flex: 1; padding: 6px; display: flex; flex-direction: column; gap: 4px;">
+                            <div style="height: 4px; width: 70%; background: #f3f4f6; border-radius: 2px;"></div>
+                            <div style="height: 4px; width: 40%; background: #f3f4f6; border-radius: 2px;"></div>
+                            <div id="preview-btn-small" style="margin-top: auto; height: 10px; width: 100%; background: #4C2A85; border-radius: 2px;"></div>
+                        </div>
+                    </div>
+                    <!-- Mock Button -->
+                    <button id="preview-btn" style="background: #4C2A85; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: default;">Tombol Utama</button>
+                    <!-- Mock Icon -->
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <div id="preview-icon-bg" style="width: 32px; height: 32px; border-radius: 8px; background: #ffffff; color: #4C2A85; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 1px solid #4C2A85;">★</div>
+                        <span style="font-size: 11px; color: #6b7280;">Aksen</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- [BARU] Ikon & Logo Tambahan -->
+        <div class="form-group" id="section-icons" style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px; scroll-margin-top: 100px;">
+          <div class="form-label">Ikon & Logo Tambahan</div>
+          
+          <!-- Login Logo -->
+          <div style="margin-bottom: 12px;">
+            <label style="font-size: 12px; font-weight: 600;" for="cust-login-logo-file">Logo Halaman Login</label>
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                <div style="flex: 1;">
+                    <input type="file" id="cust-login-logo-file" class="form-input" accept="image/*">
+                    <input type="hidden" id="cust-login-logo-base64">
+                </div>
+                <div style="position: relative;">
+                    <img id="cust-login-logo-preview" src="" style="width: 60px; height: 60px; object-fit: contain; border: 1px solid #e5e7eb; border-radius: 8px; display: none;">
+                    <button id="btn-clear-login-logo" type="button" style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 10px; display: none; align-items: center; justify-content: center;">✕</button>
+                </div>
+            </div>
+          </div>
+
+          <!-- Point Icon & Exchange Icon -->
+          <div style="display: flex; gap: 12px;">
+            <div style="flex: 1;">
+                <label style="font-size: 12px; font-weight: 600;" for="cust-point-icon-file">Ikon Poin (Beranda)</label>
+                <input type="file" id="cust-point-icon-file" class="form-input" accept="image/*" style="font-size: 11px;">
+                <input type="hidden" id="cust-point-icon-base64">
+                <img id="cust-point-icon-preview" src="" style="width: 40px; height: 40px; object-fit: contain; border: 1px solid #e5e7eb; border-radius: 8px; display: none; margin-top: 4px;">
+            </div>
+            <div style="flex: 1;">
+                <label style="font-size: 12px; font-weight: 600;" for="cust-exchange-icon-file">Ikon Tukar Poin</label>
+                <input type="file" id="cust-exchange-icon-file" class="form-input" accept="image/*" style="font-size: 11px;">
+                <input type="hidden" id="cust-exchange-icon-base64">
+                <img id="cust-exchange-icon-preview" src="" style="width: 40px; height: 40px; object-fit: contain; border: 1px solid #e5e7eb; border-radius: 8px; display: none; margin-top: 4px;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Promo Popup Setting -->
+        <div class="form-group" id="section-promo" style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px; scroll-margin-top: 100px;">
+          <div class="form-label">Pop-up Promo (Saat Buka)</div>
+          <div class="setting-item" style="padding: 0; border: none; margin-bottom: 12px;">
+            <div>
+              <strong>Aktifkan Pop-up</strong>
+              <p style="font-size: 12px; color: #6b7280;">Tampilkan pop-up promo saat pelanggan membuka aplikasi.</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="cust-promo-active">
+              <span class="slider"></span>
+            </label>
+          </div>
+          
+          <label class="form-label" for="cust-promo-file" style="font-size: 12px;">Gambar Pop-up</label>
+          <div style="display: flex; gap: 10px; align-items: flex-start;">
+            <div style="flex: 1;">
+              <input type="file" id="cust-promo-file" class="form-input" accept="image/*">
+              <input type="hidden" id="cust-promo-base64">
+              <p style="font-size: 11px; color: #6b7280; margin-top: 4px;">Disarankan rasio 1:1 atau 4:3.</p>
+            </div>
+            <div style="position: relative;">
+                <img id="cust-promo-preview" src="" style="width: 100px; height: 100px; object-fit: cover; border: 1px solid #e5e7eb; border-radius: 8px; display: none;">
+                <button id="btn-clear-promo" type="button" style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 10px; display: none; align-items: center; justify-content: center;">✕</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Banner Slider Setting (New) -->
+        <div class="form-group" id="section-banners" style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px; scroll-margin-top: 100px;">
+          <div class="form-label">Banner Utama (Slider)</div>
+          <p style="font-size: 11px; color: #6b7280; margin-bottom: 10px;">Upload hingga 3 gambar untuk banner geser di halaman utama. Format PNG disarankan. Rasio 2:1 (misal 800x400).</p>
+          
+          <!-- Banner 1 -->
+          <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px;">
+            <div style="flex: 1;">
+              <label style="font-size: 12px; font-weight: 600;" for="banner-1-file">Banner 1</label>
+              <input type="file" id="banner-1-file" class="form-input" accept="image/*">
+              <input type="hidden" id="banner-1-base64">
+            </div>
+            <div style="position: relative;">
+                <img id="banner-1-preview" src="" style="width: 100px; height: 50px; object-fit: cover; border: 1px solid #e5e7eb; border-radius: 4px; display: none;">
+                <button id="btn-clear-banner1" type="button" style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 10px; display: none; align-items: center; justify-content: center;">✕</button>
+            </div>
+          </div>
+
+          <!-- Banner 2 -->
+          <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px;">
+            <div style="flex: 1;">
+              <label style="font-size: 12px; font-weight: 600;" for="banner-2-file">Banner 2</label>
+              <input type="file" id="banner-2-file" class="form-input" accept="image/*">
+              <input type="hidden" id="banner-2-base64">
+            </div>
+            <div style="position: relative;">
+                <img id="banner-2-preview" src="" style="width: 100px; height: 50px; object-fit: cover; border: 1px solid #e5e7eb; border-radius: 4px; display: none;">
+                <button id="btn-clear-banner2" type="button" style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 10px; display: none; align-items: center; justify-content: center;">✕</button>
+            </div>
+          </div>
+
+          <!-- Banner 3 -->
+          <div style="display: flex; gap: 10px; align-items: flex-start;">
+            <div style="flex: 1;">
+              <label style="font-size: 12px; font-weight: 600;" for="banner-3-file">Banner 3</label>
+              <input type="file" id="banner-3-file" class="form-input" accept="image/*">
+              <input type="hidden" id="banner-3-base64">
+            </div>
+            <div style="position: relative;">
+                <img id="banner-3-preview" src="" style="width: 100px; height: 50px; object-fit: cover; border: 1px solid #e5e7eb; border-radius: 4px; display: none;">
+                <button id="btn-clear-banner3" type="button" style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 10px; display: none; align-items: center; justify-content: center;">✕</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Special Offers Setting (New) -->
+        <div class="form-group" id="section-offers" style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px; scroll-margin-top: 100px;">
+          <div class="form-label">Menu Spesial / Link Delivery</div>
+          <p style="font-size: 11px; color: #6b7280; margin-bottom: 10px;">Upload 3 gambar untuk menu spesial atau link delivery (GoFood, Shopee, Grab).</p>
+          
+          <!-- Offer 1 -->
+          <div style="margin-bottom: 12px; border: 1px solid #f3f4f6; padding: 10px; border-radius: 8px;">
+            <label style="font-size: 12px; font-weight: 600;" for="offer-1-link">Posisi 1 (Kiri) - Default</label>
+            <input type="text" id="offer-1-link" class="form-input" placeholder="Link Default (Bisa di-override per outlet)" style="margin-bottom: 8px; font-size: 12px;">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="file" id="offer-1-file" class="form-input" accept="image/*" style="font-size: 11px;">
+                <input type="hidden" id="offer-1-base64">
+                <div style="position: relative;">
+                    <img id="offer-1-preview" src="" style="width: 40px; height: 40px; object-fit: contain; border: 1px solid #e5e7eb; display: none;">
+                    <button id="btn-clear-offer1" type="button" style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 10px; display: none; align-items: center; justify-content: center;">✕</button>
+                </div>
+            </div>
+          </div>
+
+          <!-- Offer 2 -->
+          <div style="margin-bottom: 12px; border: 1px solid #f3f4f6; padding: 10px; border-radius: 8px;">
+            <label style="font-size: 12px; font-weight: 600;" for="offer-2-link">Posisi 2 (Tengah) - Default</label>
+            <input type="text" id="offer-2-link" class="form-input" placeholder="Link Default (Bisa di-override per outlet)" style="margin-bottom: 8px; font-size: 12px;">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="file" id="offer-2-file" class="form-input" accept="image/*" style="font-size: 11px;">
+                <input type="hidden" id="offer-2-base64">
+                <div style="position: relative;">
+                    <img id="offer-2-preview" src="" style="width: 40px; height: 40px; object-fit: contain; border: 1px solid #e5e7eb; display: none;">
+                    <button id="btn-clear-offer2" type="button" style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 10px; display: none; align-items: center; justify-content: center;">✕</button>
+                </div>
+            </div>
+          </div>
+
+          <!-- Offer 3 -->
+          <div style="margin-bottom: 12px; border: 1px solid #f3f4f6; padding: 10px; border-radius: 8px;">
+            <label style="font-size: 12px; font-weight: 600;" for="offer-3-link">Posisi 3 (Kanan) - Default</label>
+            <input type="text" id="offer-3-link" class="form-input" placeholder="Link Default (Bisa di-override per outlet)" style="margin-bottom: 8px; font-size: 12px;">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="file" id="offer-3-file" class="form-input" accept="image/*" style="font-size: 11px;">
+                <input type="hidden" id="offer-3-base64">
+                <div style="position: relative;">
+                    <img id="offer-3-preview" src="" style="width: 40px; height: 40px; object-fit: contain; border: 1px solid #e5e7eb; display: none;">
+                    <button id="btn-clear-offer3" type="button" style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 10px; display: none; align-items: center; justify-content: center;">✕</button>
+                </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Outlet Settings -->
+        <div class="form-group" id="section-outlets" style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px; scroll-margin-top: 100px;">
+          <div class="form-label">Manajemen Lokasi / Outlet</div>
+          <p style="font-size: 11px; color: #6b7280; margin-bottom: 10px;">Atur daftar outlet yang muncul di aplikasi pelanggan.</p>
+          
+          <div id="outlet-list-container" style="margin-bottom: 16px;"></div>
+
+          <button id="btn-add-outlet-ui" class="btn btn-secondary" style="width: 100%; margin-bottom: 16px;">+ Tambah Outlet</button>
+
+          <!-- Hidden Form for Adding/Editing Outlet -->
+          <div id="outlet-form-container" style="display: none; background: #f9fafb; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb;">
+            <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 14px;">Edit Outlet</h4>
+            <input type="hidden" id="outlet-index">
+            
+            <div class="form-group">
+                <label style="font-size: 12px;" for="outlet-id">ID Outlet (unik, cth: sidoarjo)</label>
+                <input type="text" id="outlet-id" class="form-input">
+            </div>
+            <div class="form-group">
+                <label style="font-size: 12px;" for="outlet-name">Nama Outlet</label>
+                <input type="text" id="outlet-name" class="form-input">
+            </div>
+            <div class="form-group">
+                <label style="font-size: 12px;" for="outlet-phone">Nomor WhatsApp (cth: 628...)</label>
+                <input type="text" id="outlet-phone" class="form-input">
+            </div>
+            <div class="form-group">
+                <label style="font-size: 12px;" for="outlet-map">Link Google Maps (Tombol)</label>
+                <input type="text" id="outlet-map" class="form-input" placeholder="https://goo.gl/maps/...">
+            </div>
+            <div class="form-group">
+                <label style="font-size: 12px;" for="outlet-embed-map">Embed Map (Iframe / URL)</label>
+                <input type="text" id="outlet-embed-map" class="form-input" placeholder='<iframe src="..."></iframe>'>
+                <p style="font-size: 10px; color: #6b7280; margin-top: 2px;">Dari Google Maps: Bagikan -> Sematkan Peta -> Salin HTML</p>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e5e7eb;">
+                <div class="form-group" style="flex: 1;">
+                    <label style="font-size: 12px;" for="outlet-bank">Bank Pencairan (Gaji/PC)</label>
+                    <input type="text" id="outlet-bank" class="form-input" placeholder="Contoh: BCA">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label style="font-size: 12px;" for="outlet-rekening">No. Rekening</label>
+                    <input type="text" id="outlet-rekening" class="form-input" placeholder="Contoh: 1234567890">
+                </div>
+                <div class="form-group" style="flex: 1.5;">
+                    <label style="font-size: 12px;" for="outlet-atasnama">Atas Nama Pencairan</label>
+                    <input type="text" id="outlet-atasnama" class="form-input" placeholder="Contoh: PT. RBM">
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <div class="form-group" style="flex: 1;">
+                    <label style="font-size: 12px;" for="outlet-lat">Latitude (cth: -7.44698)</label>
+                    <input type="text" id="outlet-lat" class="form-input">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label style="font-size: 12px;" for="outlet-lon">Longitude (cth: 112.70157)</label>
+                    <input type="text" id="outlet-lon" class="form-input">
+                </div>
+            </div>
+            <div class="form-group">
+                <label style="font-size: 12px;" for="outlet-radius">Radius Absensi GPS (Meter)</label>
+                <input type="number" id="outlet-radius" class="form-input" placeholder="50" value="50" min="10" max="500">
+                <p style="font-size: 10px; color: #6b7280; margin-top: 2px;">Batas jarak (meter) dari titik lokasi outlet untuk validasi Absensi GPS. Setiap outlet bisa beda.</p>
+            </div>
+            <div class="form-group">
+                <label style="font-size: 12px;" for="outlet-link-1">Link Posisi 1 (Khusus Outlet Ini)</label>
+                <input type="text" id="outlet-link-1" class="form-input" placeholder="Link untuk Gambar Kiri (Override)">
+            </div>
+            <div class="form-group">
+                <label style="font-size: 12px;" for="outlet-link-2">Link Posisi 2 (Khusus Outlet Ini)</label>
+                <input type="text" id="outlet-link-2" class="form-input" placeholder="Link untuk Gambar Tengah (Override)">
+            </div>
+            <div class="form-group">
+                <label style="font-size: 12px;" for="outlet-link-3">Link Posisi 3 (Khusus Outlet Ini)</label>
+                <input type="text" id="outlet-link-3" class="form-input" placeholder="Link untuk Gambar Kanan (Override)">
+            </div>
+
+            <div class="form-group" style="background: #fff; padding: 10px; border: 1px solid #e5e7eb; border-radius: 6px; margin-top: 10px;">
+                <label style="font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0;">
+                    <input type="checkbox" id="outlet-ordering-enabled" checked style="width: 16px; height: 16px;">
+                    Aktifkan Fitur Pesan (Checkout)
+                </label>
+                <p style="font-size: 10px; color: #6b7280; margin: 4px 0 0 24px;">Jika dimatikan, outlet ini akan menjadi Mode Katalog (hanya lihat menu).</p>
+            </div>
+            
+            <div style="font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block;">Gambar Outlet (Max 3)</div>
+            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+                <input type="file" id="outlet-img1-file" class="form-input" accept="image/*" style="font-size: 11px;">
+                <input type="hidden" id="outlet-img1-base64">
+                <img id="outlet-img1-preview" src="" style="width: 40px; height: 40px; object-fit: cover; display: none;">
+                <button id="btn-clear-img1" style="font-size: 10px; cursor: pointer;">X</button>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+                <input type="file" id="outlet-img2-file" class="form-input" accept="image/*" style="font-size: 11px;">
+                <input type="hidden" id="outlet-img2-base64">
+                <img id="outlet-img2-preview" src="" style="width: 40px; height: 40px; object-fit: cover; display: none;">
+                <button id="btn-clear-img2" style="font-size: 10px; cursor: pointer;">X</button>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+                <input type="file" id="outlet-img3-file" class="form-input" accept="image/*" style="font-size: 11px;">
+                <input type="hidden" id="outlet-img3-base64">
+                <img id="outlet-img3-preview" src="" style="width: 40px; height: 40px; object-fit: cover; display: none;">
+                <button id="btn-clear-img3" style="font-size: 10px; cursor: pointer;">X</button>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <button id="btn-save-outlet-item" class="btn btn-primary" style="flex: 1;">Simpan ke Daftar</button>
+                <button id="btn-cancel-outlet-item" class="btn btn-secondary" style="flex: 1;">Batal</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- [BARU] Konfigurasi Fitur -->
+        <div class="form-group" id="section-features" style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px; scroll-margin-top: 100px;">
+          <div class="form-label">Konfigurasi Fitur</div>
+          
+          <div class="setting-item" style="padding: 0; border: none; margin-bottom: 12px;">
+            <div>
+              <strong>Aktifkan AI Chat</strong>
+              <p style="font-size: 12px; color: #6b7280;">Tampilkan tombol asisten AI di aplikasi pelanggan.</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="cust-enable-ai-chat">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-item" style="padding: 0; border: none; margin-bottom: 12px;">
+            <div>
+              <strong>Aktifkan Game</strong>
+              <p style="font-size: 12px; color: #6b7280;">Tampilkan tombol game di aplikasi pelanggan.</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="cust-enable-game">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-item" style="padding: 0; border: none; margin-bottom: 12px;">
+            <div>
+              <strong>Aktifkan Global Chat</strong>
+              <p style="font-size: 12px; color: #6b7280;">Tampilkan tombol chat komunitas di aplikasi pelanggan.</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="cust-enable-global-chat">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Other Settings -->
+        <div class="form-group" id="section-info" style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px; scroll-margin-top: 100px;">
+          <div class="form-label">Informasi Tambahan</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <input type="text" id="cust-store-name" class="form-input" placeholder="Nama Toko (Muncul di Title)">
+            <input type="text" id="cust-wa-number" class="form-input" placeholder="Nomor WhatsApp (cth: 628123456789)">
+            <input type="text" id="cust-script-url" class="form-input" placeholder="URL Google Apps Script (API)">
+            <input type="text" id="cust-running-text" class="form-input" placeholder="Teks Berjalan (Running Text) - Kosongkan jika tidak ingin ada">
+          </div>
+        </div>
+
+        <div style="margin-top: 16px; text-align: right;">
+          <button id="save-cust-settings-btn" class="btn btn-primary">Simpan Pengaturan</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="custom-ui.js"></script>
+  <script src="firebase-storage.js"></script>
+  <script>
+    function getActiveConfig() {
+        try {
+            const storedConns = localStorage.getItem('rbm_db_connections');
+            const activeIdx = parseInt(localStorage.getItem('rbm_active_connection_index') || '0');
+            if (storedConns) {
+                const conns = JSON.parse(storedConns);
+                if (conns.length > 0) return conns[activeIdx >= 0 && activeIdx < conns.length ? activeIdx : 0].config;
+            }
+        } catch(e) { console.error("Config Error", e); }
+        return null;
+    }
+
+    const config = getActiveConfig();
+    let db = null;
+
+    if (config) {
+        if (config.type === 'local') {
+            db = new LocalDB(config.dbName);
+        } else if (config.type === 'server') {
+            db = new ServerDB(config.apiUrl);
+        } else {
+            if (!firebase.apps.length) firebase.initializeApp(config);
+            db = firebase.database();
+        }
+    } else {
+        alert("Database belum disetting!"); window.location.href = "storage-viewer.html";
+    }
+    
+    // Fallback
+    if (!db) db = { ref: () => ({ on: () => {}, once: () => Promise.resolve({val:()=>null}), update: () => Promise.reject("No DB") }) };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // [BARU] Proteksi Halaman (Hanya akun Burhan)
+      const currentUser = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+      // if (currentUser.username !== 'Burhan') {
+      //     alert('Akses Ditolak. Halaman ini hanya dapat diakses oleh akun Developer (Burhan).');
+      //     window.location.href = 'index.html';
+      //     return;
+      // }
+
+      const custLogoFile = document.getElementById('cust-logo-file');
+      const custLogoBase64 = document.getElementById('cust-logo-base64');
+      const custLogoPreview = document.getElementById('cust-logo-preview');
+      
+      // [BARU] Theme Color Elements
+      const custThemeColor = document.getElementById('cust-theme-color');
+      const custThemeColorText = document.getElementById('cust-theme-color-text');
+
+      // [BARU] Preview Elements
+      const previewHeader = document.getElementById('preview-header');
+      const previewBtn = document.getElementById('preview-btn');
+      const previewBtnSmall = document.getElementById('preview-btn-small');
+      const previewIconBg = document.getElementById('preview-icon-bg');
+
+      function updateThemePreview(color) {
+          if(previewHeader) previewHeader.style.backgroundColor = color;
+          if(previewBtn) previewBtn.style.backgroundColor = color;
+          if(previewBtnSmall) previewBtnSmall.style.backgroundColor = color;
+          if(previewIconBg) {
+              previewIconBg.style.color = color;
+              previewIconBg.style.borderColor = color;
+          }
+      }
+
+      // [BARU] Sync Color Inputs
+      if(custThemeColor && custThemeColorText) {
+          custThemeColor.addEventListener('input', () => {
+              const val = custThemeColor.value.toUpperCase();
+              custThemeColorText.value = val;
+              updateThemePreview(val);
+          });
+          custThemeColorText.addEventListener('input', () => {
+              const val = custThemeColorText.value;
+              if(/^#[0-9A-F]{6}$/i.test(val)) {
+                  custThemeColor.value = val;
+                  updateThemePreview(val);
+              }
+          });
+
+          // [BARU] Preset Buttons Logic
+          document.querySelectorAll('.btn-preset-color').forEach(btn => {
+              btn.addEventListener('click', () => {
+                  const color = btn.dataset.color;
+                  custThemeColor.value = color;
+                  custThemeColorText.value = color;
+                  updateThemePreview(color);
+              });
+          });
+      }
+      
+      const custLoginLogoFile = document.getElementById('cust-login-logo-file');
+      const custLoginLogoBase64 = document.getElementById('cust-login-logo-base64');
+      const custLoginLogoPreview = document.getElementById('cust-login-logo-preview');
+      const custPointIconFile = document.getElementById('cust-point-icon-file');
+      const custPointIconBase64 = document.getElementById('cust-point-icon-base64');
+      const custPointIconPreview = document.getElementById('cust-point-icon-preview');
+      const custExchangeIconFile = document.getElementById('cust-exchange-icon-file');
+      const custExchangeIconBase64 = document.getElementById('cust-exchange-icon-base64');
+      const custExchangeIconPreview = document.getElementById('cust-exchange-icon-preview');
+
+      const custPromoActive = document.getElementById('cust-promo-active');
+      const custPromoFile = document.getElementById('cust-promo-file');
+      const custPromoBase64 = document.getElementById('cust-promo-base64');
+      const custPromoPreview = document.getElementById('cust-promo-preview');
+      
+      // Banner Elements
+      const banner1File = document.getElementById('banner-1-file');
+      const banner1Base64 = document.getElementById('banner-1-base64');
+      const banner1Preview = document.getElementById('banner-1-preview');
+      const banner2File = document.getElementById('banner-2-file');
+      const banner2Base64 = document.getElementById('banner-2-base64');
+      const banner2Preview = document.getElementById('banner-2-preview');
+      const banner3File = document.getElementById('banner-3-file');
+      const banner3Base64 = document.getElementById('banner-3-base64');
+      const banner3Preview = document.getElementById('banner-3-preview');
+
+      // Special Offer Elements
+      const offer1File = document.getElementById('offer-1-file');
+      const offer1Base64 = document.getElementById('offer-1-base64');
+      const offer1Preview = document.getElementById('offer-1-preview');
+      const offer1Link = document.getElementById('offer-1-link');
+
+      const offer2File = document.getElementById('offer-2-file');
+      const offer2Base64 = document.getElementById('offer-2-base64');
+      const offer2Preview = document.getElementById('offer-2-preview');
+      const offer2Link = document.getElementById('offer-2-link');
+
+      const offer3File = document.getElementById('offer-3-file');
+      const offer3Base64 = document.getElementById('offer-3-base64');
+      const offer3Preview = document.getElementById('offer-3-preview');
+      const offer3Link = document.getElementById('offer-3-link');
+
+      // Outlet Elements
+      const outletListContainer = document.getElementById('outlet-list-container');
+      const btnAddOutletUI = document.getElementById('btn-add-outlet-ui');
+      const outletFormContainer = document.getElementById('outlet-form-container');
+      const btnSaveOutletItem = document.getElementById('btn-save-outlet-item');
+      const btnCancelOutletItem = document.getElementById('btn-cancel-outlet-item');
+      const outletIndexInput = document.getElementById('outlet-index');
+      const outletIdInput = document.getElementById('outlet-id');
+      const outletNameInput = document.getElementById('outlet-name');
+      const outletPhoneInput = document.getElementById('outlet-phone');
+      const outletMapInput = document.getElementById('outlet-map');
+      const outletEmbedMapInput = document.getElementById('outlet-embed-map');
+      const outletLatInput = document.getElementById('outlet-lat');
+      const outletLonInput = document.getElementById('outlet-lon');
+      const outletRadiusInput = document.getElementById('outlet-radius');
+      const outletLink1Input = document.getElementById('outlet-link-1');
+      const outletLink2Input = document.getElementById('outlet-link-2');
+      const outletLink3Input = document.getElementById('outlet-link-3');
+      const outletOrderingEnabledInput = document.getElementById('outlet-ordering-enabled');
+      const outletImg1File = document.getElementById('outlet-img1-file');
+      const outletImg1Base64 = document.getElementById('outlet-img1-base64');
+      const outletImg1Preview = document.getElementById('outlet-img1-preview');
+      const outletImg2File = document.getElementById('outlet-img2-file');
+      const outletImg2Base64 = document.getElementById('outlet-img2-base64');
+      const outletImg2Preview = document.getElementById('outlet-img2-preview');
+      const outletImg3File = document.getElementById('outlet-img3-file');
+      const outletImg3Base64 = document.getElementById('outlet-img3-base64');
+      const outletImg3Preview = document.getElementById('outlet-img3-preview');
+      const outletBankInput = document.getElementById('outlet-bank');
+      const outletRekeningInput = document.getElementById('outlet-rekening');
+      const outletAtasnamaInput = document.getElementById('outlet-atasnama');
+
+      // [BARU] Element Toggle Ordering
+      const custEnableAiChat = document.getElementById('cust-enable-ai-chat');
+      const custEnableGame = document.getElementById('cust-enable-game');
+      const custEnableGlobalChat = document.getElementById('cust-enable-global-chat');
+
+      const custStoreName = document.getElementById('cust-store-name');
+      const custWaNumber = document.getElementById('cust-wa-number');
+      const custRunningText = document.getElementById('cust-running-text');
+      const custScriptUrl = document.getElementById('cust-script-url');
+      const saveCustSettingsBtn = document.getElementById('save-cust-settings-btn');
+
+      function setupImageUpload(fileInput, base64Input, previewImg, maxWidth, format = 'image/png', clearBtnId = null) {
+          if(!fileInput) return;
+          fileInput.addEventListener('change', function() {
+              if (this.files && this.files[0]) {
+                  const reader = new FileReader();
+                  reader.onload = function(e) {
+                      const img = new Image();
+                      img.src = e.target.result;
+                      img.onload = function() {
+                          const canvas = document.createElement('canvas');
+                          const ctx = canvas.getContext('2d');
+                          const scale = maxWidth / img.width;
+                          const width = (img.width > maxWidth) ? maxWidth : img.width;
+                          const height = (img.width > maxWidth) ? img.height * scale : img.height;
+                          canvas.width = width;
+                          canvas.height = height;
+                          ctx.clearRect(0, 0, width, height); // Pastikan canvas bersih/transparan
+                          ctx.drawImage(img, 0, 0, width, height);
+                          const dataUrl = canvas.toDataURL(format); // Hapus parameter quality untuk PNG
+                          previewImg.src = dataUrl;
+                          previewImg.style.display = 'block';
+                          base64Input.value = dataUrl;
+                          if(clearBtnId) document.getElementById(clearBtnId).style.display = 'flex';
+                      }
+                  };
+                  reader.readAsDataURL(this.files[0]);
+              }
+          });
+      }
+
+      setupImageUpload(custLogoFile, custLogoBase64, custLogoPreview, 200, 'image/png', 'btn-clear-logo');
+      setupImageUpload(custLoginLogoFile, custLoginLogoBase64, custLoginLogoPreview, 200, 'image/png', 'btn-clear-login-logo');
+      setupImageUpload(custPointIconFile, custPointIconBase64, custPointIconPreview, 100, 'image/png');
+      setupImageUpload(custExchangeIconFile, custExchangeIconBase64, custExchangeIconPreview, 100, 'image/png');
+      setupImageUpload(custPromoFile, custPromoBase64, custPromoPreview, 500, 'image/png', 'btn-clear-promo');
+      setupImageUpload(banner1File, banner1Base64, banner1Preview, 800, 'image/png', 'btn-clear-banner1');
+      setupImageUpload(banner2File, banner2Base64, banner2Preview, 800, 'image/png', 'btn-clear-banner2');
+      setupImageUpload(banner3File, banner3Base64, banner3Preview, 800, 'image/png', 'btn-clear-banner3');
+      setupImageUpload(offer1File, offer1Base64, offer1Preview, 300, 'image/png', 'btn-clear-offer1');
+      setupImageUpload(offer2File, offer2Base64, offer2Preview, 300, 'image/png', 'btn-clear-offer2');
+      setupImageUpload(offer3File, offer3Base64, offer3Preview, 300, 'image/png', 'btn-clear-offer3');
+      setupImageUpload(outletImg1File, outletImg1Base64, outletImg1Preview, 400, 'image/png');
+      setupImageUpload(outletImg2File, outletImg2Base64, outletImg2Preview, 400, 'image/png');
+      setupImageUpload(outletImg3File, outletImg3Base64, outletImg3Preview, 400, 'image/png');
+
+      let currentOutlets = [];
+
+      function renderOutletList() {
+          outletListContainer.innerHTML = '';
+          currentOutlets.forEach((outlet, index) => {
+              const div = document.createElement('div');
+              const statusBadge = outlet.ordering_enabled === false ? '<span style="font-size:10px; background:#fee2e2; color:#991b1b; padding:2px 6px; border-radius:4px; margin-left:6px;">Katalog Mode</span>' : '';
+              const isOrdering = outlet.ordering_enabled !== false;
+              const toggleLabel = isOrdering ? '✅ Pesan: ON' : '🚫 Pesan: OFF';
+              const toggleStyle = isOrdering ? 'border: 1px solid #10b981; color: #059669; background: #ecfdf5;' : 'border: 1px solid #ef4444; color: #b91c1c; background: #fef2f2;';
+              div.style.cssText = 'background: #f9fafb; padding: 10px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;';
+              div.innerHTML = `
+                  <div>
+                      <div style="font-weight: 600; font-size: 14px;">${outlet.name} ${statusBadge}</div>
+                      <div style="font-size: 12px; color: #6b7280;">ID: ${outlet.id}</div>
+                  </div>
+                  <div style="display: flex; gap: 8px;">
+                      <button class="btn-toggle-ordering" data-index="${index}" style="cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 12px; ${toggleStyle}">${toggleLabel}</button>
+                      <button class="btn-edit-outlet" data-index="${index}" style="cursor: pointer; border: 1px solid #d1d5db; background: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">Edit</button>
+                      <button class="btn-delete-outlet" data-index="${index}" style="cursor: pointer; border: 1px solid #fecaca; background: #fee2e2; color: #dc2626; padding: 4px 8px; border-radius: 4px; font-size: 12px;">Hapus</button>
+                  </div>
+              `;
+              outletListContainer.appendChild(div);
+          });
+
+          document.querySelectorAll('.btn-toggle-ordering').forEach(btn => {
+              btn.addEventListener('click', () => {
+                  const idx = parseInt(btn.dataset.index);
+                  const outlet = currentOutlets[idx];
+                  // Toggle status
+                  outlet.ordering_enabled = outlet.ordering_enabled === false ? true : false;
+                  renderOutletList();
+              });
+          });
+
+          document.querySelectorAll('.btn-edit-outlet').forEach(btn => {
+              btn.addEventListener('click', () => openOutletForm(parseInt(btn.dataset.index)));
+          });
+          document.querySelectorAll('.btn-delete-outlet').forEach(btn => {
+              btn.addEventListener('click', () => {
+                  if(confirm('Hapus outlet ini?')) {
+                      currentOutlets.splice(parseInt(btn.dataset.index), 1);
+                      renderOutletList();
+                  }
+              });
+          });
+      }
+
+      function openOutletForm(index = -1) {
+          outletFormContainer.style.display = 'block';
+          btnAddOutletUI.style.display = 'none';
+          
+          if (index > -1) {
+              const outlet = currentOutlets[index];
+              outletIndexInput.value = index;
+              outletIdInput.value = outlet.id || '';
+              outletNameInput.value = outlet.name || '';
+              outletPhoneInput.value = outlet.phone || '';
+              outletMapInput.value = outlet.map_link || '';
+              outletEmbedMapInput.value = outlet.embed_map || '';
+              outletLatInput.value = outlet.lat || '';
+              outletLonInput.value = outlet.lon || '';
+              outletRadiusInput.value = outlet.radius || 50;
+              outletLink1Input.value = outlet.links?.['1'] || outlet.links?.gofood || '';
+              outletLink2Input.value = outlet.links?.['2'] || outlet.links?.shopeefood || '';
+              outletLink3Input.value = outlet.links?.['3'] || outlet.links?.grabfood || '';
+              outletOrderingEnabledInput.checked = outlet.ordering_enabled !== false; // Default true
+              outletIdInput.dataset.auto = 'false'; // [BARU] Jangan auto-update saat edit
+              const imgs = outlet.images || [];
+              setImgState(outletImg1Base64, outletImg1Preview, imgs[0]);
+              setImgState(outletImg2Base64, outletImg2Preview, imgs[1]);
+              setImgState(outletImg3Base64, outletImg3Preview, imgs[2]);
+              outletBankInput.value = outlet.bank || '';
+              outletRekeningInput.value = outlet.rekening || '';
+              outletAtasnamaInput.value = outlet.atasnama || '';
+          } else {
+              outletIndexInput.value = '-1';
+              outletIdInput.value = '';
+              outletNameInput.value = '';
+              outletPhoneInput.value = '';
+              outletMapInput.value = '';
+              outletEmbedMapInput.value = '';
+              outletLatInput.value = '';
+              outletLonInput.value = '';
+              outletRadiusInput.value = 50;
+              outletLink1Input.value = '';
+              outletLink2Input.value = '';
+              outletLink3Input.value = '';
+              outletOrderingEnabledInput.checked = true;
+              outletIdInput.dataset.auto = 'true'; // [BARU] Aktifkan auto-update untuk item baru
+              setImgState(outletImg1Base64, outletImg1Preview, null);
+              setImgState(outletImg2Base64, outletImg2Preview, null);
+              setImgState(outletImg3Base64, outletImg3Preview, null);
+              outletBankInput.value = '';
+              outletRekeningInput.value = '';
+              outletAtasnamaInput.value = '';
+          }
+      }
+
+      function setImgState(base64In, prev, src) {
+          base64In.value = src || '';
+          if (src) { prev.src = src; prev.style.display = 'block'; }
+          else { prev.src = ''; prev.style.display = 'none'; }
+      }
+
+      // [BARU] Auto-generate ID saat mengetik nama outlet (jika ID kosong)
+      outletNameInput.addEventListener('input', () => {
+          // Jika sedang menambah baru dan ID belum diisi manual
+          if (outletIndexInput.value === '-1' && (!outletIdInput.value || outletIdInput.dataset.auto === 'true')) {
+              const slug = outletNameInput.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+              outletIdInput.value = slug;
+              outletIdInput.dataset.auto = 'true';
+          }
+      });
+
+      // [FIX] Mengaktifkan tombol Tambah Outlet yang sebelumnya tidak berfungsi
+      btnAddOutletUI.addEventListener('click', () => {
+          openOutletForm(-1);
+      });
+      
+      outletIdInput.addEventListener('input', () => {
+          outletIdInput.dataset.auto = 'false'; // Tandai sudah diedit manual
+      });
+
+      btnCancelOutletItem.addEventListener('click', () => {
+          outletFormContainer.style.display = 'none';
+          btnAddOutletUI.style.display = 'block';
+      });
+
+      btnSaveOutletItem.addEventListener('click', () => {
+          const idx = parseInt(outletIndexInput.value);
+          const images = [];
+          if (outletImg1Base64.value) images.push(outletImg1Base64.value);
+          if (outletImg2Base64.value) images.push(outletImg2Base64.value);
+          if (outletImg3Base64.value) images.push(outletImg3Base64.value);
+
+          let id = outletIdInput.value.trim();
+          // Jika ID kosong, generate dari nama
+          if (!id && outletNameInput.value.trim()) {
+              id = outletNameInput.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+              outletIdInput.value = id;
+          }
+
+          const newOutlet = {
+              id: id,
+              name: outletNameInput.value.trim(),
+              phone: outletPhoneInput.value.trim(),
+              map_link: outletMapInput.value.trim(),
+              embed_map: outletEmbedMapInput.value.trim(),
+              lat: parseFloat(outletLatInput.value) || 0,
+              lon: parseFloat(outletLonInput.value) || 0,
+              radius: parseInt(outletRadiusInput.value, 10) || 50,
+              links: {
+                  '1': outletLink1Input.value.trim(),
+                  '2': outletLink2Input.value.trim(),
+                  '3': outletLink3Input.value.trim()
+              },
+              ordering_enabled: outletOrderingEnabledInput.checked,
+              images: images,
+              bank: outletBankInput.value.trim(),
+              rekening: outletRekeningInput.value.trim(),
+              atasnama: outletAtasnamaInput.value.trim()
+          };
+
+          if (!newOutlet.id || !newOutlet.name) { alert('ID dan Nama Outlet wajib diisi'); return; }
+
+          // [BARU] Cek duplikat ID agar tidak bentrok
+          const isDuplicate = currentOutlets.some((o, i) => i !== idx && o.id === newOutlet.id);
+          if (isDuplicate) {
+              alert('ID Outlet sudah digunakan. Harap gunakan ID yang berbeda.');
+              return;
+          }
+
+          if (idx > -1) currentOutlets[idx] = newOutlet;
+          else currentOutlets.push(newOutlet);
+
+          renderOutletList();
+          outletFormContainer.style.display = 'none';
+          btnAddOutletUI.style.display = 'block';
+      });
+
+      // Clear image buttons
+      [
+        {btn: 'btn-clear-img1', input: outletImg1File, base64: outletImg1Base64, prev: outletImg1Preview},
+        {btn: 'btn-clear-img2', input: outletImg2File, base64: outletImg2Base64, prev: outletImg2Preview},
+        {btn: 'btn-clear-img3', input: outletImg3File, base64: outletImg3Base64, prev: outletImg3Preview}
+      ].forEach(item => {
+          document.getElementById(item.btn).addEventListener('click', (e) => {
+              e.preventDefault();
+              item.input.value = '';
+              item.base64.value = '';
+              item.prev.src = '';
+              item.prev.style.display = 'none';
+          });
+      });
+
+      // [BARU] Clear buttons for main settings
+      [
+        {btn: 'btn-clear-logo', input: custLogoFile, base64: custLogoBase64, prev: custLogoPreview},
+        {btn: 'btn-clear-login-logo', input: custLoginLogoFile, base64: custLoginLogoBase64, prev: custLoginLogoPreview},
+        {btn: 'btn-clear-promo', input: custPromoFile, base64: custPromoBase64, prev: custPromoPreview},
+        {btn: 'btn-clear-banner1', input: banner1File, base64: banner1Base64, prev: banner1Preview},
+        {btn: 'btn-clear-banner2', input: banner2File, base64: banner2Base64, prev: banner2Preview},
+        {btn: 'btn-clear-banner3', input: banner3File, base64: banner3Base64, prev: banner3Preview},
+        {btn: 'btn-clear-offer1', input: offer1File, base64: offer1Base64, prev: offer1Preview},
+        {btn: 'btn-clear-offer2', input: offer2File, base64: offer2Base64, prev: offer2Preview},
+        {btn: 'btn-clear-offer3', input: offer3File, base64: offer3Base64, prev: offer3Preview}
+      ].forEach(item => {
+          document.getElementById(item.btn).addEventListener('click', (e) => {
+              e.preventDefault();
+              item.input.value = '';
+              item.base64.value = '';
+              item.prev.src = '';
+              item.prev.style.display = 'none';
+              e.target.style.display = 'none'; // Hide the clear button itself
+          });
+      });
+
+      async function loadCustomerSettings() {
+          if (!navigator.onLine) {
+              CustomUI.error('Anda sedang offline. Periksa koneksi internet Anda.');
+              return;
+          }
+
+          try {
+              const snap = await db.ref('customer_app_settings').once('value');
+              const data = snap.val() || {};
+              console.log('Data dimuat dari Firebase (customer_app_settings):', data); // Debugging: Cek di Console (F12)
+
+              if (data.logo) {
+                  custLogoBase64.value = data.logo;
+                  custLogoPreview.src = data.logo;
+                  custLogoPreview.style.display = 'block';
+                  document.getElementById('btn-clear-logo').style.display = 'flex';
+              }
+              // [BARU] Load Theme Color
+              if (data.theme_color) {
+                  custThemeColor.value = data.theme_color;
+                  custThemeColorText.value = data.theme_color;
+                  updateThemePreview(data.theme_color);
+              }
+              if (data.login_logo) {
+                  custLoginLogoBase64.value = data.login_logo;
+                  custLoginLogoPreview.src = data.login_logo;
+                  custLoginLogoPreview.style.display = 'block';
+                  document.getElementById('btn-clear-login-logo').style.display = 'flex';
+              }
+              if (data.point_icon) {
+                  custPointIconBase64.value = data.point_icon;
+                  custPointIconPreview.src = data.point_icon;
+                  custPointIconPreview.style.display = 'block';
+              }
+              if (data.exchange_icon) {
+                  custExchangeIconBase64.value = data.exchange_icon;
+                  custExchangeIconPreview.src = data.exchange_icon;
+                  custExchangeIconPreview.style.display = 'block';
+              }
+              // [FIX] Cek promo atau promo_popup untuk kompatibilitas
+              const promoData = data.promo || data.promo_popup;
+              if (promoData) {
+                  custPromoActive.checked = !!promoData.active;
+                  if (promoData.image) {
+                      custPromoBase64.value = promoData.image;
+                      custPromoPreview.src = promoData.image;
+                      custPromoPreview.style.display = 'block';
+                      document.getElementById('btn-clear-promo').style.display = 'flex';
+                  }
+              }
+              
+              // Load Banners
+              if (data.promo_slider && Array.isArray(data.promo_slider)) {
+                  if (data.promo_slider[0]) {
+                      banner1Base64.value = data.promo_slider[0];
+                      banner1Preview.src = data.promo_slider[0];
+                      banner1Preview.style.display = 'block';
+                      document.getElementById('btn-clear-banner1').style.display = 'flex';
+                  }
+                  if (data.promo_slider[1]) {
+                      banner2Base64.value = data.promo_slider[1];
+                      banner2Preview.src = data.promo_slider[1];
+                      banner2Preview.style.display = 'block';
+                      document.getElementById('btn-clear-banner2').style.display = 'flex';
+                  }
+                  if (data.promo_slider[2]) {
+                      banner3Base64.value = data.promo_slider[2];
+                      banner3Preview.src = data.promo_slider[2];
+                      banner3Preview.style.display = 'block';
+                      document.getElementById('btn-clear-banner3').style.display = 'flex';
+                  }
+              }
+
+              // Load Special Offers
+              if (data.special_offers && Array.isArray(data.special_offers)) {
+                  if (data.special_offers[0]) {
+                      offer1Base64.value = data.special_offers[0].image || '';
+                      offer1Link.value = data.special_offers[0].link || '';
+                      if(data.special_offers[0].image) {
+                          offer1Preview.src = data.special_offers[0].image;
+                          offer1Preview.style.display = 'block';
+                          document.getElementById('btn-clear-offer1').style.display = 'flex';
+                      }
+                  }
+                  if (data.special_offers[1]) {
+                      offer2Base64.value = data.special_offers[1].image || '';
+                      offer2Link.value = data.special_offers[1].link || '';
+                      if(data.special_offers[1].image) {
+                          offer2Preview.src = data.special_offers[1].image;
+                          offer2Preview.style.display = 'block';
+                          document.getElementById('btn-clear-offer2').style.display = 'flex';
+                      }
+                  }
+                  if (data.special_offers[2]) {
+                      offer3Base64.value = data.special_offers[2].image || '';
+                      offer3Link.value = data.special_offers[2].link || '';
+                      if(data.special_offers[2].image) {
+                          offer3Preview.src = data.special_offers[2].image;
+                          offer3Preview.style.display = 'block';
+                          document.getElementById('btn-clear-offer3').style.display = 'flex';
+                      }
+                  }
+              }
+
+              // Load Outlets
+              if (data.outlets) {
+                  // [FIX] Pastikan currentOutlets selalu array, meskipun data dari Firebase berupa object
+                  currentOutlets = Array.isArray(data.outlets) 
+                      ? data.outlets 
+                      : Object.values(data.outlets).filter(item => item); // Filter null/undefined
+              } else {
+                  currentOutlets = []; // Pastikan kosong jika tidak ada data di Firebase
+              }
+              renderOutletList();
+              // Sync lokasi + radius ke localStorage untuk Absensi GPS (RBM Pro)
+              var rbmLocs = {};
+              currentOutlets.forEach(function(o) {
+                if (o.id) rbmLocs[o.id] = { lat: o.lat, lon: o.lon, radius: (o.radius != null ? o.radius : 50) };
+              });
+              localStorage.setItem('rbm_outlet_locations', JSON.stringify(rbmLocs));
+
+              if (data.enable_ai_chat !== undefined) {
+                  custEnableAiChat.checked = data.enable_ai_chat;
+              } else {
+                  custEnableAiChat.checked = true;
+              }
+              if (data.enable_game !== undefined) {
+                  custEnableGame.checked = data.enable_game;
+              } else {
+                  custEnableGame.checked = true;
+              }
+              if (data.enable_global_chat !== undefined) {
+                  custEnableGlobalChat.checked = data.enable_global_chat;
+              } else {
+                  custEnableGlobalChat.checked = true;
+              }
+
+              custStoreName.value = data.storeName || '';
+              custWaNumber.value = data.whatsapp || '';
+              custRunningText.value = data.runningText || '';
+              custScriptUrl.value = data.google_script_url || '';
+          } catch (e) {
+              console.error('Error loading customer settings:', e);
+              CustomUI.error('Gagal memuat pengaturan: ' + e.message);
+          }
+      }
+
+      saveCustSettingsBtn.addEventListener('click', async () => {
+        try {
+          // Collect banners
+          const banners = [];
+          if (banner1Base64.value) banners.push(banner1Base64.value);
+          if (banner2Base64.value) banners.push(banner2Base64.value);
+          if (banner3Base64.value) banners.push(banner3Base64.value);
+
+          // Collect special offers
+          const specialOffers = [];
+          if (offer1Base64.value) specialOffers.push({ image: offer1Base64.value, link: offer1Link.value });
+          if (offer2Base64.value) specialOffers.push({ image: offer2Base64.value, link: offer2Link.value });
+          if (offer3Base64.value) specialOffers.push({ image: offer3Base64.value, link: offer3Link.value });
+
+          const settings = {
+              logo: custLogoBase64.value,
+              theme_color: custThemeColor.value, // [BARU] Save Theme Color
+              login_logo: custLoginLogoBase64.value,
+              point_icon: custPointIconBase64.value,
+              exchange_icon: custExchangeIconBase64.value,
+              storeName: custStoreName.value,
+              whatsapp: custWaNumber.value,
+              google_script_url: custScriptUrl.value.trim(),
+              runningText: custRunningText.value,
+              promo: {
+                  active: custPromoActive.checked,
+                  image: custPromoBase64.value
+              },
+              // [FIX] Simpan juga sebagai promo_popup agar terbaca di home.html
+              promo_popup: {
+                  active: custPromoActive.checked,
+                  image: custPromoBase64.value
+              },
+              promo_slider: banners,
+              outlets: currentOutlets,
+              special_offers: specialOffers,
+              enable_ai_chat: custEnableAiChat.checked,
+              enable_game: custEnableGame.checked,
+              enable_global_chat: custEnableGlobalChat.checked
+          };
+          // [FIX] Gunakan update() bukan set() agar tidak menghapus data lain (outlets, dll)
+          await db.ref('customer_app_settings').update(settings);
+              
+              // [DIUBAH] Full Sync Outlet ke System (rbm_outlets)
+              const systemOutlets = currentOutlets.map(o => o.id).filter(id => id);
+              localStorage.setItem('rbm_outlets', JSON.stringify(systemOutlets));
+
+              // Sync lokasi + radius per outlet untuk Absensi GPS (RBM Pro)
+              const rbmOutletLocations = {};
+              currentOutlets.forEach(o => {
+                if (o.id) rbmOutletLocations[o.id] = { lat: o.lat, lon: o.lon, radius: o.radius != null ? o.radius : 50 };
+              });
+              localStorage.setItem('rbm_outlet_locations', JSON.stringify(rbmOutletLocations));
+
+              CustomUI.success('Pengaturan Web Customer berhasil disimpan & Outlet disinkronkan!');
+          } catch (e) {
+              CustomUI.error('Gagal menyimpan: ' + e.message);
+          }
+      });
+
+      // Cek status online/offline saat load
+      window.addEventListener('online', () => CustomUI.success('Koneksi internet terhubung kembali.'));
+      window.addEventListener('offline', () => CustomUI.error('Koneksi internet terputus.'));
+
+      loadCustomerSettings();
+    });
+  </script>
+</body>
+</html>

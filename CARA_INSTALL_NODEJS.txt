@@ -1,0 +1,104 @@
+================================================================================
+  CARA INSTALL NODE.JS - PANDUAN LENGKAP
+================================================================================
+
+LANGKAH 1: DOWNLOAD NODE.JS
+----------------------------
+
+1. Buka browser (Chrome/Firefox/Edge)
+
+2. Ketik di address bar: nodejs.org
+   ATAU klik: https://nodejs.org
+
+3. Di halaman depan, Anda akan lihat 2 tombol hijau:
+   - "LTS" (di kiri) - RECOMMENDED ✅
+   - "Current" (di kanan)
+
+4. Klik tombol "LTS" (yang di kiri)
+   Ini akan download versi yang stabil dan direkomendasikan
+
+5. File akan mulai download (ukuran sekitar 30-40 MB)
+   Biasanya tersimpan di folder "Downloads"
+
+================================================================================
+  LANGKAH 2: INSTALL NODE.JS
+----------------------------
+
+1. Buka folder "Downloads" (atau cek di mana file tersimpan)
+
+2. Cari file yang namanya seperti: node-v18.17.0-x64.msi
+   (angka versi mungkin berbeda, tapi bentuknya seperti itu)
+
+3. Double klik file tersebut
+
+4. Window instalasi akan muncul
+
+5. Klik "Next" (atau "Berikutnya")
+
+6. Centang "I accept the terms..." → Klik "Next"
+
+7. Pilih folder instalasi (biarkan default) → Klik "Next"
+
+8. Biarkan semua opsi default (centang semua) → Klik "Next"
+
+9. Klik "Install"
+   
+10. Tunggu sampai selesai (sekitar 1-2 menit)
+
+11. Klik "Finish"
+
+12. RESTART KOMPUTER ANDA (penting!)
+
+================================================================================
+  LANGKAH 3: CEK APAKAH BERHASIL
+---------------------------------
+
+Setelah restart komputer:
+
+1. Tekan tombol: Windows + R
+   (Tekan tombol Windows dan R bersamaan)
+
+2. Ketik: cmd
+   (Tidak perlu huruf besar)
+
+3. Tekan Enter
+
+4. Window hitam akan muncul (Command Prompt)
+
+5. Ketik: node --version
+   (Tidak perlu huruf besar, pakai spasi setelah node)
+
+6. Tekan Enter
+
+7. Harus muncul angka seperti: v18.17.0
+   
+   ✅ JIKA MUNCUL ANGKA = BERHASIL!
+   ❌ JIKA MUNCUL ERROR = coba langkah berikutnya
+
+================================================================================
+  MASALAH? COBA INI:
+-------------------
+
+Jika setelah install, node --version masih error:
+
+1. Pastikan sudah RESTART komputer
+
+2. Coba lagi buka Command Prompt baru (tutup yang lama, buka yang baru)
+
+3. Jika masih error, coba install ulang Node.js:
+   - Uninstall dulu dari Control Panel
+   - Install lagi dari nodejs.org
+
+4. Pastikan download versi Windows (.msi), bukan Mac atau Linux
+
+================================================================================
+  SETELAH NODE.JS TERINSTALL:
+----------------------------
+
+Langkah berikutnya:
+1. Jalankan lagi: CEK_SIAP_ATAU_TIDAK.bat
+2. Harus muncul: [OK] Node.js terinstall
+3. Lalu lanjut ke: npm install
+
+================================================================================
+

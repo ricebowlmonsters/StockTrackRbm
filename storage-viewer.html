@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data & Penyimpanan - RBM</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    .storage-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .storage-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+    }
+    .storage-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .storage-title {
+      font-weight: 700;
+      font-size: 16px;
+      color: #374151;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .storage-size {
+      font-size: 24px;
+      font-weight: 800;
+      color: #4C2A85;
+      margin-bottom: 4px;
+    }
+    .storage-count {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+    .progress-bg {
+      background: #f3f4f6;
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .progress-bar {
+      height: 100%;
+      background: #4C2A85;
+      width: 0%;
+      transition: width 0.5s ease;
+    }
+    .btn-analyze {
+      margin-top: auto;
+      width: 100%;
+    }
+    .alert-box {
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      color: #3730a3;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    /* Modal Styles for Detail View */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+      z-index: 1000; visibility: hidden; opacity: 0; transition: all 0.2s;
+    }
+    .modal-overlay.show { visibility: visible; opacity: 1; }
+    .modal {
+      background: white; border-radius: 12px; width: 90%; max-width: 600px;
+      max-height: 80vh; display: flex; flex-direction: column; padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <a href="index.html" class="back-btn">‹</a>
+      <h1 class="page-title">Data & Penyimpanan</h1>
+      <button onclick="openConnectionModal()" class="btn btn-secondary" style="margin-left: auto; font-size: 12px; padding: 6px 12px; display: flex; align-items: center; gap: 6px;"><span>🔌</span> Ganti DB</button>
+    </header>
+    <main class="content">
+      <!-- Menu Navigasi Halaman (Top) -->
+      <div id="top-nav-menu" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 20px;">
+        <a href="customer-settings.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">📱</span>
+            <span style="font-size: 11px; font-weight: 600;">Web Customer</span>
+        </a>
+        <a href="customer-account-settings.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">⚙️</span>
+            <span style="font-size: 11px; font-weight: 600;">Halaman Akun</span>
+        </a>
+        <a href="ai-settings.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">🤖</span>
+            <span style="font-size: 11px; font-weight: 600;">AI Chatbot</span>
+        </a>
+        <a href="global-chat-manager.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">💬</span>
+            <span style="font-size: 11px; font-weight: 600;">Community Chat</span>
+        </a>
+        <a href="storage-viewer.html" style="background: #eef2ff; border-color: #4C2A85; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #4C2A85; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #4C2A85; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">💾</span>
+            <span style="font-size: 11px; font-weight: 600;">Data & Storage</span>
+        </a>
+      </div>
+
+      <div class="alert-box">
+        <strong>ℹ️ Info Penyimpanan:</strong> Halaman ini menghitung estimasi ukuran data di Firebase Realtime Database Anda. 
+        Karena aplikasi menyimpan gambar sebagai teks (Base64), ukuran data "Products" dan "Settings" mungkin cukup besar.
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <h3 class="card-title" style="margin: 0;">Ringkasan Database</h3>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn btn-primary" style="background-color: #4C2A85; color: white; border: none;" onclick="openJsonEditorModal()">📝 Editor JSON</button>
+            <button class="btn btn-primary" style="background-color: #10b981; color: white; border: none;" onclick="openNodeFormModal()">➕ Tambah Box Baru</button>
+            <button class="btn btn-secondary" style="background-color: #6b7280; color: white; border: none;" onclick="resetDefaultNodes()">🔄 Reset Box Layout</button>
+            <button id="btn-delete-all" class="btn btn-secondary" style="background-color: #ef4444; color: white; border: none;">🗑️ Hapus Full</button>
+            <button id="btn-restore-all" class="btn btn-secondary" style="background-color: #d97706; color: white; border: none;">⬆️ Restore Full</button>
+            <button id="btn-backup-all" class="btn btn-secondary" style="background-color: #059669; color: white; border: none;">⬇️ Backup Full</button>
+            <button id="btn-refresh-all" class="btn btn-primary">🔄 Analisis</button>
+        </div>
+      </div>
+
+      <div class="storage-grid" id="storage-grid">
+        <!-- Cards will be injected here -->
+      </div>
+    </main>
+  </div>
+  
+  <!-- Hidden File Input for Restore -->
+  <input type="file" id="restore-file-input" style="display: none;" accept=".json">
+
+  <!-- Restore Options Modal [BARU] -->
+  <div id="restore-options-modal" class="modal-overlay">
+    <div class="modal" style="max-width: 400px; text-align: center;">
+      <h3 style="margin-top: 0;">Pilih Metode Restore</h3>
+      <p style="color: #6b7280; margin-bottom: 20px;">Bagaimana Anda ingin memulihkan data ini?</p>
+      
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button id="btn-restore-overwrite" class="btn" style="background: #ef4444; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer;">
+            <div style="font-weight: bold; font-size: 16px;">🔴 Timpa (Overwrite)</div>
+            <div style="font-size: 12px; opacity: 0.9; font-weight: normal;">Hapus data lama, ganti total dengan backup</div>
+        </button>
+        
+        <button id="btn-restore-merge" class="btn" style="background: #10b981; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer;">
+            <div style="font-weight: bold; font-size: 16px;">🟢 Tambahkan (Merge)</div>
+            <div style="font-size: 12px; opacity: 0.9; font-weight: normal;">Gabungkan data backup ke data lama</div>
+        </button>
+        
+        <button onclick="closeRestoreModal()" class="btn btn-secondary" style="margin-top: 10px;">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal [BARU] -->
+  <div id="delete-confirm-modal" class="modal-overlay">
+    <div class="modal" style="max-width: 400px; text-align: center;">
+      <div style="margin-bottom: 15px; font-size: 40px;">🗑️</div>
+      <h3 style="margin-top: 0; color: #ef4444;">Konfirmasi Penghapusan</h3>
+      <p id="delete-confirm-msg" style="color: #374151; margin-bottom: 20px; font-size: 14px; line-height: 1.5;"></p>
+      
+      <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+        <p style="font-size: 12px; color: #991b1b; margin: 0 0 5px 0;">Ketik <strong id="delete-confirm-keyword" style="font-family: monospace; font-size: 14px;"></strong> di bawah ini:</p>
+        <input type="text" id="delete-confirm-input" style="width: 100%; padding: 8px; border: 1px solid #dc2626; border-radius: 4px; text-align: center; font-weight: bold; outline: none;" autocomplete="off">
+      </div>
+      
+      <div style="display: flex; gap: 10px;">
+        <button id="btn-cancel-delete" class="btn btn-secondary" style="flex: 1;">Batal</button>
+        <button id="btn-confirm-delete-action" class="btn" style="flex: 1; background: #ef4444; color: white; border: none;">Hapus Permanen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Restore Confirmation Modal [BARU] -->
+  <div id="restore-confirm-modal" class="modal-overlay">
+    <div class="modal" style="max-width: 400px; text-align: center;">
+      <div style="margin-bottom: 15px; font-size: 40px;">⚠️</div>
+      <h3 style="margin-top: 0;" id="restore-confirm-title">Konfirmasi Restore</h3>
+      <p id="restore-confirm-msg" style="color: #374151; margin-bottom: 20px; font-size: 14px; line-height: 1.5;"></p>
+      
+      <div id="restore-keyword-container" style="background: #fffbeb; border: 1px solid #fcd34d; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+        <p style="font-size: 12px; color: #92400e; margin: 0 0 5px 0;">Ketik <strong id="restore-confirm-keyword" style="font-family: monospace; font-size: 14px;"></strong> di bawah ini:</p>
+        <input type="text" id="restore-confirm-input" style="width: 100%; padding: 8px; border: 1px solid #d97706; border-radius: 4px; text-align: center; font-weight: bold; outline: none;" autocomplete="off">
+      </div>
+      
+      <div style="display: flex; gap: 10px;">
+        <button id="btn-cancel-restore-confirm" class="btn btn-secondary" style="flex: 1;">Batal</button>
+        <button id="btn-do-restore-action" class="btn" style="flex: 1; color: white; border: none;">Proses Restore</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="detail-modal" class="modal-overlay">
+    <div class="modal">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0;" id="detail-title">Detail</h3>
+        <button onclick="closeDetailModal()" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+      </div>
+      <div style="flex: 1; overflow-y: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead style="background: #f9fafb; position: sticky; top: 0;">
+            <tr><th style="padding:8px; text-align:left;">Key / Item</th><th style="padding:8px; text-align:left;">Ukuran</th><th style="padding:8px; text-align:left;">%</th><th style="padding:8px; text-align:right;">Aksi</th></tr>
+          </thead>
+          <tbody id="detail-list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tambah/Edit Kotak [BARU] -->
+  <div id="node-form-modal" class="modal-overlay">
+    <div class="modal" style="max-width: 500px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0;" id="form-node-title">➕ Tambah Kotak Database</h3>
+        <button onclick="closeNodeFormModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color: #6b7280;">&times;</button>
+      </div>
+      <p style="font-size: 12px; color: #6b7280; margin-bottom: 15px;">Buat atau edit kotak pantauan dengan alamat (path) Firebase yang Anda tentukan sendiri.</p>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+          <label style="font-size: 13px; font-weight: bold;">Nama Kotak</label>
+          <input type="text" id="new-node-label" class="form-input" placeholder="Contoh: Produk Sidoarjo" style="padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;">
+          <label style="font-size: 13px; font-weight: bold;">Path Firebase</label>
+          <input type="text" id="new-node-path" class="form-input" placeholder="Contoh: products/sidoarjo" style="padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-family: monospace;">
+          <label style="font-size: 13px; font-weight: bold;">Ikon (Emoji)</label>
+          <input type="text" id="new-node-icon" class="form-input" placeholder="Contoh: 📍" style="padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; text-align: center; width: 60px;">
+      </div>
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+          <button class="btn btn-secondary" onclick="closeNodeFormModal()" style="flex: 1;">Batal</button>
+          <button id="btn-add-node" class="btn btn-primary" onclick="saveStorageNode()" style="flex: 1;">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Editor Data JSON Manual [BARU] -->
+  <div id="json-editor-modal" class="modal-overlay">
+    <div class="modal" style="max-width: 800px; width: 95%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0;"><span style="font-size: 20px;">📝</span> Editor Data JSON Manual</h3>
+        <button onclick="closeJsonEditorModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color: #6b7280;">&times;</button>
+      </div>
+      <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+          <input type="text" id="editor-path" class="form-input" placeholder="Masukkan path Firebase (cth: rbm_pro/bank)" style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-family: monospace;">
+          <button id="btn-editor-load" class="btn btn-secondary" onclick="loadEditorData()" style="white-space: nowrap;">Load Data</button>
+      </div>
+      <textarea id="editor-json" class="form-input" rows="15" placeholder="Hasil data JSON akan muncul di sini...&#10;&#10;⚠️ Hati-hati saat mengedit data secara manual! Pastikan format JSON (tanda kutip, koma, kurung kurawal) sudah benar." style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-family: monospace; font-size: 13px; box-sizing: border-box; resize: vertical; background: #f9fafb;"></textarea>
+      <div style="display: flex; gap: 10px; margin-top: 15px;">
+          <button class="btn btn-secondary" onclick="closeJsonEditorModal()" style="flex: 1;">Batal</button>
+          <button id="btn-editor-format" class="btn btn-secondary" style="flex: 1;" onclick="formatEditorData()">✨ Format JSON</button>
+          <button id="btn-editor-save" class="btn btn-primary" style="flex: 2;" onclick="saveEditorData()">💾 Simpan Perubahan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Connection Manager Modal [BARU] -->
+  <div id="connection-modal" class="modal-overlay">
+    <div class="modal" style="max-width: 500px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0;">Kelola Koneksi Database</h3>
+        <button onclick="closeConnectionModal()" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+      </div>
+      
+      <div id="connection-list" style="margin-bottom: 20px; max-height: 200px; overflow-y: auto;">
+        <!-- List of connections -->
+      </div>
+
+      <div style="border-top: 1px solid #eee; padding-top: 15px;">
+        <h4 style="margin-top: 0; margin-bottom: 10px;">Tambah Koneksi Baru</h4>
+        <div class="form-group" style="margin-bottom: 10px;">
+            <label style="font-size: 12px; font-weight: 600;">Tipe Penyimpanan</label>
+            <select id="new-conn-type" class="form-input" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;" onchange="toggleConfigInput()">
+                <option value="firebase">Online (Firebase)</option>
+                <option value="local">Offline (Penyimpanan Lokal)</option>
+                <option value="server">Offline (Server PC / Localhost)</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 10px;">
+            <input type="text" id="new-conn-name" class="form-input" placeholder="Nama Koneksi (cth: Toko Cabang 2)" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box;">
+            <div id="config-input-container">
+                <textarea id="new-conn-config" class="form-input" rows="5" placeholder='Paste Firebase Config JSON di sini...&#10;{&#10;  "apiKey": "...",&#10;  "authDomain": "...",&#10;  "databaseURL": "..."&#10;}' style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-family: monospace; font-size: 12px; box-sizing: border-box;"></textarea>
+            </div>
+            <div id="local-info-container" style="display:none; padding: 10px; background: #f3f4f6; border-radius: 6px; font-size: 12px; color: #374151;">
+                <p style="margin:0;"><strong>Mode Offline:</strong> Data akan disimpan di browser komputer ini (Local Storage). Tidak membutuhkan internet, tapi data tidak bisa diakses dari perangkat lain.</p>
+            </div>
+            <div id="server-info-container" style="display:none; padding: 10px; background: #f3f4f6; border-radius: 6px; font-size: 12px; color: #374151;">
+                <p style="margin:0;"><strong>Mode Server PC:</strong> Data disimpan di file komputer.</p>
+                
+                <p style="margin:4px 0 0 0; font-size:11px; color:#6b7280;">
+                    • <b>Satu PC:</b> Gunakan <code>http://localhost:3001/db</code><br>
+                    • <b>Beda Device (Satu WiFi):</b> Gunakan IP Komputer (Cek terminal server, cth: <code>http://192.168.1.5:3001/db</code>)
+                </p>
+
+                <!-- [BARU] Warning jika membuka dari Domain tapi memilih Localhost -->
+                <div id="domain-warning" style="display:none; margin-top:8px; padding:8px; background:#fffbeb; border:1px solid #fcd34d; border-radius:6px; color:#92400e;">
+                    ⚠️ <strong>Peringatan:</strong> Anda sedang mengakses web ini secara Online (Domain/HTTPS). Koneksi ke "Localhost" mungkin akan diblokir oleh browser. Disarankan menggunakan <strong>Firebase</strong> untuk mode Online.
+                </div>
+
+                <div style="display:flex; align-items:center; gap:5px; margin-top:8px;">
+                    <input type="text" id="new-conn-url" class="form-input" placeholder="URL Server (Default: http://localhost:3001/db)" value="http://localhost:3001/db" style="flex:1; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                    <span id="server-status-indicator" style="font-size:10px; padding:4px 8px; border-radius:4px; background:#fee2e2; color:#991b1b; white-space:nowrap; border:1px solid #fecaca;">Offline 🔴</span>
+                </div>
+
+                <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #d1d5db;">
+                    <label style="display:block; font-weight:600; margin-bottom:4px;">Lokasi File Database (Path Lengkap):</label>
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="server-db-path" class="form-input" placeholder="Contoh: D:\Data Toko\database.json" style="flex:1; padding:6px; font-size:12px; border:1px solid #d1d5db; border-radius:4px;">
+                        <button type="button" id="btn-browse-path" class="btn btn-secondary" style="padding:6px 12px; font-size:11px;">📂 Pilih Lokasi...</button>
+                    </div>
+                    <p style="font-size:10px; color:#6b7280; margin-top:4px;">Masukkan path lengkap folder di komputer ini. Server akan otomatis membuat file jika belum ada.</p>
+                    <button id="btn-set-db-path" class="btn btn-primary" style="width: 100%; margin-top: 8px; padding: 8px; font-size: 13px;">Set Lokasi & Simpan</button>
+                </div>
+        </div>
+        <button id="btn-add-connection" class="btn btn-primary" style="width: 100%;">Simpan Koneksi</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="custom-ui.js"></script>
+  <script src="firebase-storage.js"></script>
+  <script>
+    // Connection Management Logic
+    function getConnections() {
+        const stored = localStorage.getItem('rbm_db_connections');
+        if (stored) return JSON.parse(stored);
+        return []; // [DIUBAH] Return kosong jika belum ada setting
+    }
+
+    function getActiveConnection() {
+        const idx = parseInt(localStorage.getItem('rbm_active_connection_index') || '0');
+        const conns = getConnections();
+        if (conns.length === 0) return null; // [DIUBAH] Handle jika kosong
+        if (idx >= 0 && idx < conns.length) return conns[idx];
+        return conns[0];
+    }
+
+    // Initialize Firebase with Active Config
+    const activeConn = getActiveConnection();
+    
+    let db = null;
+
+    if (activeConn) {
+        // Jika ada koneksi tersimpan
+        document.querySelector('.page-title').innerHTML += ` <span style="font-size:12px; opacity:0.7; font-weight:normal;">(${activeConn.name})</span>`;
+        
+        // [DIUBAH] Cek tipe koneksi
+        if (activeConn.config && activeConn.config.type === 'local') {
+            db = new LocalDB(activeConn.config.dbName);
+            document.querySelector('.page-title').innerHTML += ` <span style="font-size:10px; background:#e0e7ff; color:#4338ca; padding:2px 6px; border-radius:4px;">OFFLINE</span>`;
+            if(document.getElementById('top-nav-menu')) document.getElementById('top-nav-menu').style.display = 'none';
+        } else if (activeConn.config && activeConn.config.type === 'server') {
+            db = new ServerDB(activeConn.config.apiUrl);
+            document.querySelector('.page-title').innerHTML += ` <span style="font-size:10px; background:#d1fae5; color:#065f46; padding:2px 6px; border-radius:4px;">SERVER PC</span>`;
+            if(document.getElementById('top-nav-menu')) document.getElementById('top-nav-menu').style.display = 'none';
+        } else {
+            if (!firebase.apps.length) {
+                try {
+                    firebase.initializeApp(activeConn.config);
+                    db = firebase.database();
+                } catch(e) {
+                    console.error("Firebase Init Error", e);
+                    alert("Gagal inisialisasi Firebase. Cek konfigurasi.");
+                }
+            } else {
+                db = firebase.database();
+            }
+        }
+    } else {
+        // Jika BELUM ada koneksi (Aplikasi Kosong)
+        document.querySelector('.page-title').innerHTML += ` <span style="font-size:12px; color:red;">(Belum Terhubung)</span>`;
+        
+        // Tampilkan modal otomatis agar user mengisi
+        setTimeout(() => {
+            alert("Database belum dikonfigurasi. Silakan tambah koneksi baru.");
+            openConnectionModal();
+        }, 500);
+    }
+
+    // Daftar node utama yang akan dianalisis
+    const DEFAULT_NODES = [
+        { key: 'products', label: 'Produk & Menu', icon: '🍔' },
+        { key: 'orders', label: 'Riwayat Pesanan', icon: '🧾' },
+        { key: 'users', label: 'Data Pengguna', icon: '👥' },
+        { key: 'customer_app_settings', label: 'Pengaturan Web & Gambar', icon: '⚙️' },
+        { key: 'promos', label: 'Promo & Diskon', icon: '🏷️' },
+        { key: 'pos_promos', label: 'Diskon POS', icon: '💻' },
+        { key: 'categories', label: 'Kategori', icon: '📂' },
+        { key: 'rewards', label: 'Hadiah', icon: '🎁' },
+        { key: 'ai_responses', label: 'Data AI Chatbot', icon: '🤖' },
+        { key: 'global_chat', label: 'Chat Komunitas', icon: '💬' },
+        { key: 'games', label: 'Data Game', icon: '🎮' },
+        // --- Data RBM Pro: per menu (path di Firebase /rbm_pro/...) ---
+        { key: 'rbm_pro/petty_cash', label: 'Petty Cash', icon: '💵' },
+        { key: 'rbm_pro/database_barang', label: 'Stok Barang', icon: '📊' },
+        { key: 'rbm_pro/inventaris', label: 'Inventaris', icon: '📋' },
+        { key: 'rbm_pro/pembukuan', label: 'Pembukuan', icon: '📒' },
+        { key: 'rbm_pro/bank', label: 'Bank', icon: '🏦' },
+        { key: 'rbm_pro/pengajuan_tf', label: 'Pengajuan TF', icon: '📤' },
+        { key: 'rbm_pro/pengajuan_bukti_tf', label: 'Pengajuan Bukti TF', icon: '📎' },
+        { key: 'rbm_pro/pending', label: 'Pending Sync', icon: '⏳' },
+        { key: 'rbm_pro/points_history', label: 'Poin & Riwayat', icon: '💰' },
+        { key: 'rbm_pro/vouchers', label: 'Voucher', icon: '🎫' },
+        { key: 'rbm_pro', label: 'RBM Pro Lainnya (Absensi, Jadwal, Reservasi, dll)', icon: '📅' }
+    ];
+
+    let ALL_NODES = JSON.parse(localStorage.getItem('rbm_all_storage_nodes'));
+    if (!ALL_NODES || ALL_NODES.length === 0) {
+        // Migrasi dari custom nodes lama jika ada
+        const oldCustom = JSON.parse(localStorage.getItem('rbm_custom_nodes') || '[]');
+        ALL_NODES = [...DEFAULT_NODES, ...oldCustom];
+        localStorage.setItem('rbm_all_storage_nodes', JSON.stringify(ALL_NODES));
+    }
+
+    // ID DOM tidak boleh pakai slash; gunakan untuk getElementById
+    function safeId(key) {
+        return (key || '').replace(/\//g, '_');
+    }
+
+    const grid = document.getElementById('storage-grid');
+    const btnRefreshAll = document.getElementById('btn-refresh-all');
+    const nodeDataCache = {}; // Cache untuk menyimpan data hasil analisis
+
+    // Helper untuk format bytes ke KB/MB
+    function formatBytes(bytes, decimals = 2) {
+        if (!+bytes) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+    }
+
+    // Helper untuk menghitung ukuran string JSON
+    function getSize(obj) {
+        return new Blob([JSON.stringify(obj)]).size;
+    }
+
+    function createCard(node, index) {
+        const id = safeId(node.key);
+        const keyEsc = (node.key || '').replace(/'/g, "\\'");
+        const customButtons = `
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+                <button class="btn" style="background: #eab308; color: white; flex: 1; font-size: 13px; padding: 8px;" onclick="editStorageNode(${index})">✏️ Edit Box</button>
+                <button class="btn" style="background: #6b7280; color: white; flex: 1; font-size: 13px; padding: 8px;" onclick="removeStorageNode(${index})">❌ Hapus Box</button>
+            </div>
+        `;
+        const div = document.createElement('div');
+        div.className = 'storage-card';
+        div.innerHTML = `
+            <div class="storage-header">
+                <div class="storage-title"><span>${node.icon}</span> ${node.label}</div>
+                <div style="font-family: monospace; font-size: 12px; background: #f3f4f6; padding: 2px 6px; border-radius: 4px;">/${node.key}</div>
+            </div>
+            <div class="storage-size" id="size-${id}">-</div>
+            <div class="storage-count" id="count-${id}">Menunggu analisis...</div>
+            <div class="progress-bg">
+                <div class="progress-bar" id="bar-${id}"></div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary btn-analyze" onclick="analyzeNode('${keyEsc}')" style="flex: 1;">Analisis</button>
+                    <button class="btn btn-primary" id="btn-detail-${id}" onclick="showNodeDetails('${keyEsc}')" style="flex: 1; display: none;">Lihat Detail</button>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn" style="background: #3b82f6; color: white; flex: 1; font-size: 13px; padding: 8px;" onclick="editNode('${keyEsc}')">📝 Edit</button>
+                    <button class="btn" style="background: #059669; color: white; flex: 1; font-size: 13px; padding: 8px;" onclick="backupNode('${keyEsc}')">⬇️ Backup</button>
+                    <button class="btn" style="background: #d97706; color: white; flex: 1; font-size: 13px; padding: 8px;" onclick="triggerRestore('${keyEsc}')">⬆️ Restore</button>
+                </div>
+                <button class="btn" style="background: #ef4444; color: white; width: 100%; font-size: 13px; padding: 8px;" onclick="deleteNode('${keyEsc}')">🗑️ Hapus Data</button>
+                ${customButtons}
+            </div>
+        `;
+        return div;
+    }
+
+    function renderCards() {
+        grid.innerHTML = '';
+        ALL_NODES.forEach((node, index) => {
+            grid.appendChild(createCard(node, index));
+        });
+    }
+
+    // Render kartu awal
+    renderCards();
+
+    window.analyzeNode = async function(key) {
+        if (!db) {
+            // Cegah error jika db null
+            return; 
+        }
+
+        const id = safeId(key);
+        const sizeEl = document.getElementById(`size-${id}`);
+        const countEl = document.getElementById(`count-${id}`);
+        const barEl = document.getElementById(`bar-${id}`);
+        
+        sizeEl.innerHTML = '<span style="font-size:16px; color:#6b7280;">Memuat...</span>';
+        countEl.textContent = 'Sedang mengunduh data...';
+        barEl.style.width = '20%';
+        barEl.style.backgroundColor = '#fbbf24'; // Kuning saat loading
+
+        try {
+            const snap = await db.ref(key).once('value');
+            const data = snap.val();
+            nodeDataCache[key] = data; // Simpan ke cache
+            
+            barEl.style.width = '60%';
+            
+            if (!data) {
+                sizeEl.textContent = '0 KB';
+                countEl.textContent = 'Tidak ada data (Kosong)';
+                barEl.style.width = '0%';
+                document.getElementById(`btn-detail-${id}`).style.display = 'none';
+                return;
+            }
+
+            // Hitung ukuran
+            const size = getSize(data);
+            const count = (typeof data === 'object') ? Object.keys(data).length : 1;
+            
+            sizeEl.textContent = formatBytes(size);
+            countEl.textContent = `${count} Item / Record`;
+            
+            // Visualisasi bar (Asumsi 5MB adalah "Penuh" untuk free tier warning)
+            const percentage = Math.min((size / (5 * 1024 * 1024)) * 100, 100);
+            barEl.style.width = `${Math.max(percentage, 5)}%`;
+            
+            // Warna bar berdasarkan ukuran
+            if (size > 1024 * 1024) { // > 1MB
+                barEl.style.backgroundColor = '#ef4444'; // Merah
+                sizeEl.style.color = '#ef4444';
+            } else if (size > 500 * 1024) { // > 500KB
+                barEl.style.backgroundColor = '#f59e0b'; // Kuning
+                sizeEl.style.color = '#f59e0b';
+            } else {
+                barEl.style.backgroundColor = '#10b981'; // Hijau
+                sizeEl.style.color = '#10b981';
+            }
+
+            // Tampilkan tombol detail
+            document.getElementById(`btn-detail-${id}`).style.display = 'block';
+
+        } catch (e) {
+            console.error(e);
+            sizeEl.textContent = 'Error';
+            countEl.textContent = 'Gagal memuat data';
+            barEl.style.backgroundColor = '#ef4444';
+        }
+    };
+
+    window.showNodeDetails = async function(key) {
+        document.getElementById('detail-title').innerHTML = `Detail: /${key} <span style="font-size:12px;color:gray;">(Memuat...)</span>`;
+        document.getElementById('detail-modal').classList.add('show');
+        const list = document.getElementById('detail-list');
+        list.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px;">Memuat data... ⏳</td></tr>';
+
+        try {
+            const snap = await db.ref(key).once('value');
+            const data = snap.val();
+            if (!data) {
+                list.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px;">Data kosong</td></tr>';
+                document.getElementById('detail-title').textContent = `Detail: /${key}`;
+                return;
+            }
+
+            const totalSize = getSize(data);
+            const children = [];
+
+            if (typeof data === 'object' && data !== null) {
+                Object.keys(data).forEach(childKey => {
+                    const childData = data[childKey];
+                    const size = getSize(childData);
+                    const isFolder = typeof childData === 'object' && childData !== null;
+                    children.push({ key: childKey, size: size, isFolder: isFolder, rawData: childData });
+                });
+            } else {
+                 children.push({ key: '(Value)', size: totalSize, isFolder: false, rawData: data });
+            }
+
+            // Sort descending by size
+            children.sort((a, b) => b.size - a.size);
+
+            list.innerHTML = '';
+            
+            // Tombol kembali (Up one level)
+            if (key !== '/' && key !== '') {
+                const parentParts = key.split('/');
+                parentParts.pop();
+                const parentPath = parentParts.join('/') || '/';
+                const trBack = document.createElement('tr');
+                trBack.innerHTML = `
+                    <td colspan="4" style="padding: 8px; border-bottom: 1px solid #eee; background: #f3f4f6; cursor: pointer; color: #4C2A85; font-weight: bold;" onclick="showNodeDetails('${parentPath.replace(/'/g, "\\'")}')">
+                        🔙 Naik ke Folder Sebelumnya
+                    </td>
+                `;
+                list.appendChild(trBack);
+            }
+
+            children.forEach(item => {
+                const percent = totalSize > 0 ? ((item.size / totalSize) * 100).toFixed(1) : 0;
+                
+                let actionHtml = '';
+                let keyHtml = item.key;
+
+                if (item.key !== '(Value)') {
+                    const fullPath = key === '/' ? item.key : `${key}/${item.key}`;
+                    const safePath = fullPath.replace(/'/g, "\\'");
+                    
+                    actionHtml = `<div style="display: flex; gap: 4px; justify-content: flex-end;">
+                        <button onclick="editNode('${safePath}')" style="background:#3b82f6; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">📝 Edit</button>
+                        <button onclick="deleteNode('${safePath}')" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">🗑️ Hapus</button>
+                    </div>`;
+                    
+                    if (item.isFolder) {
+                        // Jika di dalam folder ini ada "name", kita tampilkan sebagai info tambahan biar gampang dicari
+                        let extraName = '';
+                        if (item.rawData && item.rawData.name) {
+                            extraName = ` <span style="color:#059669; font-size:11px; background:#d1fae5; padding:2px 4px; border-radius:4px; margin-left:6px;">${item.rawData.name}</span>`;
+                        }
+                        keyHtml = `<a href="javascript:void(0)" onclick="showNodeDetails('${safePath}')" style="color: #4C2A85; text-decoration: none; font-weight: bold;">📁 ${item.key}</a>${extraName}`;
+                    } else {
+                        keyHtml = `📄 ${item.key}`;
+                    }
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; font-family: monospace; word-break: break-all;">${keyHtml}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee;">${formatBytes(item.size)}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee;">${percent}%</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align:right;">${actionHtml}</td>
+                `;
+                list.appendChild(tr);
+            });
+            document.getElementById('detail-title').textContent = `Detail: /${key}`;
+        } catch(e) {
+            list.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 20px; color: red;">Error: ${e.message}</td></tr>`;
+            document.getElementById('detail-title').textContent = `Detail: /${key}`;
+        }
+    };
+
+    window.closeDetailModal = function() {
+        document.getElementById('detail-modal').classList.remove('show');
+    };
+
+    window.backupNode = async function(key) {
+        if (!db) return alert("Database belum terhubung!");
+        try {
+            // Tampilkan loading sederhana pada tombol
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '⏳ Mengunduh...';
+            btn.disabled = true;
+
+            const snap = await db.ref(key).once('value');
+            const data = snap.val();
+            
+            if (!data) {
+                CustomUI.alert('Tidak ada data untuk di-backup.', 'Info Backup');
+                btn.textContent = originalText;
+                btn.disabled = false;
+                return;
+            }
+
+            // Konversi ke JSON dan Download
+            const jsonString = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonString], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `RBM_Backup_${(key || '').replace(/\//g, '_')}_${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            btn.textContent = originalText;
+            btn.disabled = false;
+        } catch (e) {
+            console.error(e);
+            CustomUI.error('Gagal backup: ' + e.message);
+            if(event && event.target) {
+                event.target.disabled = false;
+                event.target.textContent = '⬇️ Download / Backup JSON';
+            }
+        }
+    };
+
+    document.getElementById('btn-backup-all').addEventListener('click', async () => {
+        if (!db) return alert("Database belum terhubung!");
+        if(!await CustomUI.confirm('Backup seluruh database mungkin memakan waktu lama dan file bisa sangat besar (terutama jika banyak gambar). Lanjutkan?', 'Konfirmasi Backup Full')) return;
+        
+        const btn = document.getElementById('btn-backup-all');
+        const originalText = btn.textContent;
+        btn.textContent = '⏳ Mengunduh...';
+        btn.disabled = true;
+
+        try {
+            const snap = await db.ref('/').once('value');
+            const data = snap.val();
+            
+            if (!data) {
+                CustomUI.alert('Database kosong.', 'Info');
+                return;
+            }
+
+            const jsonString = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonString], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `RBM_FULL_BACKUP_${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error(e);
+            CustomUI.error('Gagal backup full: ' + e.message);
+        } finally {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
+    });
+
+    // --- Restore Logic ---
+    let restoreTargetKey = null;
+    let restoreDataPayload = null; // [BARU] Simpan data sementara
+    const restoreInput = document.getElementById('restore-file-input');
+    const restoreModal = document.getElementById('restore-options-modal'); // [BARU]
+
+    window.triggerRestore = function(key) {
+        restoreTargetKey = key;
+        restoreInput.value = ''; // Reset input
+        restoreInput.click();
+    };
+    
+    // [BARU] Fungsi tutup modal restore
+    window.closeRestoreModal = function() {
+        restoreModal.classList.remove('show');
+        restoreDataPayload = null;
+    };
+
+    document.getElementById('btn-restore-all').addEventListener('click', () => {
+        triggerRestore('/'); // Root
+    });
+
+    restoreInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file || !restoreTargetKey) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const jsonContent = e.target.result;
+                restoreDataPayload = JSON.parse(jsonContent);
+                
+                // [DIUBAH] Tampilkan modal pilihan alih-alih langsung confirm
+                restoreModal.classList.add('show');
+
+            } catch (err) {
+                console.error(err);
+                CustomUI.error('Gagal membaca file backup: ' + err.message + '\nPastikan file yang dipilih adalah file JSON yang valid.');
+            }
+        };
+        reader.readAsText(file);
+    });
+    
+    // --- Restore Confirmation Logic ---
+    let restoreActionType = null; // 'overwrite' or 'merge'
+    const restoreConfirmModal = document.getElementById('restore-confirm-modal');
+    const restoreConfirmTitle = document.getElementById('restore-confirm-title');
+    const restoreConfirmMsg = document.getElementById('restore-confirm-msg');
+    const restoreKeywordDisplay = document.getElementById('restore-confirm-keyword');
+    const restoreConfirmInput = document.getElementById('restore-confirm-input');
+    const btnDoRestore = document.getElementById('btn-do-restore-action');
+
+    window.openRestoreConfirmModal = function(type) {
+        restoreActionType = type;
+        const targetName = restoreTargetKey === '/' ? 'SELURUH DATABASE' : `/${restoreTargetKey}`;
+        
+        restoreConfirmInput.value = '';
+        restoreConfirmModal.classList.add('show');
+
+        if (type === 'overwrite') {
+            restoreConfirmTitle.textContent = 'Konfirmasi TIMPA (Overwrite)';
+            restoreConfirmTitle.style.color = '#ef4444';
+            restoreConfirmMsg.innerHTML = `Anda akan <strong>MENIMPA</strong> data di: <br><code style="background:#eee;padding:2px 4px;border-radius:4px;">${targetName}</code><br><br>Data lama akan <strong>DIHAPUS TOTAL</strong> dan digantikan dengan backup.<br>Tindakan ini tidak dapat dibatalkan.`;
+            restoreKeywordDisplay.textContent = 'TIMPA';
+            btnDoRestore.style.backgroundColor = '#ef4444';
+            btnDoRestore.textContent = 'Ya, Timpa Data';
+        } else {
+            restoreConfirmTitle.textContent = 'Konfirmasi GABUNG (Merge)';
+            restoreConfirmTitle.style.color = '#10b981';
+            restoreConfirmMsg.innerHTML = `Anda akan <strong>MENGGABUNGKAN</strong> data ke: <br><code style="background:#eee;padding:2px 4px;border-radius:4px;">${targetName}</code><br><br>Data backup akan ditambahkan. Data dengan ID yang sama akan diperbarui.`;
+            restoreKeywordDisplay.textContent = 'GABUNG';
+            btnDoRestore.style.backgroundColor = '#10b981';
+            btnDoRestore.textContent = 'Ya, Gabungkan';
+        }
+        setTimeout(() => restoreConfirmInput.focus(), 100);
+    };
+
+    window.closeRestoreConfirmModal = function() {
+        restoreConfirmModal.classList.remove('show');
+        restoreActionType = null;
+    };
+
+    document.getElementById('btn-cancel-restore-confirm').addEventListener('click', closeRestoreConfirmModal);
+
+    btnDoRestore.addEventListener('click', async () => {
+        if (!db) return alert("Database belum terhubung!");
+        const keyword = restoreActionType === 'overwrite' ? 'TIMPA' : 'GABUNG';
+        if (restoreConfirmInput.value !== keyword) {
+            CustomUI.alert(`Konfirmasi salah. Harap ketik "${keyword}" dengan tepat.`, 'Validasi Gagal');
+            return;
+        }
+
+        const btn = btnDoRestore;
+        const originalText = btn.textContent;
+        btn.textContent = 'Memproses...';
+        btn.disabled = true;
+
+        try {
+            if (restoreActionType === 'overwrite') {
+                await db.ref(restoreTargetKey).set(restoreDataPayload);
+                CustomUI.success('Restore (Timpa) berhasil! Data telah diperbarui.');
+            } else {
+                await db.ref(restoreTargetKey).update(restoreDataPayload);
+                CustomUI.success('Restore (Merge) berhasil! Data telah digabungkan.');
+            }
+            
+            closeRestoreConfirmModal();
+            closeRestoreModal();
+            
+            if (restoreTargetKey !== '/') analyzeNode(restoreTargetKey);
+            else btnRefreshAll.click();
+
+        } catch (e) {
+            console.error(e);
+            CustomUI.error('Gagal restore: ' + e.message);
+        } finally {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
+    });
+
+    // [BARU] Handler Tombol Timpa
+    document.getElementById('btn-restore-overwrite').addEventListener('click', async () => {
+        if (!restoreDataPayload) return;
+        openRestoreConfirmModal('overwrite');
+    });
+
+    // [BARU] Handler Tombol Tambah/Merge
+    document.getElementById('btn-restore-merge').addEventListener('click', async () => {
+        if (!restoreDataPayload) return;
+
+        if (typeof restoreDataPayload !== 'object' || restoreDataPayload === null) {
+            CustomUI.alert('Mode "Tambahkan" hanya bisa digunakan jika data backup berupa Objek JSON.', 'Format Tidak Didukung');
+            return;
+        }
+        openRestoreConfirmModal('merge');
+    });
+
+    // --- Delete Logic with Custom Modal ---
+    let deleteTargetKey = null;
+    let deleteExpectedKeyword = '';
+    const deleteModal = document.getElementById('delete-confirm-modal');
+    const deleteInput = document.getElementById('delete-confirm-input');
+    const deleteMsg = document.getElementById('delete-confirm-msg');
+    const deleteKeywordDisplay = document.getElementById('delete-confirm-keyword');
+
+    // [SYNC] Kalau Petty Cash dihapus dari "Data & Penyimpanan", pastikan juga:
+    // 1) index paging (`petty_cash_index`)
+    // 2) ringkasan bulan (`petty_cash_month_summary`)
+    // ikut terhapus/ter-rebuild, biar halaman "Lihat Petty Cash" tidak menampilkan data lama.
+    async function purgePettyCashRelatedByDeletedKey(deletedKey) {
+        try {
+            if (!deletedKey) return;
+            const key = String(deletedKey);
+
+            // Case A: dihapus pada node transaksi petty_cash per tanggal
+            // Format yang umum:
+            //   rbm_pro/petty_cash/{outlet}/{YYYY-MM-DD}/...
+            const mDate = key.match(/^rbm_pro\/petty_cash\/([^\/]+)\/(\d{4}-\d{2}-\d{2})/);
+            if (mDate) {
+                const outletId = mDate[1];
+                const dateStr = mDate[2];
+                const ym = dateStr.slice(0, 7); // YYYY-MM
+
+                await db.ref(`rbm_pro/petty_cash_index/${outletId}/${ym}`).remove().catch(function() {});
+                await db.ref(`rbm_pro/petty_cash_month_summary/${outletId}/${ym}`).remove().catch(function() {});
+
+                // Rebuild index + summary (owner/dev saja biasanya yang bisa)
+                try {
+                    if (window.FirebaseStorage && typeof window.FirebaseStorage.buildPettyCashMonthIndex === 'function') {
+                        await window.FirebaseStorage.buildPettyCashMonthIndex(ym, outletId).catch(function() {});
+                    }
+                    if (window.FirebaseStorage && typeof window.FirebaseStorage.getPettyCashMonthSummary === 'function') {
+                        await window.FirebaseStorage.getPettyCashMonthSummary(ym, outletId).catch(function() {});
+                    }
+                } catch (e) {}
+
+                return;
+            }
+
+            // Case B: dihapus pada subtree outlet petty_cash (tanpa tanggal spesifik)
+            //   rbm_pro/petty_cash/{outlet}
+            const mOutlet = key.match(/^rbm_pro\/petty_cash\/([^\/]+)(\/|$)/);
+            if (mOutlet) {
+                const outletId = mOutlet[1];
+                await db.ref(`rbm_pro/petty_cash_index/${outletId}`).remove().catch(function() {});
+                await db.ref(`rbm_pro/petty_cash_month_summary/${outletId}`).remove().catch(function() {});
+                return;
+            }
+
+            // Case C: dihapus di level paling atas petty_cash (tanpa outlet spesifik)
+            //   rbm_pro/petty_cash
+            if (key === 'rbm_pro/petty_cash' || key === 'rbm_pro/petty_cash/') {
+                await db.ref('rbm_pro/petty_cash_index').remove().catch(function() {});
+                await db.ref('rbm_pro/petty_cash_month_summary').remove().catch(function() {});
+                return;
+            }
+        } catch (e) {
+            // Abaikan jika parsing key gagal
+        }
+    }
+
+    window.openDeleteModal = function(key, keyword, message) {
+        deleteTargetKey = key;
+        deleteExpectedKeyword = keyword;
+        deleteMsg.innerHTML = message;
+        deleteKeywordDisplay.textContent = keyword;
+        deleteInput.value = '';
+        deleteModal.classList.add('show');
+        setTimeout(() => deleteInput.focus(), 100);
+    };
+
+    window.closeDeleteModal = function() {
+        deleteModal.classList.remove('show');
+        deleteTargetKey = null;
+        deleteExpectedKeyword = '';
+    };
+
+    document.getElementById('btn-cancel-delete').addEventListener('click', closeDeleteModal);
+
+    document.getElementById('btn-confirm-delete-action').addEventListener('click', async () => {
+        if (!db) return alert("Database belum terhubung!");
+        const inputVal = deleteInput.value;
+        if (inputVal !== deleteExpectedKeyword) {
+            CustomUI.alert(`Konfirmasi salah. Harap ketik "${deleteExpectedKeyword}" dengan tepat.`, 'Validasi Gagal');
+            return;
+        }
+
+        if (!deleteTargetKey) return;
+
+        // Disable button
+        const btn = document.getElementById('btn-confirm-delete-action');
+        const originalText = btn.textContent;
+        btn.textContent = 'Menghapus...';
+        btn.disabled = true;
+
+        try {
+            if (deleteTargetKey === '/') {
+                 await db.ref('/').remove();
+                 CustomUI.success('SELURUH DATABASE BERHASIL DIHAPUS.');
+                 btnRefreshAll.click();
+            } else {
+                 await db.ref(deleteTargetKey).remove();
+                 CustomUI.success(`Data di /${deleteTargetKey} berhasil dihapus.`);
+                 analyzeNode(deleteTargetKey);
+                 // [SYNC] Pastikan Petty Cash terkait juga ikut bersih
+                 await purgePettyCashRelatedByDeletedKey(deleteTargetKey);
+            }
+            // [SYNC] Hapus cache lokal RBM agar halaman lain tidak menampilkan data lama.
+            try {
+                Object.keys(localStorage).forEach(function(k) {
+                    if (k.indexOf('RBM_') === 0) localStorage.removeItem(k);
+                    // cache petty cash client/server
+                    if (k.indexOf('rbm_pc_cache_v1') === 0) localStorage.removeItem(k);
+                });
+            } catch(e) {}
+            closeDeleteModal();
+        } catch (e) {
+            console.error(e);
+            CustomUI.error('Gagal menghapus data: ' + e.message);
+        } finally {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
+    });
+
+    window.deleteNode = function(key) {
+        const msg = `Anda akan <strong>MENGHAPUS PERMANEN</strong> data di: <br><code style="background:#eee;padding:2px 4px;border-radius:4px;">/${key}</code><br><br>Data yang dihapus <strong>TIDAK BISA DIKEMBALIKAN</strong> kecuali Anda punya backup.`;
+        openDeleteModal(key, 'HAPUS', msg);
+    };
+
+    document.getElementById('btn-delete-all').addEventListener('click', () => {
+        const msg = `PERINGATAN SANGAT BERBAHAYA<br><br>Anda akan <strong>MENGHAPUS SELURUH DATABASE</strong>.<br>SEMUA DATA AKAN HILANG PERMANEN.<br><br>Pastikan Anda sudah melakukan BACKUP FULL.`;
+        openDeleteModal('/', 'HAPUS SEMUA', msg);
+    });
+
+    btnRefreshAll.addEventListener('click', () => {
+        if(db) ALL_NODES.forEach(node => analyzeNode(node.key));
+    });
+
+    // --- Connection Modal Logic ---
+    const connModal = document.getElementById('connection-modal');
+    const connList = document.getElementById('connection-list');
+    let editingConnectionIndex = null; // [BARU] State edit
+
+    // [BARU] Toggle UI Input
+    window.toggleConfigInput = function() {
+        const type = document.getElementById('new-conn-type').value;
+        const configContainer = document.getElementById('config-input-container');
+        const localInfo = document.getElementById('local-info-container');
+        const serverInfo = document.getElementById('server-info-container');
+        const domainWarning = document.getElementById('domain-warning');
+        
+        configContainer.style.display = type === 'firebase' ? 'block' : 'none';
+        localInfo.style.display = type === 'local' ? 'block' : 'none';
+        serverInfo.style.display = type === 'server' ? 'block' : 'none';
+
+        // [BARU] Ambil info path saat ini dari server jika mode server dipilih
+        if (type === 'server') {
+            // Cek apakah sedang di domain (bukan localhost/file)
+            const isOnline = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && window.location.protocol.startsWith('http');
+            if (isOnline && domainWarning) {
+                domainWarning.style.display = 'block';
+            } else if (domainWarning) {
+                domainWarning.style.display = 'none';
+            }
+
+            const url = document.getElementById('new-conn-url').value || 'http://localhost:3001/db';
+            const baseUrl = url.replace('/db', ''); 
+            const statusEl = document.getElementById('server-status-indicator');
+            if(statusEl) { statusEl.innerHTML = 'Checking...'; statusEl.style.background = '#fef3c7'; statusEl.style.color = '#92400e'; statusEl.style.borderColor = '#fcd34d'; }
+
+            fetch(`${baseUrl}/info`)
+                .then(r => r.json())
+                .then(d => {
+                    if(d.dbFile) document.getElementById('server-db-path').value = d.dbFile;
+                    if(statusEl) { statusEl.innerHTML = 'Online 🟢'; statusEl.style.background = '#dcfce7'; statusEl.style.color = '#166534'; statusEl.style.borderColor = '#bbf7d0'; }
+                })
+                .catch(e => {
+                    if(statusEl) { statusEl.innerHTML = 'Offline 🔴'; statusEl.style.background = '#fee2e2'; statusEl.style.color = '#991b1b'; statusEl.style.borderColor = '#fecaca'; }
+                });
+        }
+    };
+
+    window.openConnectionModal = function() {
+        renderConnectionList();
+        connModal.classList.add('show');
+    };
+
+    window.closeConnectionModal = function() {
+        connModal.classList.remove('show');
+        cancelEdit(); // [BARU] Reset form saat tutup
+    };
+
+    // [BARU] Fungsi Batal Edit
+    function cancelEdit() {
+        editingConnectionIndex = null;
+        document.getElementById('new-conn-type').value = 'firebase';
+        toggleConfigInput();
+        document.getElementById('new-conn-name').value = '';
+        document.getElementById('new-conn-config').value = '';
+        document.getElementById('btn-add-connection').textContent = 'Simpan Koneksi';
+        const cancelBtn = document.getElementById('btn-cancel-edit');
+        if (cancelBtn) cancelBtn.remove();
+    }
+
+    // [BARU] Fungsi Edit
+    window.editConnection = function(idx) {
+        const conns = getConnections();
+        const conn = conns[idx];
+        if (!conn) return;
+
+        const isLocal = conn.config && conn.config.type === 'local';
+        const isServer = conn.config && conn.config.type === 'server';
+        document.getElementById('new-conn-type').value = isLocal ? 'local' : (isServer ? 'server' : 'firebase');
+        toggleConfigInput();
+
+        document.getElementById('new-conn-name').value = conn.name;
+        
+        if (!isLocal && !isServer) {
+            document.getElementById('new-conn-config').value = JSON.stringify(conn.config, null, 2);
+        }
+        if (isServer) {
+            document.getElementById('new-conn-url').value = conn.config.apiUrl || 'http://localhost:3001/db';
+        }
+        editingConnectionIndex = idx;
+        document.getElementById('btn-add-connection').textContent = 'Update Koneksi';
+        
+        // Tambah tombol batal jika belum ada
+        if (!document.getElementById('btn-cancel-edit')) {
+             const cancelBtn = document.createElement('button');
+             cancelBtn.id = 'btn-cancel-edit';
+             cancelBtn.className = 'btn btn-secondary';
+             cancelBtn.style.width = '100%';
+             cancelBtn.style.marginTop = '8px';
+             cancelBtn.textContent = 'Batal Edit';
+             cancelBtn.onclick = cancelEdit;
+             document.getElementById('btn-add-connection').parentNode.appendChild(cancelBtn);
+        }
+    };
+
+    function renderConnectionList() {
+        const conns = getConnections();
+        const activeIdx = parseInt(localStorage.getItem('rbm_active_connection_index') || '0');
+        
+        connList.innerHTML = '';
+        conns.forEach((c, i) => {
+            const div = document.createElement('div');
+            div.style.cssText = `padding: 10px; border: 1px solid ${i === activeIdx ? '#4C2A85' : '#e5e7eb'}; border-radius: 8px; margin-bottom: 8px; background: ${i === activeIdx ? '#eef2ff' : 'white'}; display: flex; justify-content: space-between; align-items: center;`;
+            
+            const isLocal = c.config && c.config.type === 'local';
+            const isServer = c.config && c.config.type === 'server';
+            const typeBadge = isLocal ? '<span style="font-size:10px; background:#e0e7ff; color:#4338ca; padding:2px 4px; border-radius:4px;">OFFLINE</span>' : (isServer ? '<span style="font-size:10px; background:#d1fae5; color:#065f46; padding:2px 4px; border-radius:4px;">SERVER PC</span>' : '<span style="font-size:10px; background:#dcfce7; color:#166534; padding:2px 4px; border-radius:4px;">ONLINE</span>');
+            const infoText = isLocal ? 'Local Storage' : (isServer ? (c.config.apiUrl || 'Localhost') : (c.config.projectId || 'Unknown ID'));
+
+            div.innerHTML = `
+                <div>
+                    <div style="font-weight: 600; color: ${i === activeIdx ? '#4C2A85' : '#374151'};">${c.name} ${typeBadge}</div>
+                    <div style="font-size: 11px; color: #6b7280; font-family: monospace;">${infoText}</div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    ${i !== activeIdx ? `<button onclick="switchConnection(${i})" class="btn" style="padding: 4px 8px; font-size: 11px; background: #4C2A85; color: white; border: none;">Pilih</button>` : '<span style="font-size:11px; font-weight:bold; color:#4C2A85; padding: 4px 8px;">Aktif</span>'}
+                    <button onclick="editConnection(${i})" class="btn" style="padding: 4px 8px; font-size: 11px; background: #e0e7ff; color: #4338ca; border: none;">Edit</button>
+                    <button onclick="deleteConnection(${i})" class="btn" style="padding: 4px 8px; font-size: 11px; background: #fee2e2; color: #dc2626; border: none;">Hapus</button>
+                </div>
+            `;
+            connList.appendChild(div);
+        });
+    }
+
+    window.switchConnection = function(idx) {
+        if(confirm('Ganti koneksi database? Halaman akan dimuat ulang.')) {
+            localStorage.setItem('rbm_active_connection_index', idx);
+            location.reload();
+        }
+    };
+
+    window.deleteConnection = function(idx) {
+        if(confirm('Hapus koneksi ini?')) {
+            const conns = getConnections();
+            conns.splice(idx, 1);
+            localStorage.setItem('rbm_db_connections', JSON.stringify(conns));
+            
+            const activeIdx = parseInt(localStorage.getItem('rbm_active_connection_index') || '0');
+            if (idx === activeIdx) {
+                localStorage.setItem('rbm_active_connection_index', 0);
+                location.reload();
+            } else if (idx < activeIdx) {
+                localStorage.setItem('rbm_active_connection_index', activeIdx - 1);
+                renderConnectionList();
+            } else {
+                renderConnectionList();
+            }
+        }
+    };
+
+    document.getElementById('btn-add-connection').addEventListener('click', () => {
+        const name = document.getElementById('new-conn-name').value.trim();
+        const type = document.getElementById('new-conn-type').value;
+        const configStr = document.getElementById('new-conn-config').value.trim();
+        
+        if (!name) {
+            alert('Nama koneksi harus diisi!');
+            return;
+        }
+
+        try {
+            let config = {};
+            
+            if (type === 'firebase') {
+                if (!configStr) throw new Error('Konfigurasi Firebase harus diisi!');
+                config = JSON.parse(configStr);
+                if (!config.databaseURL) throw new Error('Config tidak valid (missing databaseURL)');
+                config.type = 'firebase';
+            } else if (type === 'server') {
+                const apiUrl = document.getElementById('new-conn-url').value.trim();
+                config = { type: 'server', apiUrl: apiUrl };
+            } else {
+                // Generate unique DB name for local
+                config = { type: 'local', dbName: 'db_' + Date.now() };
+            }
+            
+            const conns = getConnections();
+            
+            if (editingConnectionIndex !== null) {
+                // Update existing
+                conns[editingConnectionIndex] = { name, config };
+                localStorage.setItem('rbm_db_connections', JSON.stringify(conns));
+                alert('Koneksi berhasil diperbarui.');
+                
+                const activeIdx = parseInt(localStorage.getItem('rbm_active_connection_index') || '0');
+                if (editingConnectionIndex === activeIdx) {
+                    if(confirm('Koneksi aktif telah diubah. Reload halaman sekarang?')) {
+                        location.reload();
+                    }
+                }
+                cancelEdit();
+            } else {
+                // Add new
+                conns.push({ name, config });
+                localStorage.setItem('rbm_db_connections', JSON.stringify(conns));
+                
+                document.getElementById('new-conn-name').value = '';
+                document.getElementById('new-conn-config').value = '';
+                document.getElementById('new-conn-type').value = 'firebase';
+                alert('Koneksi berhasil ditambahkan.');
+            }
+            
+            renderConnectionList();
+        } catch (e) {
+            alert('Format JSON Konfigurasi Salah: ' + e.message);
+        }
+    });
+
+    // [BARU] Handler untuk tombol "Pilih Folder..." (Membuka Dialog Windows)
+    document.getElementById('btn-browse-path').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-browse-path');
+        const originalText = btn.textContent;
+        btn.textContent = 'Membuka...';
+        btn.disabled = true;
+
+        const url = document.getElementById('new-conn-url').value || 'http://localhost:3001/db';
+        const baseUrl = url.replace('/db', '');
+
+        try {
+            const res = await fetch(`${baseUrl}/admin/browse-save`, { method: 'POST' });
+            const data = await res.json();
+            if (data.status === 'success' && data.path) {
+                document.getElementById('server-db-path').value = data.path;
+            }
+        } catch (e) {
+            alert("Gagal membuka dialog. Pastikan server.js berjalan.");
+        } finally {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
+    });
+
+    // [BARU] Handler Tombol Set Lokasi Database
+    document.getElementById('btn-set-db-path').addEventListener('click', async () => {
+        const newPath = document.getElementById('server-db-path').value.trim();
+        if(!newPath) return alert("Path tidak boleh kosong!");
+        
+        const url = document.getElementById('new-conn-url').value || 'http://localhost:3001/db';
+        const baseUrl = url.replace('/db', '');
+        
+        try {
+            const res = await fetch(`${baseUrl}/admin/config`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ dbPath: newPath })
+            });
+            const data = await res.json();
+            if(data.status === 'success') {
+                alert("✅ Lokasi database berhasil diubah!\nServer sekarang menggunakan: " + data.dbPath);
+            } else {
+                alert("❌ Gagal: " + (data.message || "Terjadi kesalahan"));
+            }
+        } catch(e) {
+            alert("❌ Gagal menghubungi server. Pastikan server.js berjalan.");
+        }
+    });
+
+    // Auto analyze saat halaman dibuka (opsional, bisa berat jika data banyak)
+    // setTimeout(() => btnRefreshAll.click(), 500);
+
+    // --- Edit Node Logic ---
+    window.editNode = function(key) {
+        closeDetailModal(); // Tutup modal jika terbuka
+        openJsonEditorModal(key);
+    };
+
+    window.openJsonEditorModal = function(defaultPath = '') {
+        document.getElementById('json-editor-modal').classList.add('show');
+        if (defaultPath && typeof defaultPath === 'string') {
+            document.getElementById('editor-path').value = defaultPath;
+            loadEditorData();
+        } else {
+            document.getElementById('editor-path').value = '';
+            document.getElementById('editor-json').value = '';
+        }
+    }
+
+    window.closeJsonEditorModal = function() {
+        document.getElementById('json-editor-modal').classList.remove('show');
+    }
+
+    // --- Editor Data JSON Manual Logic ---
+    window.loadEditorData = async function() {
+        if (!db) return alert("Database belum terhubung!");
+        const path = document.getElementById('editor-path').value.trim();
+        if (!path) return CustomUI.alert("Masukkan path Firebase terlebih dahulu (cth: rbm_pro/bank).", "Info");
+        
+        const btn = document.getElementById('btn-editor-load');
+        const origText = btn.textContent;
+        btn.textContent = "Loading...";
+        btn.disabled = true;
+
+        try {
+            const snap = await db.ref(path).once('value');
+            const data = snap.val();
+            const textarea = document.getElementById('editor-json');
+            if (data === null) {
+                textarea.value = "null";
+                CustomUI.alert("Data kosong (null) di path tersebut.");
+            } else {
+                textarea.value = JSON.stringify(data, null, 2);
+            }
+        } catch (e) {
+            CustomUI.error("Gagal memuat data: " + e.message);
+        } finally {
+            btn.textContent = origText;
+            btn.disabled = false;
+        }
+    };
+
+    window.formatEditorData = function() {
+        const textarea = document.getElementById('editor-json');
+        if (!textarea.value) return;
+        try {
+            const parsed = JSON.parse(textarea.value);
+            textarea.value = JSON.stringify(parsed, null, 2);
+        } catch (e) {
+            CustomUI.alert("Format JSON tidak valid. Periksa tanda baca Anda: " + e.message);
+        }
+    };
+
+    window.saveEditorData = async function() {
+        if (!db) return alert("Database belum terhubung!");
+        const path = document.getElementById('editor-path').value.trim();
+        if (!path) return CustomUI.alert("Masukkan path Firebase terlebih dahulu!", "Info");
+        
+        const textarea = document.getElementById('editor-json');
+        let parsedData;
+        try {
+            parsedData = JSON.parse(textarea.value);
+        } catch (e) {
+            return CustomUI.alert("Format JSON tidak valid. Perbaiki sintaks JSON sebelum menyimpan:\n\n" + e.message, "Error JSON");
+        }
+
+        if (!await CustomUI.confirm(`Anda yakin ingin <strong>MENYIMPAN / MENIMPA</strong> data secara permanen di path:<br><code style="background:#eee;padding:2px 4px;border-radius:4px;">/${path}</code> ?<br><br>Hati-hati, data lama akan ditimpa dengan yang ada di teks editor ini.`, "Konfirmasi Simpan")) return;
+
+        const btn = document.getElementById('btn-editor-save');
+        const origText = btn.innerHTML;
+        btn.innerHTML = "Menyimpan... ⏳";
+        btn.disabled = true;
+
+        try {
+            await db.ref(path).set(parsedData);
+            CustomUI.success("Data berhasil disimpan di /" + path);
+            // Auto-refresh jika path tersebut sedang dianalisa di tabel bawah
+            analyzeNode(path);
+            closeJsonEditorModal(); // Tutup popup setelah berhasil simpan
+        } catch (e) {
+            CustomUI.error("Gagal menyimpan data: " + e.message);
+        } finally {
+            btn.innerHTML = origText;
+            btn.disabled = false;
+        }
+    };
+
+    // --- Storage Node Logic (Edit Layout) ---
+    let editingNodeIndex = -1;
+
+    window.openNodeFormModal = function() {
+        editingNodeIndex = -1;
+        document.getElementById('new-node-label').value = '';
+        document.getElementById('new-node-path').value = '';
+        document.getElementById('new-node-icon').value = '';
+        
+        document.getElementById('form-node-title').innerHTML = '➕ Tambah Kotak Database';
+        document.getElementById('btn-add-node').textContent = 'Tambah Box';
+        document.getElementById('node-form-modal').classList.add('show');
+    };
+
+    window.closeNodeFormModal = function() {
+        document.getElementById('node-form-modal').classList.remove('show');
+    };
+
+    window.editStorageNode = function(index) {
+        const node = ALL_NODES[index];
+        if (!node) return;
+        
+        document.getElementById('new-node-label').value = node.label;
+        document.getElementById('new-node-path').value = node.key;
+        document.getElementById('new-node-icon').value = node.icon || '📁';
+        
+        editingNodeIndex = index;
+        
+        document.getElementById('form-node-title').innerHTML = '✏️ Edit Kotak Database';
+        document.getElementById('btn-add-node').textContent = 'Simpan Perubahan';
+        document.getElementById('node-form-modal').classList.add('show');
+    };
+
+    window.saveStorageNode = function() {
+        const label = document.getElementById('new-node-label').value.trim();
+        const path = document.getElementById('new-node-path').value.trim();
+        const icon = document.getElementById('new-node-icon').value.trim() || '📁';
+        if (!label || !path) {
+            return CustomUI.alert("Nama dan Path wajib diisi!", "Info");
+        }
+        
+        if (editingNodeIndex > -1) {
+            ALL_NODES[editingNodeIndex] = { key: path, label: label, icon: icon };
+            CustomUI.success("Kotak database berhasil diperbarui!");
+        } else {
+            ALL_NODES.push({ key: path, label: label, icon: icon });
+            CustomUI.success("Kotak database baru berhasil ditambahkan!");
+        }
+
+        localStorage.setItem('rbm_all_storage_nodes', JSON.stringify(ALL_NODES));
+        renderCards();
+        closeNodeFormModal(); // Tutup popup setelah simpan
+    };
+
+    window.removeStorageNode = function(index) {
+        CustomUI.confirm("Hapus kotak ini dari tampilan?<br><br><small>Hanya menghapus kotak tampilan. Data asli di database TIDAK akan terhapus.</small>", "Hapus Kotak", function() {
+            ALL_NODES.splice(index, 1);
+            localStorage.setItem('rbm_all_storage_nodes', JSON.stringify(ALL_NODES));
+            renderCards();
+        });
+    };
+
+    window.resetDefaultNodes = function() {
+        CustomUI.confirm("Kembalikan semua kotak ke pengaturan awal (bawaan pabrik)?<br><br><small>Kotak custom yang Anda buat akan ikut hilang.</small>", "Reset Layout", function() {
+            ALL_NODES = [...DEFAULT_NODES];
+            localStorage.setItem('rbm_all_storage_nodes', JSON.stringify(ALL_NODES));
+            renderCards();
+            CustomUI.success("Layout dikembalikan ke pengaturan awal.");
+        });
+    };
+  </script>
+</body>
+</html>

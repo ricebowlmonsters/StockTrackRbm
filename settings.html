@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pengaturan - RBM</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .setting-item:last-child {
+      border-bottom: none;
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 28px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 28px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #4C2A85;
+    }
+    input:checked + .slider:before {
+      transform: translateX(22px);
+    }
+    .outlet-list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #f9fafb;
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <a href="index.html" class="back-btn">‹</a>
+      <h1 class="page-title">Pengaturan</h1>
+    </header>
+    <main class="content">
+
+      <section id="section-jadwal-absensi" class="card" style="margin-bottom: 20px;">
+        <h3 class="card-title">Jadwal & Absensi (RBM Pro)</h3>
+        <p class="card-subtitle" style="margin-bottom: 16px; font-size: 12px;">Atur lokasi kantor per outlet, jam masuk/pulang per shift, durasi istirahat, dan perhitungan telat untuk Absensi GPS &amp; Rekap Gaji. <strong>Hanya Owner</strong> yang dapat mengubah pengaturan ini.</p>
+        <a href="rbm-pengaturan-jadwal-absensi.html" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: #fff;">
+          &#128197; Pengaturan Jadwal &amp; Absensi
+        </a>
+      </section>
+
+      <section class="card">
+        <h3 class="card-title">Pengaturan Printer</h3>
+        <p class="card-subtitle" style="margin-bottom: 16px; font-size: 12px;">Aplikasi menggunakan printer bawaan browser (Google Chrome). Pastikan printer thermal sudah diset sebagai default.</p>
+        
+        <div class="form-group">
+            <button id="test-browser-print-btn" class="btn btn-secondary" style="width: 100%;">🖨️ Test Print (Browser)</button>
+            <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">
+              <strong>Tips Auto-Print:</strong> Agar cetak otomatis tanpa dialog, gunakan shortcut Chrome dengan target: <code>--kiosk-printing</code>
+            </p>
+        </div>
+
+        <hr style="margin: 24px 0; border: 0; border-top: 1px solid #e5e7eb;">
+        <h4 style="margin: 0 0 8px; font-size: 15px;">🖨️ Kelompok Printer by IP (WiFi)</h4>
+        <p class="card-subtitle" style="margin-bottom: 12px; font-size: 12px;">Buat nama printer dan IP sendiri. Printer kasir untuk struk customer; printer checker untuk slip checker; printer per item atur di Kelola Menu (form Tambah/Edit Menu).</p>
+        <div id="printer-groups-list" style="margin-bottom: 16px;"></div>
+        <div class="form-group" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
+          <div style="flex: 1; min-width: 140px;">
+            <label class="form-label" for="new-printer-name">Nama Printer</label>
+            <input type="text" id="new-printer-name" class="form-input" placeholder="Contoh: Dapur 1">
+          </div>
+          <div style="flex: 1; min-width: 160px;">
+            <label class="form-label" for="new-printer-ip">IP Printer (WiFi)</label>
+            <input type="text" id="new-printer-ip" class="form-input" placeholder="192.168.1.100">
+          </div>
+          <button id="add-printer-group-btn" class="btn btn-secondary">Tambah Printer</button>
+        </div>
+        <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+          <h4 style="margin: 0 0 8px; font-size: 14px;">Printer Kasir (struk lengkap)</h4>
+          <p style="font-size: 12px; color: #6b7280; margin-bottom: 12px;">Pilih satu printer untuk struk kasir yang keluar untuk customer.</p>
+          <select id="printer-kasir-select" class="form-input" style="max-width: 280px;">
+            <option value="">-- Pilih printer kasir --</option>
+          </select>
+        </div>
+        <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+          <h4 style="margin: 0 0 8px; font-size: 14px;">Printer Checker</h4>
+          <p style="font-size: 12px; color: #6b7280; margin-bottom: 12px;">Pilih printer untuk slip checker (salinan struk untuk pemeriksaan).</p>
+          <select id="printer-checker-select" class="form-input" style="max-width: 280px;">
+            <option value="">-- Pilih printer checker --</option>
+          </select>
+        </div>
+        <button id="save-printer-groups-btn" class="btn btn-primary" style="margin-top: 16px;">Simpan Kelompok Printer</button>
+      </section>
+
+      <section class="card">
+        <h3 class="card-title">Manajemen Pengguna</h3>
+        <p class="card-subtitle" style="margin-bottom: 16px; font-size: 12px;">
+          Atur hak akses pengguna aplikasi:
+          <br>• <strong>Owner:</strong> Kontrol penuh semua lokasi.
+          <br>• <strong>Manager:</strong> Kontrol penuh 1 lokasi tertentu.
+          <br>• <strong>Staff:</strong> Hanya Input Point & Tukar Point (Terbatas).
+        </p>
+        <div id="user-list"></div>
+        
+        <div id="add-user-form-container" style="border-top: 1px solid #e5e7eb; margin-top: 20px; padding-top: 20px;">
+          <h4 style="margin-top:0; margin-bottom: 12px; font-size: 16px;">Tambah Pengguna Baru</h4>
+          <div class="form-group">
+            <label class="form-label" for="new-user-username">Username</label>
+            <input type="text" id="new-user-username" class="form-input" placeholder="Username">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="new-user-password">Password</label>
+            <input type="text" id="new-user-password" class="form-input" placeholder="Password">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="new-user-role">Role / Jabatan</label>
+            <select id="new-user-role" class="form-input">
+              <option value="owner">Owner (Semua Lokasi)</option>
+              <option value="manager">Manager (Satu Lokasi)</option>
+              <option value="staff">Staff (Terbatas)</option>
+            </select>
+          </div>
+          <div class="form-group" id="user-outlet-container" style="display:none;">
+            <label class="form-label" for="new-user-outlet">Akses Outlet</label>
+            <select id="new-user-outlet" class="form-input">
+              <!-- Options loaded via JS -->
+            </select>
+          </div>
+          <button id="add-user-btn" class="btn btn-secondary">Tambah Pengguna</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3 class="card-title">Manajemen Outlet</h3>
+        <div id="outlet-list"></div>
+        <div id="add-outlet-container" class="form-group" style="margin-top: 16px;">
+          <label for="new-outlet-name" class="form-label">Tambah Outlet Baru</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="new-outlet-name" class="form-input" placeholder="Nama Outlet (cth: sidoarjo)">
+            <button id="add-outlet-btn" class="btn btn-secondary">Tambah</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- [BARU] Bagian untuk memilih outlet yang aktif di perangkat ini -->
+      <section class="card">
+        <h3 class="card-title">Outlet Aktif untuk Perangkat Ini</h3>
+        <p class="card-subtitle" style="margin-bottom: 16px; font-size: 12px;">Pilih outlet yang akan ditampilkan di halaman "Pesanan Masuk" pada perangkat ini.</p>
+        <div id="active-outlets-list"></div>
+        <!-- [DIUBAH] Tombol simpan dipindah ke sini untuk kejelasan -->
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+            <button id="save-settings-btn" class="btn btn-primary">Simpan Pengaturan</button>
+        </div>
+      </section>
+
+      <!-- [BARU] Manajemen Metode Pembayaran -->
+      <section class="card">
+        <h3 class="card-title">Manajemen Metode Pembayaran</h3>
+        <p class="card-subtitle" style="margin-bottom: 16px; font-size: 12px;">Atur metode pembayaran yang tersedia (Cash, QRIS, Kartu, FOC, dll).</p>
+        <div class="form-group">
+            <label class="form-label" style="font-size: 12px;">Pilih Outlet:</label>
+            <select id="pm-outlet-select" class="form-input" style="margin-bottom: 12px;"></select>
+        </div>
+        <div id="payment-methods-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;"></div>
+        <div id="pm-input-container" class="form-group" style="border-top: 1px solid #e5e7eb; padding-top: 16px;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <input type="text" id="new-pm-name" class="form-input" style="flex: 2; min-width: 150px;" placeholder="Nama (cth: BCA Debit)">
+                <select id="new-pm-type" class="form-input" style="flex: 1; min-width: 120px;">
+                    <option value="Cash">Tunai (Cash)</option>
+                    <option value="Card">Kartu (Debit/Kredit)</option>
+                    <option value="QRIS">QRIS</option>
+                    <option value="Transfer">Transfer</option>
+                    <option value="e-Wallet">e-Wallet</option>
+                    <option value="FOC">FOC / Compliment</option>
+                    <option value="Other">Lainnya</option>
+                </select>
+                <button id="add-pm-btn" class="btn btn-secondary">Tambah</button>
+            </div>
+        </div>
+      </section>
+
+      <!-- [BARU] Manajemen Quick Memo -->
+      <section class="card">
+        <h3 class="card-title">Manajemen Quick Memo</h3>
+        <p class="card-subtitle" style="margin-bottom: 16px; font-size: 12px;">Atur daftar catatan cepat yang muncul di menu Memo kasir.</p>
+        <div class="form-group">
+            <label class="form-label" style="font-size: 12px;">Pilih Outlet:</label>
+            <select id="memo-outlet-select" class="form-input" style="margin-bottom: 12px;"></select>
+        </div>
+        <div id="quick-memo-list" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;"></div>
+        <div id="memo-input-container" class="form-group">
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="new-memo-input" class="form-input" placeholder="Memo Baru (cth: Jangan Pedas)">
+                <button id="add-memo-btn" class="btn btn-secondary">Tambah</button>
+            </div>
+        </div>
+      </section>
+
+      <!-- [BARU] Pengaturan Nomor Order (Counter) -->
+      <section class="card" id="order-counter-settings" style="display:none;">
+        <h3 class="card-title">Pengaturan ID Transaksi & Counter</h3>
+        <p class="card-subtitle" style="margin-bottom: 16px; font-size: 12px;">Atur Prefix (Kode Depan) dan nomor urut terakhir untuk setiap outlet.</p>
+        <div id="counter-list"></div>
+      </section>
+
+      <section class="card">
+        <h3 class="card-title">Pengaturan Umum</h3>
+        <div class="setting-item">
+          <div>
+            <strong>Cetak Struk Otomatis (Semua Pesanan)</strong>
+            <p style="font-size: 14px; color: #6b7280; margin-top: 4px;">Otomatis cetak struk untuk semua pesanan baru yang masuk.</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="auto-print-all">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-item">
+          <div>
+            <strong>Cetak Struk Otomatis (QRIS saja)</strong>
+            <p style="font-size: 14px; color: #6b7280; margin-top: 4px;">Otomatis cetak struk jika pembayaran menggunakan QRIS (jika auto-print semua dinonaktifkan).</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="auto-print-qris">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3 class="card-title">Pengaturan Suara & Notifikasi</h3>
+        <div class="setting-item">
+          <div>
+            <strong>Suara Notifikasi Pesanan Baru</strong>
+            <p style="font-size: 14px; color: #6b7280; margin-top: 4px;">Putar suara notifikasi saat ada pesanan baru yang masuk. Jika pesanan dari meja, akan mengucapkan "pesanan baru masuk dari nomor meja [nomor meja]".</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="sound-notification-new-order">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-item">
+          <div>
+            <strong>Panggilan Suara Pesanan Baru dari Meja</strong>
+            <p style="font-size: 14px; color: #6b7280; margin-top: 4px;">Putar panggilan suara dengan nomor meja saat ada pesanan baru dari meja (Dine-in).</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="voice-notification-new-order">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+          <button id="test-sound-notification-btn" class="btn btn-secondary" style="width: 100%; margin-bottom: 12px;">
+            🔔 Test Suara Notifikasi
+          </button>
+          <p style="font-size: 12px; color: #6b7280; margin-bottom: 16px; text-align: center;">
+            Klik untuk menguji suara notifikasi pesanan baru
+          </p>
+          <button id="test-voice-notification-btn" class="btn btn-secondary" style="width: 100%;">
+            🔊 Test Voice Notification
+          </button>
+          <p style="font-size: 12px; color: #6b7280; margin-top: 8px; text-align: center;">
+            Klik untuk menguji panggilan suara dengan nomor meja contoh
+          </p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Voice Notifier untuk test -->
+  <script src="voice-notifier.js"></script>
+
+  <!-- [BARU] Firebase SDK untuk Settings -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="firebase-storage.js"></script>
+  <script src="custom-ui.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // --- Elemen UI ---
+      const testBrowserPrintBtn = document.getElementById('test-browser-print-btn');
+      const activeOutletsListDiv = document.getElementById('active-outlets-list');
+
+      const saveSettingsBtn = document.getElementById('save-settings-btn');
+      const outletListDiv = document.getElementById('outlet-list');
+      const newOutletInput = document.getElementById('new-outlet-name');
+      const addOutletBtn = document.getElementById('add-outlet-btn');
+      const autoPrintQrisToggle = document.getElementById('auto-print-qris');
+      
+      const userListDiv = document.getElementById('user-list');
+      const newUserUsernameInput = document.getElementById('new-user-username');
+      const newUserPasswordInput = document.getElementById('new-user-password');
+      const newUserRoleSelect = document.getElementById('new-user-role');
+      const newUserOutletSelect = document.getElementById('new-user-outlet');
+      const userOutletContainer = document.getElementById('user-outlet-container');
+      const addUserBtn = document.getElementById('add-user-btn');
+
+      const autoPrintAllToggle = document.getElementById('auto-print-all');
+      const soundNotificationNewOrderToggle = document.getElementById('sound-notification-new-order');
+      const voiceNotificationNewOrderToggle = document.getElementById('voice-notification-new-order');
+      const testSoundNotificationBtn = document.getElementById('test-sound-notification-btn');
+      const testVoiceNotificationBtn = document.getElementById('test-voice-notification-btn');
+
+      // [BARU] Elemen Quick Memo
+      const quickMemoListDiv = document.getElementById('quick-memo-list');
+      const newMemoInput = document.getElementById('new-memo-input');
+      const addMemoBtn = document.getElementById('add-memo-btn');
+
+      // [BARU] Elemen Payment Methods
+      const paymentMethodsListDiv = document.getElementById('payment-methods-list');
+      const newPmNameInput = document.getElementById('new-pm-name');
+      const newPmTypeSelect = document.getElementById('new-pm-type');
+      const addPmBtn = document.getElementById('add-pm-btn');
+      const pmOutletSelect = document.getElementById('pm-outlet-select'); // [BARU]
+      const memoOutletSelect = document.getElementById('memo-outlet-select'); // [BARU]
+
+
+      // --- Kunci LocalStorage ---
+      const RBM_PRINTER_CONFIG = 'rbm_printer_config';
+      const RBM_PRINTER_GROUPS = 'rbm_printer_groups';
+      const RBM_OUTLETS = 'rbm_outlets';
+      const RBM_SETTINGS = 'rbm_settings';
+      const RBM_ACTIVE_OUTLETS = 'rbm_active_outlets'; // [BARU] Kunci untuk outlet aktif
+      const RBM_USERS = 'rbm_users'; // [BARU] Kunci untuk pengguna
+      const RBM_QUICK_MEMOS = 'rbm_quick_memos'; // [BARU] Kunci untuk Quick Memo
+      const RBM_PAYMENT_METHODS = 'rbm_payment_methods'; // [BARU] Kunci Metode Pembayaran
+
+      // [BARU] Inisialisasi Firebase
+      // [DIUBAH] Gunakan initRbmDB dari custom-ui.js
+      const db = initRbmDB();
+
+      // [BARU] Cek Mode Offline untuk menyembunyikan fitur multi-outlet
+      function checkOfflineMode() {
+          if (isRbmOfflineMode()) {
+              // Sembunyikan Manajemen Outlet
+              // [DIUBAH] Tampilkan kembali agar bisa ganti nama outlet
+              // const outletSection = document.getElementById('outlet-list').closest('section');
+              // if (outletSection) outletSection.style.display = 'none';
+              
+              // Sembunyikan Pilihan Outlet Aktif
+              const activeOutletSection = document.getElementById('active-outlets-list').closest('section');
+              if (activeOutletSection) activeOutletSection.style.display = 'none';
+
+              // Sembunyikan Pilihan Outlet di Payment & Memo
+              if(document.getElementById('pm-outlet-select')) document.getElementById('pm-outlet-select').closest('.form-group').style.display = 'none';
+              if(document.getElementById('memo-outlet-select')) document.getElementById('memo-outlet-select').closest('.form-group').style.display = 'none';
+          }
+      }
+
+
+      // --- Fungsi ---
+      function loadSettings() {
+        renderOutlets();
+        renderActiveOutletsSelection(); // [BARU]
+        renderConfigOutletSelectors(); // [BARU] Render selector outlet untuk config
+        renderUsers(); // [BARU]
+        renderQuickMemos(); // [BARU]
+        renderPaymentMethods(); // [BARU]
+        updateAddUserFormState(); // [BARU] Sesuaikan form tambah user berdasarkan role
+        updateOutletUI(); // [BARU] Sembunyikan manajemen outlet jika bukan owner
+        updateConfigPermissions(); // [BARU] Sembunyikan input config jika bukan owner/manager
+        // [BARU] Pengaturan Jadwal & Absensi hanya untuk Owner; Manager/Staff tidak bisa mengubah
+        const sectionJadwal = document.getElementById('section-jadwal-absensi');
+        if (sectionJadwal) {
+          const u = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+          sectionJadwal.style.display = (u.role === 'owner') ? 'block' : 'none';
+        }
+        renderCounterSettings(); // [BARU] Render pengaturan counter
+        checkOfflineMode(); // [BARU] Cek mode offline
+        renderPrinterGroups(); // [BARU] Kelompok printer by IP + dropdown kasir & checker
+
+        // General Settings
+        const settings = JSON.parse(localStorage.getItem(RBM_SETTINGS) || '{}');
+        autoPrintAllToggle.checked = settings.autoPrintAll !== false; // Default true (cetak semua pesanan baru)
+        autoPrintQrisToggle.checked = settings.autoPrintQris !== false; // Default true
+        
+        // Sound & Voice Settings
+        soundNotificationNewOrderToggle.checked = settings.soundNotificationNewOrder !== false; // Default true
+        voiceNotificationNewOrderToggle.checked = settings.voiceNotificationNewOrder !== false; // Default true
+      }
+
+      function saveGeneralSettings() {
+        // Simpan pengaturan umum
+        const settings = JSON.parse(localStorage.getItem(RBM_SETTINGS) || '{}');
+        if (autoPrintAllToggle) {
+          settings.autoPrintAll = autoPrintAllToggle.checked;
+        }
+        if (autoPrintQrisToggle) {
+          settings.autoPrintQris = autoPrintQrisToggle.checked;
+        }
+        if (soundNotificationNewOrderToggle) {
+          settings.soundNotificationNewOrder = soundNotificationNewOrderToggle.checked;
+        }
+        if (voiceNotificationNewOrderToggle) {
+          settings.voiceNotificationNewOrder = voiceNotificationNewOrderToggle.checked;
+        }
+        localStorage.setItem(RBM_SETTINGS, JSON.stringify(settings));
+
+        // [BARU] Simpan outlet yang aktif
+        const activeOutlets = [];
+        const checkboxes = activeOutletsListDiv.querySelectorAll('input[type="checkbox"]:checked');
+        checkboxes.forEach(cb => {
+          activeOutlets.push(cb.dataset.outlet);
+        });
+        localStorage.setItem(RBM_ACTIVE_OUTLETS, JSON.stringify(activeOutlets));
+      }
+
+      // [BARU] Kelompok Printer by IP — printer kasir + printer checker (per menu di Kelola Menu)
+      function getPrinterGroups() {
+        const raw = localStorage.getItem(RBM_PRINTER_GROUPS);
+        if (!raw) return { printers: [], printerKasir: '', printerChecker: '' };
+        try {
+          const o = JSON.parse(raw);
+          return {
+            printers: o.printers || [],
+            printerKasir: o.printerKasir || '',
+            printerChecker: o.printerChecker || ''
+          };
+        } catch (e) { return { printers: [], printerKasir: '', printerChecker: '' }; }
+      }
+      function savePrinterGroups(data) {
+        localStorage.setItem(RBM_PRINTER_GROUPS, JSON.stringify(data));
+      }
+      function renderPrinterGroups() {
+        const listEl = document.getElementById('printer-groups-list');
+        const addName = document.getElementById('new-printer-name');
+        const addIp = document.getElementById('new-printer-ip');
+        if (!listEl) return;
+        const { printers } = getPrinterGroups();
+        if (printers.length === 0) {
+          listEl.innerHTML = '<p style="font-size: 13px; color: #6b7280;">Belum ada printer. Tambah printer dengan nama dan IP WiFi.</p>';
+        } else {
+          listEl.innerHTML = printers.map((p, i) => `
+            <div class="form-group" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid #f3f4f6;">
+              <span style="font-weight: 600; min-width: 100px;">${(p.name || p.id || '').replace(/</g, '&lt;')}</span>
+              <span style="font-family: monospace; color: #4b5563;">${(p.ip || '').replace(/</g, '&lt;')}</span>
+              <button type="button" class="btn btn-secondary btn-delete-printer-group" data-index="${i}" style="padding: 4px 10px; font-size: 12px;">Hapus</button>
+            </div>
+          `).join('');
+        }
+        if (addName) addName.value = '';
+        if (addIp) addIp.value = '';
+        renderPrinterKasirSelect();
+        renderPrinterCheckerSelect();
+      }
+      function renderPrinterKasirSelect() {
+        const sel = document.getElementById('printer-kasir-select');
+        if (!sel) return;
+        const { printers, printerKasir } = getPrinterGroups();
+        sel.innerHTML = '<option value="">-- Pilih printer kasir --</option>' +
+          printers.map(p => {
+            const id = p.id || p.name || '';
+            return '<option value="' + id.replace(/"/g, '&quot;') + '"' + (printerKasir === id ? ' selected' : '') + '>' + (p.name || p.id || '') + ' (' + (p.ip || '') + ')</option>';
+          }).join('');
+      }
+      function renderPrinterCheckerSelect() {
+        const sel = document.getElementById('printer-checker-select');
+        if (!sel) return;
+        const { printers, printerChecker } = getPrinterGroups();
+        sel.innerHTML = '<option value="">-- Pilih printer checker --</option>' +
+          printers.map(p => {
+            const id = p.id || p.name || '';
+            return '<option value="' + id.replace(/"/g, '&quot;') + '"' + (printerChecker === id ? ' selected' : '') + '>' + (p.name || p.id || '') + ' (' + (p.ip || '') + ')</option>';
+          }).join('');
+      }
+      async function renderCounterSettings() {
+        const currentUser = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+        const container = document.getElementById('order-counter-settings');
+        
+        // Hanya Owner yang bisa akses
+        if (currentUser.role !== 'owner') {
+            container.style.display = 'none';
+            return;
+        }
+        container.style.display = 'block';
+        
+        const outlets = getOutlets();
+        const listDiv = document.getElementById('counter-list');
+        listDiv.innerHTML = '<p class="muted">Memuat data counter...</p>';
+        
+        try {
+            const snap = await db.ref('counters').once('value');
+            const counters = snap.val() || {};
+            
+            const snapPrefix = await db.ref('prefixes').once('value');
+            const prefixes = snapPrefix.val() || {};
+            
+            listDiv.innerHTML = '';
+            outlets.forEach(outlet => {
+                const currentVal = counters[outlet] || 0;
+                const currentPrefix = prefixes[outlet] || 'ORD';
+
+                const div = document.createElement('div');
+                div.className = 'setting-item';
+                div.innerHTML = `
+                    <div style="flex: 1;">
+                        <strong style="text-transform: capitalize;">${outlet}</strong>
+                        <p style="font-size: 12px; color: #6b7280;">Prefix: ${currentPrefix} | Counter: ${currentVal}</p>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <div style="display:flex; flex-direction:column; gap:2px;">
+                            <input type="text" id="prefix-${outlet}" class="form-input" style="width: 80px; text-transform: uppercase;" value="${currentPrefix}" placeholder="ORD">
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:2px;">
+                            <input type="number" id="counter-${outlet}" class="form-input" style="width: 80px;" value="${currentVal}" min="0">
+                        </div>
+                        <button class="btn btn-secondary" onclick="updateOutletSettings('${outlet}')">Simpan</button>
+                    </div>
+                `;
+                listDiv.appendChild(div);
+            });
+        } catch (e) {
+            listDiv.innerHTML = `<p style="color:red;">Gagal memuat counter: ${e.message}</p>`;
+        }
+      }
+
+      // [BARU] Fungsi Update Outlet Settings (Global Scope agar bisa dipanggil onclick)
+      window.updateOutletSettings = async function(outlet) {
+        const input = document.getElementById(`counter-${outlet}`);
+        const prefixInput = document.getElementById(`prefix-${outlet}`);
+        const newVal = parseInt(input.value);
+        const newPrefix = prefixInput.value.trim().toUpperCase();
+
+        if (!newPrefix) {
+            CustomUI.alert('Prefix tidak boleh kosong.', 'Validasi');
+            return;
+        }
+
+        if (!isNaN(newVal)) {
+            if(await CustomUI.confirm(`Update pengaturan untuk ${outlet}?\nPrefix: ${newPrefix}\nCounter: ${newVal} (Next: ${newVal + 1})`)) {
+                const updates = { [`counters/${outlet}`]: newVal, [`prefixes/${outlet}`]: newPrefix };
+                db.ref().update(updates)
+                    .then(() => {
+                        CustomUI.success(`Counter berhasil diupdate.`);
+                        renderCounterSettings(); // Refresh tampilan
+                    })
+                    .catch(e => CustomUI.error(e.message));
+            }
+        } else {
+            CustomUI.alert('Masukkan angka yang valid.');
+        }
+      };
+
+      // [BARU] Fungsi untuk menampilkan pilihan outlet yang bisa diaktifkan
+      function renderActiveOutletsSelection() {
+        const allOutlets = getOutlets();
+        const activeOutlets = JSON.parse(localStorage.getItem(RBM_ACTIVE_OUTLETS) || '[]');
+        activeOutletsListDiv.innerHTML = '';
+
+        if (allOutlets.length === 0) {
+          activeOutletsListDiv.innerHTML = '<p class="muted">Tidak ada outlet. Silakan tambah di "Manajemen Outlet".</p>';
+          return;
+        }
+
+        allOutlets.forEach(outlet => {
+          // [BARU] Skip jika manager dan bukan outletnya
+          const user = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+          if (user.role === 'manager' && user.outlet && outlet !== user.outlet) {
+              return;
+          }
+
+
+          const isChecked = activeOutlets.includes(outlet);
+          const settingItem = document.createElement('div');
+          settingItem.className = 'setting-item';
+          settingItem.innerHTML = `
+            <strong style="text-transform: capitalize;">${outlet}</strong>
+            <label class="toggle-switch">
+              <input type="checkbox" data-outlet="${outlet}" ${isChecked ? 'checked' : ''}>
+              <span class="slider"></span>
+            </label>
+          `;
+          activeOutletsListDiv.appendChild(settingItem);
+        });
+      }
+
+      // [BARU] Fungsi untuk render dropdown outlet di bagian konfigurasi (Payment & Memo)
+      function renderConfigOutletSelectors() {
+        const outlets = getOutlets();
+        const currentUser = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+        
+        const populate = (selectElement) => {
+            if (!selectElement) return;
+            selectElement.innerHTML = '';
+            
+            if (outlets.length === 0) {
+                const opt = document.createElement('option');
+                opt.text = "Belum ada outlet";
+                selectElement.appendChild(opt);
+                return;
+            }
+
+            outlets.forEach(outlet => {
+                // Filter jika manager
+                if (currentUser.role === 'manager' && currentUser.outlet && currentUser.outlet !== outlet) return;
+                
+                const opt = document.createElement('option');
+                opt.value = outlet;
+                opt.textContent = outlet;
+                selectElement.appendChild(opt);
+            });
+        };
+
+        populate(pmOutletSelect);
+        populate(memoOutletSelect);
+      }
+
+      function handleSettingChange() {
+        // Fungsi ini dipanggil setiap kali ada toggle yang diubah
+        saveGeneralSettings();
+        // Hapus alert agar tidak muncul setiap kali toggle diubah
+        console.log('Pengaturan disimpan otomatis.');
+      }
+
+
+      function getOutlets() {
+        const stored = localStorage.getItem(RBM_OUTLETS);
+        // Jika kosong, berikan nilai default
+        return stored ? JSON.parse(stored) : ['sidoarjo', 'surabaya'];
+      }
+
+      function saveOutlets(outlets) {
+        localStorage.setItem(RBM_OUTLETS, JSON.stringify(outlets));
+        renderOutlets();
+        renderUserOutletOptions(); // Update pilihan outlet di form user
+      }
+
+      function renderOutlets() {
+        const currentUser = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+        const outlets = getOutlets();
+        outletListDiv.innerHTML = '';
+        if (outlets.length === 0) {
+          outletListDiv.innerHTML = '<p class="muted" style="text-align: center;">Belum ada outlet.</p>';
+          return;
+        }
+        outlets.forEach(outlet => {
+          const item = document.createElement('div');
+          item.className = 'outlet-list-item';
+          
+          const deleteBtn = currentUser.role === 'owner' ? `<button data-outlet="${outlet}" class="btn-delete" style="background:none; border:none; color:red; cursor:pointer; font-size: 16px;">✕</button>` : '';
+          
+          item.innerHTML = `
+            <span>${outlet}</span>
+            ${deleteBtn}
+          `;
+          outletListDiv.appendChild(item);
+        });
+      }
+
+      // [BARU] Fungsi untuk mengatur tampilan manajemen outlet berdasarkan role
+      function updateOutletUI() {
+        const currentUser = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+        const addOutletContainer = document.getElementById('add-outlet-container');
+        if (addOutletContainer) {
+            // Hanya Owner yang bisa melihat form tambah outlet
+            addOutletContainer.style.display = currentUser.role === 'owner' ? 'block' : 'none';
+        }
+      }
+
+      // --- [BARU] Fungsi Manajemen Pengguna ---
+      function getUsers() {
+        let users = [];
+        const stored = localStorage.getItem(RBM_USERS);
+        if (stored) {
+            users = JSON.parse(stored);
+        }
+
+        return users;
+      }
+
+      function saveUsers(users) {
+        localStorage.setItem(RBM_USERS, JSON.stringify(users));
+        renderUsers();
+      }
+
+      function renderUsers() {
+        const currentUser = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+        const currentRole = currentUser.role || 'staff';
+        const currentOutlet = currentUser.outlet;
+        
+        const users = getUsers();
+        userListDiv.innerHTML = '';
+        
+        const addUserContainer = document.getElementById('add-user-form-container');
+
+        // 1. Staff tidak bisa melihat manajemen pengguna
+        if (currentRole === 'staff') {
+            userListDiv.innerHTML = '<p class="muted">Akses ditolak. Anda tidak memiliki izin untuk mengelola pengguna.</p>';
+            if(addUserContainer) addUserContainer.style.display = 'none';
+            return;
+        }
+        if(addUserContainer) addUserContainer.style.display = 'block';
+
+        // 2. Filter user berdasarkan role yang login
+        const visibleUsers = users.filter(u => {
+            if (currentRole === 'owner') return true; // Owner lihat semua
+            if (currentRole === 'manager') {
+                // Manager hanya lihat Staff di outlet yang sama
+                return u.role === 'staff' && u.outlet === currentOutlet;
+            }
+            return false;
+        });
+
+        if (visibleUsers.length === 0) {
+          userListDiv.innerHTML = '<p class="muted">Tidak ada pengguna yang dapat ditampilkan.</p>';
+          return;
+        }
+
+        visibleUsers.forEach((user) => {
+          const item = document.createElement('div');
+          item.className = 'outlet-list-item';
+          
+          let roleBadge = '';
+          let outletInfo = '';
+          
+          if (user.role === 'owner') {
+            roleBadge = '<span style="background:#4C2A85; color:white; padding:2px 6px; border-radius:4px; font-size:10px;">OWNER</span>';
+            outletInfo = 'Semua Lokasi';
+          } else if (user.role === 'manager') {
+            roleBadge = '<span style="background:#2563eb; color:white; padding:2px 6px; border-radius:4px; font-size:10px;">MANAGER</span>';
+            outletInfo = `Lokasi: ${user.outlet}`;
+          } else {
+            roleBadge = '<span style="background:#059669; color:white; padding:2px 6px; border-radius:4px; font-size:10px;">STAFF</span>';
+            outletInfo = 'Akses Terbatas';
+          }
+
+          item.innerHTML = `
+            <div>
+              <div style="font-weight:600;">${user.username} ${roleBadge}</div>
+              <div style="font-size: 12px; color: #6b7280;">Pass: ${user.password} • ${outletInfo}</div>
+            </div>
+            <button data-username="${user.username}" class="btn-delete-user" style="background:none; border:none; color:red; cursor:pointer; font-size: 16px;">✕</button>
+          `;
+          userListDiv.appendChild(item);
+        });
+      }
+
+      function updateAddUserFormState() {
+        const currentUser = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+        const roleSelect = document.getElementById('new-user-role');
+        const outletContainer = document.getElementById('user-outlet-container');
+        
+        if (!roleSelect) return;
+
+        roleSelect.innerHTML = '';
+        
+        if (currentUser.role === 'owner') {
+            roleSelect.innerHTML = `
+                <option value="owner">Owner (Semua Lokasi)</option>
+                <option value="manager">Manager (Satu Lokasi)</option>
+                <option value="staff">Staff (Terbatas)</option>
+            `;
+        } else if (currentUser.role === 'manager') {
+            roleSelect.innerHTML = `
+                <option value="staff">Staff (Terbatas)</option>
+            `;
+            // Manager selalu menambahkan staff ke outletnya sendiri
+            if(outletContainer) outletContainer.style.display = 'none';
+        }
+      }
+
+      function renderUserOutletOptions() {
+        const outlets = getOutlets();
+        newUserOutletSelect.innerHTML = '';
+        outlets.forEach(outlet => {
+            const opt = document.createElement('option');
+            opt.value = outlet;
+            opt.textContent = outlet;
+            newUserOutletSelect.appendChild(opt);
+        });
+      }
+
+      // Event listener untuk toggle dropdown outlet berdasarkan role
+      if (newUserRoleSelect) {
+        newUserRoleSelect.addEventListener('change', () => {
+            const currentUser = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+            // Jika Owner menambah Manager ATAU Owner menambah Staff -> Tampilkan pilihan outlet
+            if (newUserRoleSelect.value === 'manager' || (newUserRoleSelect.value === 'staff' && currentUser.role === 'owner')) {
+                userOutletContainer.style.display = 'block';
+                renderUserOutletOptions();
+            } else {
+                userOutletContainer.style.display = 'none';
+            }
+        });
+      }
+
+      // [BARU] Fungsi untuk mengatur hak akses konfigurasi (Payment & Memo)
+      function updateConfigPermissions() {
+          const currentUser = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+          const canEdit = ['owner', 'manager'].includes(currentUser.role);
+          
+          const pmInput = document.getElementById('pm-input-container');
+          const memoInput = document.getElementById('memo-input-container');
+          
+          if (pmInput) pmInput.style.display = canEdit ? 'block' : 'none';
+          if (memoInput) memoInput.style.display = canEdit ? 'block' : 'none';
+      }
+
+      // --- [BARU] Fungsi Manajemen Quick Memo ---
+      // Diupdate untuk mendukung per-outlet
+      function getQuickMemos() {
+        const selectedOutlet = memoOutletSelect ? memoOutletSelect.value : null;
+        const defaultMemos = ['Pedas', 'Tidak Pedas', 'Sedang', 'Tanpa Sayur', 'Bungkus Pisah', 'Tanpa Es', 'Sedikit Es', 'Jangan Gosong', 'Tambah Sambal', 'Kering'];
+        
+        if (!selectedOutlet) return defaultMemos;
+
+        const stored = localStorage.getItem(RBM_QUICK_MEMOS);
+        if (!stored) return defaultMemos;
+
+        try {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed)) return parsed; // Legacy format (global)
+            return parsed[selectedOutlet] || defaultMemos;
+        } catch (e) {
+            return defaultMemos;
+        }
+      }
+
+      function saveQuickMemos(memos) {
+        const selectedOutlet = memoOutletSelect ? memoOutletSelect.value : null;
+        if (!selectedOutlet) return;
+
+        let data = JSON.parse(localStorage.getItem(RBM_QUICK_MEMOS) || '{}');
+        if (Array.isArray(data)) data = {}; // Reset legacy format to object
+        
+        data[selectedOutlet] = memos;
+        localStorage.setItem(RBM_QUICK_MEMOS, JSON.stringify(data));
+        renderQuickMemos();
+      }
+
+      function renderQuickMemos() {
+        const memos = getQuickMemos();
+        const currentUser = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+        const canEdit = ['owner', 'manager'].includes(currentUser.role);
+
+        quickMemoListDiv.innerHTML = '';
+        memos.forEach(memo => {
+            const tag = document.createElement('div');
+            tag.style.cssText = 'background: #f3f4f6; padding: 6px 12px; border-radius: 20px; font-size: 13px; display: flex; align-items: center; gap: 6px; border: 1px solid #e5e7eb;';
+            const deleteBtn = canEdit ? `<span class="delete-memo" data-memo="${memo}" style="cursor: pointer; color: #ef4444; font-weight: bold; margin-left: 4px;">&times;</span>` : '';
+            tag.innerHTML = `
+                <span>${memo}</span>
+                ${deleteBtn}
+            `;
+            quickMemoListDiv.appendChild(tag);
+        });
+      }
+
+      if (addMemoBtn) {
+          addMemoBtn.addEventListener('click', async () => {
+              const val = newMemoInput.value.trim();
+              if (val) {
+                  const memos = getQuickMemos();
+                  if (!memos.includes(val)) {
+                      memos.push(val);
+                      saveQuickMemos(memos);
+                      newMemoInput.value = '';
+                  } else {
+                      CustomUI.alert('Memo tersebut sudah ada dalam daftar.');
+                  }
+              }
+          });
+      }
+
+      if (quickMemoListDiv) {
+          quickMemoListDiv.addEventListener('click', async (e) => {
+              if (e.target.classList.contains('delete-memo')) {
+                  const memoToDelete = e.target.dataset.memo;
+                  if (await CustomUI.confirm(`Hapus memo "${memoToDelete}"?`, 'Hapus Memo', true)) {
+                      const memos = getQuickMemos().filter(m => m !== memoToDelete);
+                      saveQuickMemos(memos);
+                  }
+              }
+          });
+      }
+
+      // --- [BARU] Fungsi Manajemen Metode Pembayaran ---
+      // Diupdate untuk mendukung per-outlet
+      function getPaymentMethods() {
+          const selectedOutlet = pmOutletSelect ? pmOutletSelect.value : null;
+
+          // Default methods jika belum ada setting
+          const defaultMethods = [
+              { name: 'Cash', type: 'Cash' },
+              { name: 'QRIS', type: 'QRIS' },
+              { name: 'Transfer', type: 'Transfer' },
+              { name: 'Debit', type: 'Card' }
+          ];
+          
+          if (!selectedOutlet) return defaultMethods;
+
+          const stored = localStorage.getItem(RBM_PAYMENT_METHODS);
+          if (!stored) return defaultMethods;
+
+          try {
+              const parsed = JSON.parse(stored);
+              if (Array.isArray(parsed)) return parsed; // Legacy format
+              return parsed[selectedOutlet] || defaultMethods;
+          } catch (e) {
+              return defaultMethods;
+          }
+      }
+
+      function savePaymentMethods(methods) {
+          const selectedOutlet = pmOutletSelect ? pmOutletSelect.value : null;
+          if (!selectedOutlet) return;
+
+          let data = JSON.parse(localStorage.getItem(RBM_PAYMENT_METHODS) || '{}');
+          if (Array.isArray(data)) data = {}; // Reset legacy format
+
+          data[selectedOutlet] = methods;
+
+          localStorage.setItem(RBM_PAYMENT_METHODS, JSON.stringify(data));
+          // Simpan juga ke Firebase agar bisa diakses device lain
+          db.ref('payment_methods').set(data);
+          renderPaymentMethods();
+      }
+
+      function renderPaymentMethods() {
+          const methods = getPaymentMethods();
+          const currentUser = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+          const canEdit = ['owner', 'manager'].includes(currentUser.role);
+
+          paymentMethodsListDiv.innerHTML = '';
+          methods.forEach((pm, index) => {
+              const div = document.createElement('div');
+              div.className = 'outlet-list-item'; // Reuse style
+              const deleteBtn = canEdit ? `<button class="btn-delete-pm" data-index="${index}" style="background:none; border:none; color:red; cursor:pointer; font-size: 16px;">✕</button>` : '';
+              div.innerHTML = `
+                  <div>
+                      <strong>${pm.name}</strong>
+                      <span style="font-size:11px; background:#eef2ff; color:#4C2A85; padding:2px 6px; border-radius:4px; margin-left:8px;">${pm.type}</span>
+                  </div>
+                  ${deleteBtn}
+              `;
+              paymentMethodsListDiv.appendChild(div);
+          });
+      }
+
+      if (addPmBtn) {
+          addPmBtn.addEventListener('click', async () => {
+              const name = newPmNameInput.value.trim();
+              const type = newPmTypeSelect.value;
+              if (name) {
+                  const methods = getPaymentMethods();
+                  methods.push({ name, type });
+                  savePaymentMethods(methods);
+                  newPmNameInput.value = '';
+                  CustomUI.success('Metode pembayaran ditambahkan.');
+              } else {
+                  CustomUI.alert('Nama metode tidak boleh kosong.');
+              }
+          });
+      }
+
+      // Event listener untuk perubahan dropdown outlet (Payment & Memo)
+      if (pmOutletSelect) {
+          pmOutletSelect.addEventListener('change', renderPaymentMethods);
+      }
+      if (memoOutletSelect) {
+          memoOutletSelect.addEventListener('change', renderQuickMemos);
+      }
+
+      // --- Event Listeners ---
+      // [DIUBAH] Tombol simpan sekarang juga memberikan notifikasi
+      saveSettingsBtn.addEventListener('click', () => {
+        saveGeneralSettings();
+        CustomUI.success('Pengaturan berhasil disimpan!');
+      });
+      
+
+      // [DIUBAH] Setiap perubahan pada toggle akan langsung menyimpan pengaturan
+      if (autoPrintAllToggle) {
+        autoPrintAllToggle.addEventListener('change', handleSettingChange);
+      }
+      if (autoPrintQrisToggle) {
+        autoPrintQrisToggle.addEventListener('change', handleSettingChange);
+      }
+      if (soundNotificationNewOrderToggle) {
+        soundNotificationNewOrderToggle.addEventListener('change', handleSettingChange);
+      }
+      if (voiceNotificationNewOrderToggle) {
+        voiceNotificationNewOrderToggle.addEventListener('change', handleSettingChange);
+      }
+
+      addOutletBtn.addEventListener('click', async () => {
+        const currentUser = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+        if (currentUser.role !== 'owner') {
+            CustomUI.alert('Hanya Owner yang dapat menambah outlet.');
+            return;
+        }
+
+        const newOutlet = newOutletInput.value.trim().toLowerCase().replace(/\s+/g, '-');
+        if (newOutlet) {
+          const outlets = getOutlets();
+          if (!outlets.includes(newOutlet)) {
+            outlets.push(newOutlet);
+            saveOutlets(outlets);
+            renderActiveOutletsSelection(); // [BARU] Perbarui daftar pilihan outlet aktif
+            newOutletInput.value = '';
+          } else {
+            CustomUI.alert('Nama outlet sudah ada.');
+          }
+        }
+      });
+
+      // [BARU] Listener Tambah User
+      if (addUserBtn) {
+        addUserBtn.addEventListener('click', async () => {
+            const currentUser = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+            const username = newUserUsernameInput.value.trim();
+            const password = newUserPasswordInput.value.trim();
+            const role = newUserRoleSelect.value;
+            
+            let outlet = 'none';
+            if (currentUser.role === 'manager') {
+                // Manager otomatis menambahkan ke outletnya sendiri
+                outlet = currentUser.outlet;
+            } else {
+                // Owner logic
+                if (role === 'owner') outlet = 'all';
+                else outlet = newUserOutletSelect.value; // Manager atau Staff (jika ditambah owner) butuh outlet
+            }
+
+            if (!username || !password) {
+                CustomUI.alert('Username dan Password harus diisi.');
+                return;
+            }
+
+            const users = getUsers();
+            users.push({ username, password, role, outlet });
+            saveUsers(users);
+            
+            newUserUsernameInput.value = '';
+            newUserPasswordInput.value = '';
+            CustomUI.success('Pengguna berhasil ditambahkan.');
+        });
+      }
+
+      // [DIUBAH] Gabungkan event listener untuk printer dan outlet
+      document.body.addEventListener('click', async (e) => {
+        if (e.target.id === 'test-browser-print-btn') {
+            // Test Print Browser Sederhana
+            const testHtml = `
+                <div style="font-family: monospace; text-align: center; width: 300px; margin: 0 auto;">
+                    <h3>TEST PRINT</h3>
+                    <p>Browser Print OK</p>
+                    <hr>
+                    <p>${new Date().toLocaleString()}</p>
+                </div>`;
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+            iframe.contentWindow.document.write(testHtml);
+            iframe.contentWindow.document.close();
+            setTimeout(() => { iframe.contentWindow.print(); iframe.remove(); }, 500);
+        } else if (e.target.classList.contains('btn-delete')) {
+          const outletToDelete = e.target.dataset.outlet;
+
+          if (outletToDelete) {
+            const currentUser = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+            if (currentUser.role !== 'owner') {
+                CustomUI.alert('Hanya Owner yang dapat menghapus outlet.');
+                return;
+            }
+
+            if (await CustomUI.confirm(`Anda yakin ingin menghapus outlet "${outletToDelete}"?`, 'Hapus Outlet', true)) {
+              let outlets = getOutlets();
+              outlets = outlets.filter(o => o !== outletToDelete);
+              saveOutlets(outlets);
+            }
+          }
+        } else if (e.target.classList.contains('btn-delete-user')) {
+            // [BARU] Hapus User
+            const usernameToDelete = e.target.dataset.username;
+            if (await CustomUI.confirm('Hapus pengguna ini?', 'Hapus User', true)) {
+                const users = getUsers();
+                const newUsers = users.filter(u => u.username !== usernameToDelete);
+                saveUsers(newUsers);
+            }
+        } else if (e.target.classList.contains('btn-delete-pm')) {
+            // [BARU] Hapus Payment Method
+            const idx = e.target.dataset.index;
+            if (await CustomUI.confirm('Hapus metode pembayaran ini?', 'Hapus Metode', true)) {
+                const methods = getPaymentMethods();
+                methods.splice(idx, 1);
+                savePaymentMethods(methods);
+            }
+        } else if (e.target.matches('#active-outlets-list input[type="checkbox"]')) {
+          // [BARU] Jika toggle outlet diubah, simpan otomatis
+          handleSettingChange();
+        } else if (e.target.id === 'add-printer-group-btn') {
+          const nameInput = document.getElementById('new-printer-name');
+          const ipInput = document.getElementById('new-printer-ip');
+          const name = (nameInput && nameInput.value || '').trim().toUpperCase().replace(/\s+/g, '_');
+          const ip = (ipInput && ipInput.value || '').trim();
+          if (!name || !ip) {
+            CustomUI.alert('Nama printer dan IP harus diisi.');
+            return;
+          }
+          const data = getPrinterGroups();
+          if (data.printers.some(p => (p.id || p.name) === name)) {
+            CustomUI.alert('Nama printer sudah ada.');
+            return;
+          }
+          data.printers.push({ id: name, name: name, ip: ip });
+          savePrinterGroups(data);
+          renderPrinterGroups();
+          CustomUI.success('Printer ditambahkan.');
+        } else if (e.target.id === 'save-printer-groups-btn') {
+          const data = getPrinterGroups();
+          const kasirSel = document.getElementById('printer-kasir-select');
+          if (kasirSel) data.printerKasir = (kasirSel.value || '').trim() || '';
+          const checkerSel = document.getElementById('printer-checker-select');
+          if (checkerSel) data.printerChecker = (checkerSel.value || '').trim() || '';
+          savePrinterGroups(data);
+          CustomUI.success('Kelompok printer disimpan.');
+        } else if (e.target.classList.contains('btn-delete-printer-group')) {
+          const idx = parseInt(e.target.dataset.index, 10);
+          if (isNaN(idx)) return;
+          const data = getPrinterGroups();
+          const removedId = (data.printers[idx] && (data.printers[idx].id || data.printers[idx].name)) || null;
+          data.printers.splice(idx, 1);
+          if (removedId) {
+            if (data.printerKasir === removedId) data.printerKasir = '';
+            if (data.printerChecker === removedId) data.printerChecker = '';
+          }
+          savePrinterGroups(data);
+          renderPrinterGroups();
+          CustomUI.success('Printer dihapus.');
+        }
+      });
+
+      // [BARU] Fungsi untuk test sound notification
+      if (testSoundNotificationBtn) {
+        testSoundNotificationBtn.addEventListener('click', () => {
+          try {
+            // Cek apakah VoiceNotifier tersedia
+            if (typeof VoiceNotifier === 'undefined' || !VoiceNotifier.announceNewOrder) {
+              // Fallback: coba putar file audio jika ada
+              const audio = new Audio('notification.mp3');
+              audio.volume = 0.7;
+              
+              // Jika file audio tidak tersedia, gunakan Web Audio API sebagai fallback
+              audio.play().catch(() => {
+                // Fallback: gunakan Web Audio API untuk membuat beep sound
+                playBeepSound();
+              });
+            } else {
+              // Gunakan voice notification dengan nomor meja contoh (Meja 5)
+              const testTableNumber = 5;
+              VoiceNotifier.announceNewOrder(testTableNumber);
+            }
+            
+            // Berikan feedback visual
+            const originalText = testSoundNotificationBtn.textContent;
+            testSoundNotificationBtn.textContent = '🔔 Memutar...';
+            testSoundNotificationBtn.disabled = true;
+            
+            // Reset tombol setelah 3 detik
+            setTimeout(() => {
+              testSoundNotificationBtn.textContent = originalText;
+              testSoundNotificationBtn.disabled = false;
+            }, 3000);
+            
+          } catch (error) {
+            console.error('Error testing sound notification:', error);
+            // Fallback ke beep sound
+            try {
+              playBeepSound();
+            } catch (e) {
+              CustomUI.error('Gagal menguji suara notifikasi. Pastikan browser mendukung audio.\n\nError: ' + (error.message || error));
+            }
+          }
+        });
+      }
+
+      // [BARU] Fungsi helper untuk membuat beep sound menggunakan Web Audio API
+      function playBeepSound() {
+        try {
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          
+          // Beep pertama
+          const oscillator1 = audioContext.createOscillator();
+          const gainNode1 = audioContext.createGain();
+          oscillator1.connect(gainNode1);
+          gainNode1.connect(audioContext.destination);
+          
+          oscillator1.frequency.value = 800; // Frekuensi 800 Hz
+          oscillator1.type = 'sine';
+          
+          const now = audioContext.currentTime;
+          gainNode1.gain.setValueAtTime(0, now);
+          gainNode1.gain.linearRampToValueAtTime(0.3, now + 0.01);
+          gainNode1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+          
+          oscillator1.start(now);
+          oscillator1.stop(now + 0.15);
+          
+          // Beep kedua setelah jeda singkat
+          setTimeout(() => {
+            try {
+              if (audioContext.state !== 'closed') {
+                const oscillator2 = audioContext.createOscillator();
+                const gainNode2 = audioContext.createGain();
+                oscillator2.connect(gainNode2);
+                gainNode2.connect(audioContext.destination);
+                oscillator2.frequency.value = 800;
+                oscillator2.type = 'sine';
+                const now2 = audioContext.currentTime;
+                gainNode2.gain.setValueAtTime(0, now2);
+                gainNode2.gain.linearRampToValueAtTime(0.3, now2 + 0.01);
+                gainNode2.gain.exponentialRampToValueAtTime(0.01, now2 + 0.15);
+                oscillator2.start(now2);
+                oscillator2.stop(now2 + 0.15);
+              }
+            } catch (e) {
+              console.warn('Gagal memutar suara notifikasi kedua:', e);
+            }
+          }, 150);
+        } catch (error) {
+          console.error('Error creating beep sound:', error);
+          throw error;
+        }
+      }
+
+      // [BARU] Fungsi untuk test voice notification
+      if (testVoiceNotificationBtn) {
+        testVoiceNotificationBtn.addEventListener('click', () => {
+          try {
+            // Test dengan nomor meja contoh (Meja 5)
+            const testTableNumber = 5;
+            
+            // Cek apakah VoiceNotifier tersedia
+            if (typeof VoiceNotifier === 'undefined' || !VoiceNotifier.announce) {
+              CustomUI.alert('Voice Notifier tidak tersedia. Pastikan file voice-notifier.js sudah dimuat.');
+              return;
+            }
+            
+            // Test voice notification
+            VoiceNotifier.announce(testTableNumber);
+            
+            // Berikan feedback visual
+            const originalText = testVoiceNotificationBtn.textContent;
+            testVoiceNotificationBtn.textContent = '🔊 Memutar...';
+            testVoiceNotificationBtn.disabled = true;
+            
+            // Reset tombol setelah 3 detik
+            setTimeout(() => {
+              testVoiceNotificationBtn.textContent = originalText;
+              testVoiceNotificationBtn.disabled = false;
+            }, 3000);
+            
+          } catch (error) {
+            console.error('Error testing voice notification:', error);
+            CustomUI.error('Gagal menguji voice notification. Pastikan browser mendukung Text-to-Speech.\n\nError: ' + (error.message || error));
+          }
+        });
+      }
+
+      // --- Inisialisasi ---
+      loadSettings();
+      
+      // [BARU] Load Payment Methods dari Firebase saat inisialisasi untuk sinkronisasi
+      db.ref('payment_methods').once('value').then(snap => {
+          if (snap.exists()) {
+              localStorage.setItem(RBM_PAYMENT_METHODS, JSON.stringify(snap.val()));
+              renderPaymentMethods();
+          }
+      });
+    });
+  </script>
+</body>
+</html>

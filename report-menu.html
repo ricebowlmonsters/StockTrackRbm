@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rincian Menu Terjual - RBM</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    .table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .table th, .table td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+    .table th { background: #f9fafb; font-weight: 600; color: #374151; }
+    .muted { color: #6b7280; }
+    .filter-info { background: #e0f2f1; padding: 10px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; color: #00695c; border: 1px solid #b2dfdb; }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <a href="javascript:history.back()" class="back-btn">‹</a>
+      <h1 class="page-title">Rincian Menu Terjual</h1>
+    </header>
+    <main class="content">
+      <div id="filter-info" class="filter-info">Memuat filter...</div>
+
+      <section class="card">
+        <table class="table" id="menu-sales-table">
+          <thead>
+            <tr>
+              <th>Nama Menu</th>
+              <th>Harga Satuan</th>
+              <th style="text-align: center;">Terjual (Qty)</th>
+              <th>Total (Sebelum PPN)</th>
+              <th>Total (Sesudah PPN)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="5" class="muted">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script>
+    function formatRupiah(n) { return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+    function toStartOfDay(date) { const d = new Date(date); d.setHours(0,0,0,0); return d.getTime(); }
+    function toEndOfDay(date) { const d = new Date(date); d.setHours(23,59,59,999); return d.getTime(); }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Ambil Parameter dari URL
+      const params = new URLSearchParams(window.location.search);
+      const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+      const todayStr = iso(new Date());
+      const outlet = params.get('outlet') || 'sidoarjo';
+      const dateFrom = params.get('dateFrom') || todayStr;
+      const dateTo = params.get('dateTo') || todayStr;
+
+      document.getElementById('filter-info').innerHTML = `
+        <strong>Outlet:</strong> ${outlet.toUpperCase()} &nbsp;|&nbsp; 
+        <strong>Tanggal:</strong> ${dateFrom} s/d ${dateTo}
+      `;
+
+      const menuSalesTbody = document.querySelector('#menu-sales-table tbody');
+
+      // Setup Firebase
+      const firebaseConfig = {
+        apiKey: "AIzaSyDWQG53tP2zKILTwPSJQpiVzFNyvYLxLqw",
+        authDomain: "ricebowlmonst.firebaseapp.com",
+        databaseURL: "https://ricebowlmonst-default-rtdb.firebaseio.com",
+        projectId: "ricebowlmonst",
+        storageBucket: "ricebowlmonst.firebasestorage.app",
+        messagingSenderId: "723669558962",
+        appId: "1:723669558962:web:c17a1a4683a86cc5a88bab",
+        measurementId: "G-1G3JF6ZFRP"
+      };
+      if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+
+      // Fungsi Load Data
+      async function loadData() {
+        const start = toStartOfDay(dateFrom);
+        const end = toEndOfDay(dateTo);
+
+        menuSalesTbody.innerHTML = '<tr><td colspan="5" class="muted">Memuat data...</td></tr>';
+
+        try {
+            const snap = await db.ref('orders/' + outlet).orderByChild('date').startAt(start).endAt(end).once('value');
+            const val = snap.val() || {};
+            // [DIUBAH] Filter hanya pesanan yang sudah dibayar/diproses
+            const validStatuses = ['Sudah Dibayar', 'Diproses', 'Siap Diambil', 'Selesai'];
+            const orders = Object.values(val).filter(o => validStatuses.includes(o.status));
+
+            const menuStats = {};
+            const parseNumber = (v) => {
+                if (typeof v === 'number') return v;
+                if (!v) return 0;
+                let str = String(v).replace(/[^0-9,-]/g, '').replace(',', '.');
+                return parseFloat(str) || 0;
+            };
+
+            orders.forEach(o => {
+                const items = o.items ? (Array.isArray(o.items) ? o.items : Object.values(o.items)) : [];
+                const grandTotal = parseNumber(o.payment?.total);
+                
+                // Hitung total item sales untuk order ini
+                let currentOrderItemSales = 0;
+                items.forEach(i => {
+                    currentOrderItemSales += (parseNumber(i.price) * parseNumber(i.quantity));
+                });
+
+                // Ratio distribusi PPN/Diskon
+                const distributionRatio = currentOrderItemSales > 0 ? (grandTotal / currentOrderItemSales) : 0;
+
+                items.forEach(i => {
+                    const price = parseNumber(i.price);
+                    const qty = parseNumber(i.quantity);
+                    const gross = price * qty;
+                    const net = gross * distributionRatio;
+
+                    const menuName = i.name || 'Unknown';
+                    if (!menuStats[menuName]) menuStats[menuName] = { qty: 0, total: 0, totalAfter: 0 };
+                    menuStats[menuName].qty += qty;
+                    menuStats[menuName].total += gross;
+                    menuStats[menuName].totalAfter += net;
+                });
+            });
+
+            // Render Tabel
+            menuSalesTbody.innerHTML = '';
+            const sortedMenus = Object.keys(menuStats).sort((a, b) => menuStats[b].qty - menuStats[a].qty);
+            
+            let totalMenuQty = 0;
+            let totalMenuSum = 0;
+            let totalMenuSumAfter = 0;
+
+            if (sortedMenus.length === 0) {
+                menuSalesTbody.innerHTML = '<tr><td colspan="5" class="muted">Tidak ada data menu</td></tr>';
+            } else {
+                sortedMenus.forEach(name => {
+                    const data = menuStats[name];
+                    totalMenuQty += data.qty;
+                    totalMenuSum += data.total;
+                    totalMenuSumAfter += data.totalAfter;
+
+                    const unitPrice = data.qty ? (data.total / data.qty) : 0;
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${name}</td>
+                        <td>${formatRupiah(unitPrice)}</td>
+                        <td style="text-align: center;">${data.qty}</td>
+                        <td>${formatRupiah(data.total)}</td>
+                        <td>${formatRupiah(data.totalAfter)}</td>
+                    `;
+                    menuSalesTbody.appendChild(tr);
+                });
+                
+                // Baris Total
+                const trMenuTotal = document.createElement('tr');
+                trMenuTotal.style.cssText = 'font-weight: bold; background-color: #f3f4f6; border-top: 2px solid #e5e7eb;';
+                trMenuTotal.innerHTML = `
+                    <td>TOTAL KESELURUHAN</td>
+                    <td></td>
+                    <td style="text-align: center;">${totalMenuQty}</td>
+                    <td>${formatRupiah(totalMenuSum)}</td>
+                    <td>${formatRupiah(totalMenuSumAfter)}</td>
+                `;
+                menuSalesTbody.appendChild(trMenuTotal);
+            }
+        } catch (error) {
+            console.error(error);
+            menuSalesTbody.innerHTML = `<tr><td colspan="5" style="color:red;">Error: ${error.message}</td></tr>`;
+        }
+      }
+
+      // Muat data pertama kali
+      loadData();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+================================================================================
+  PANDUAN SEDERHANA - SETUP AUTO-PRINT
+================================================================================
+
+Anda bingung? Tidak masalah! Ikuti langkah ini satu per satu.
+
+================================================================================
+  LANGKAH 1: INSTALL NODE.JS
+================================================================================
+
+1. Buka browser, ketik: nodejs.org
+2. Download versi yang ada tulisan "LTS" (warna hijau)
+3. Install seperti biasa (Next, Next, Install)
+4. Setelah selesai, RESTART komputer Anda
+
+Cek apakah berhasil:
+- Tekan Windows + R
+- Ketik: cmd
+- Tekan Enter
+- Ketik: node --version
+- Harus muncul angka seperti: v18.17.0
+- Jika muncul angka = BERHASIL ✅
+- Jika error = coba install ulang Node.js
+
+================================================================================
+  LANGKAH 2: INSTALL DEPENDENCIES
+================================================================================
+
+1. Tekan Windows + E (buka File Explorer)
+2. Masuk ke folder: 
+   C:\Users\RUFINA\Documents\Procejet kasir\wep app kasir
+3. Di address bar (atas), ketik: cmd
+4. Tekan Enter
+5. Command Prompt akan muncul di folder tersebut
+
+6. Ketik ini (copy paste saja):
+   npm install
+
+7. Tunggu sampai selesai (biasanya 1-2 menit)
+8. Jika muncul tulisan "added X packages" = BERHASIL ✅
+
+================================================================================
+  LANGKAH 3: SETTING IP PRINTER
+================================================================================
+
+BAGIAN INI PENTING!
+
+1. Buka file: print-bridge.js
+   (Klik kanan file → Open with → Notepad)
+
+2. Cari bagian yang ada tulisan:
+   'MAKANAN': '192.168.1.100',
+   'MINUMAN': '192.168.1.101',
+   'KASIR': '192.168.1.102',
+
+3. GANTI angka-angka tersebut dengan IP printer Anda
+   Contoh jika IP printer MAKANAN Anda adalah 192.168.0.50:
+   'MAKANAN': '192.168.0.50',
+
+4. Lakukan hal yang sama untuk MINUMAN dan KASIR
+
+5. Simpan file (Ctrl + S)
+
+CARA MENCARI IP PRINTER:
+- Print test page dari printer (biasanya ada tombol di printer)
+- Di test page biasanya ada IP address
+- ATAU tanya teknisi/setup printer
+
+================================================================================
+  LANGKAH 4: JALANKAN PRINT BRIDGE
+================================================================================
+
+CARA MUDAH:
+1. Di folder aplikasi kasir, ada file: start-print-bridge.bat
+2. Double klik file tersebut
+3. Akan muncul window hitam (Command Prompt)
+4. Jika muncul tulisan:
+   "🚀 Print Bridge Server running on http://localhost:3000"
+   = BERHASIL ✅
+
+JANGAN TUTUP WINDOW HITAM INI!
+Biarkan tetap terbuka.
+
+================================================================================
+  LANGKAH 5: TEST
+================================================================================
+
+1. Buka browser (Chrome/Firefox)
+2. Ketik di address bar: http://localhost:3000/printers
+3. Tekan Enter
+4. Harus muncul tulisan seperti:
+   {"printers":{"MAKANAN":"192.168.1.100",...}}
+   = BERHASIL ✅
+
+ATAU:
+1. Buka aplikasi kasir di browser
+2. Masuk ke Settings
+3. Klik tombol "Test" di samping salah satu printer
+4. Jika printer mencetak struk test = BERHASIL ✅
+
+================================================================================
+  SELESAI!
+================================================================================
+
+Sekarang auto-print sudah aktif!
+
+Cara pakai:
+1. Pastikan Print Bridge berjalan (window hitam masih terbuka)
+2. Buka aplikasi kasir
+3. Pesanan baru akan otomatis tercetak tanpa dialog
+
+================================================================================
+  MASALAH? COBA INI:
+================================================================================
+
+Print Bridge tidak jalan?
+→ Pastikan Node.js sudah terinstall (Langkah 1)
+→ Pastikan sudah npm install (Langkah 2)
+→ Coba restart komputer
+
+Printer tidak cetak?
+→ Pastikan IP printer sudah benar (Langkah 3)
+→ Pastikan printer dan komputer di jaringan LAN yang sama
+→ Coba test dulu dengan tombol Test di Settings
+
+Bingung dengan IP printer?
+→ Tanya teknisi/setup printer
+→ Atau print test page dari printer (biasanya ada IP di situ)
+
+================================================================================
+  TIDAK INGIN PAKAI PRINT BRIDGE?
+================================================================================
+
+Tidak masalah! Anda bisa pakai browser biasa:
+
+1. Set default printer di Windows ke printer thermal Anda
+2. Saat auto-print, akan muncul dialog print
+3. Klik OK (printer sudah terpilih otomatis)
+4. Struk akan tercetak
+
+Tidak perlu Node.js atau Print Bridge untuk cara ini.
+
+================================================================================
+

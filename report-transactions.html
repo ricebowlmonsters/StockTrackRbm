@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detail Transaksi - RBM</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    .table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .table th, .table td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+    .table th { background: #f9fafb; font-weight: 600; color: #374151; }
+    .muted { color: #6b7280; }
+    .form-input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
+    
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(2px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+      visibility: hidden; opacity: 0; transition: all 0.2s ease;
+    }
+    .modal-overlay.show { visibility: visible; opacity: 1; }
+    .modal {
+      background: white; border-radius: 12px; width: 90%; max-width: 500px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden;
+      display: flex; flex-direction: column; max-height: 90vh;
+    }
+    .modal-header { padding: 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-size: 18px; font-weight: 700; margin: 0; }
+    .modal-body { padding: 16px; overflow-y: auto; }
+    
+    /* [BARU] Style untuk modal actions agar konsisten */
+    .modal-actions { padding: 16px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 10px; background: #fff; }
+    .text-danger { color: #dc2626; }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <a href="javascript:history.back()" class="back-btn">‹</a>
+      <h1 class="page-title">Detail Transaksi</h1>
+    </header>
+    <main class="content">
+      <!-- [BARU] Filter Langsung di Halaman Ini -->
+      <section class="card" style="margin-bottom: 16px; padding: 16px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 12px;">
+            <div class="form-group" style="margin-bottom:0">
+                <label for="outlet" style="font-size: 12px; font-weight: 600; display:block; margin-bottom:4px;">Outlet</label>
+                <select id="outlet" class="form-input"></select>
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+                <label for="dateFrom" style="font-size: 12px; font-weight: 600; display:block; margin-bottom:4px;">Dari Tanggal</label>
+                <input type="date" id="dateFrom" class="form-input">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+                <label for="dateTo" style="font-size: 12px; font-weight: 600; display:block; margin-bottom:4px;">Sampai Tanggal</label>
+                <input type="date" id="dateTo" class="form-input">
+            </div>
+        </div>
+        <button id="btn-refresh" class="btn btn-primary" style="width: 100%;">🔍 Terapkan Filter</button>
+      </section>
+
+      <section class="card">
+        <table class="table" id="detail-table">
+          <thead>
+            <tr>
+              <th>ID Order</th>
+              <th>Waktu</th>
+              <th>Asal</th>
+              <th>Tipe</th>
+              <th>Metode</th>
+              <th>Diskon / Promo</th>
+              <th>Status</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="8" class="muted">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal Detail Transaksi -->
+  <div id="transaction-detail-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Detail Transaksi</h3>
+        <button id="close-detail-modal" style="background:none; border:none; font-size:24px; cursor:pointer; color:#6b7280;">&times;</button>
+      </div>
+      <div class="modal-body" id="detail-content"></div>
+    </div>
+  </div>
+
+  <!-- [BARU] Modal Edit Metode Pembayaran -->
+  <div id="edit-payment-modal" class="modal-overlay">
+    <div class="modal" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Ubah Metode Pembayaran</h3>
+        <button onclick="closeEditPaymentModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" style="font-weight:600; margin-bottom:8px; display:block;">Pilih Metode Baru</label>
+          <select id="edit-payment-select" class="form-input" style="width:100%; padding:12px;"></select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button onclick="closeEditPaymentModal()" class="btn btn-secondary">Batal</button>
+        <button id="btn-save-payment" class="btn btn-primary">Simpan Perubahan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- [BARU] Modal Hapus Transaksi -->
+  <div id="delete-transaction-modal" class="modal-overlay">
+    <div class="modal" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title text-danger">Refund Transaksi</h3>
+        <button onclick="closeDeleteTransactionModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="background:#fee2e2; color:#991b1b; padding:12px; border-radius:8px; margin-bottom:16px; font-size:13px;">
+            <strong>Perhatian:</strong> Status transaksi akan diubah menjadi <b>Refund</b>. Data tidak dihapus dari laporan.
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="font-weight:600; margin-bottom:8px; display:block;">Alasan Refund (Wajib)</label>
+          <textarea id="delete-reason-input" class="form-input" rows="3" placeholder="Contoh: Salah input, Double order, Test..." style="width:100%; padding:10px;"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button onclick="closeDeleteTransactionModal()" class="btn btn-secondary">Batal</button>
+        <button id="btn-confirm-delete" class="btn" style="background-color:#dc2626; color:white;">Konfirmasi Refund</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="custom-ui.js"></script>
+  <script src="firebase-storage.js"></script>
+  <script>
+    function formatRupiah(n) { return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+    function toStartOfDay(date) { const d = new Date(date); d.setHours(0,0,0,0); return d.getTime(); }
+    function toEndOfDay(date) { const d = new Date(date); d.setHours(23,59,59,999); return d.getTime(); }
+    function fmtTime(ts) {
+      const d = new Date(typeof ts === 'string' ? Date.parse(ts) : ts);
+      return d.toLocaleString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Ambil Parameter dari URL
+      const params = new URLSearchParams(window.location.search);
+      
+      // Elemen Filter
+      const outletSel = document.getElementById('outlet');
+      const dateFromInput = document.getElementById('dateFrom');
+      const dateToInput = document.getElementById('dateTo');
+      const btnRefresh = document.getElementById('btn-refresh');
+      const detailTbody = document.querySelector('#detail-table tbody');
+      const modal = document.getElementById('transaction-detail-modal');
+      const closeModalBtn = document.getElementById('close-detail-modal');
+
+      // Isi Filter Outlet
+      const activeOutlets = JSON.parse(localStorage.getItem('rbm_active_outlets') || '[]');
+      const allOutlets = JSON.parse(localStorage.getItem('rbm_outlets') || '["sidoarjo", "surabaya"]');
+      const outletsToDisplay = activeOutlets.length > 0 ? activeOutlets : allOutlets;
+      
+      outletSel.innerHTML = '';
+      outletsToDisplay.forEach(outlet => {
+        const option = document.createElement('option');
+        option.value = outlet;
+        option.textContent = outlet.charAt(0).toUpperCase() + outlet.slice(1);
+        outletSel.appendChild(option);
+      });
+
+      // [BARU] Logika Role Manager
+      const user = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+      if (user.role === 'manager') {
+          // Kunci ke outlet manager
+          if (user.outlet) {
+              outletSel.value = user.outlet;
+              outletSel.disabled = true;
+          }
+      }
+
+      // Set Nilai Awal dari URL atau Default
+      const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+      const todayStr = iso(new Date());
+      outletSel.value = params.get('outlet') || outletsToDisplay[0];
+      dateFromInput.value = params.get('dateFrom') || todayStr;
+      dateToInput.value = params.get('dateTo') || todayStr;
+
+      // Event Listener Tombol Refresh
+      btnRefresh.addEventListener('click', loadData);
+
+      // Event Listener Modal
+      closeModalBtn.addEventListener('click', () => modal.classList.remove('show'));
+      modal.addEventListener('click', (e) => { if(e.target === modal) modal.classList.remove('show'); });
+
+      // Setup Firebase
+      const firebaseConfig = {
+        apiKey: "AIzaSyDWQG53tP2zKILTwPSJQpiVzFNyvYLxLqw",
+        authDomain: "ricebowlmonst.firebaseapp.com",
+        databaseURL: "https://ricebowlmonst-default-rtdb.firebaseio.com",
+        projectId: "ricebowlmonst",
+        storageBucket: "ricebowlmonst.firebasestorage.app",
+        messagingSenderId: "723669558962",
+        appId: "1:723669558962:web:c17a1a4683a86cc5a88bab",
+        measurementId: "G-1G3JF6ZFRP"
+      };
+      if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+
+      // Fungsi Tampilkan Detail
+      window.showOrderDetail = function(order) {
+        // [BARU] Update Judul Modal dengan ID Transaksi
+        document.querySelector('#transaction-detail-modal .modal-title').textContent = `Detail Transaksi - ${order.id || ''}`;
+
+        const content = document.getElementById('detail-content');
+        const items = order.items ? (Array.isArray(order.items) ? order.items : Object.values(order.items)) : [];
+        
+        let itemsHtml = '<table style="width:100%; border-collapse:collapse; margin-bottom:15px; font-size:13px;">';
+        itemsHtml += '<tr style="border-bottom:1px solid #e5e7eb; color:#6b7280;"><th style="padding:8px 4px; text-align:left;">Item</th><th style="padding:8px 4px; text-align:center;">Qty</th><th style="padding:8px 4px; text-align:right;">Total</th></tr>';
+        
+        let calcSubtotal = 0;
+        items.forEach(item => {
+            const itemTotal = (item.price * item.quantity);
+            calcSubtotal += itemTotal;
+            const noteHtml = item.note ? `<div style="font-size:11px; color:#ef4444; font-style:italic;">📝 ${item.note}</div>` : '';
+            
+            itemsHtml += `
+                <tr style="border-bottom:1px solid #f3f4f6;">
+                    <td style="padding:8px 4px;">
+                        <div style="font-weight:600;">${item.name}</div>
+                        ${noteHtml}
+                    </td>
+                    <td style="padding:8px 4px; text-align:center;">${item.quantity}</td>
+                    <td style="padding:8px 4px; text-align:right;">${formatRupiah(itemTotal)}</td>
+                </tr>
+            `;
+        });
+        itemsHtml += '</table>';
+
+        const payment = order.payment || {};
+        const discount = payment.discount || 0;
+        const tax = payment.tax || 0;
+        const total = payment.total || 0;
+        const method = payment.method || '-';
+        
+        // [BARU] Cek Role untuk Edit/Hapus
+        const user = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+        const canManage = ['owner', 'manager'].includes(user.role);
+
+        // [BARU] Label Asal Pesanan
+        const sourceLabel = order.source === 'pos' ? 'Kasir (POS)' : 'Web App Customer';
+
+        let methodHtml = method;
+        if (canManage) {
+            methodHtml += ` <a href="javascript:void(0)" onclick="editPaymentMethod('${order.id}', '${method}')" style="color:#2563eb;font-weight:600;margin-left:5px;text-decoration:none;">[Ubah]</a>`;
+        }
+
+        let deleteButtonHtml = '';
+        if (canManage && order.status !== 'Refund') {
+            deleteButtonHtml = `
+            <div style="margin-top:8px;">
+                <button onclick="deleteTransaction('${order.id}')" class="btn" style="width:100%; background-color:#fee2e2; color:#dc2626; padding:12px; border-radius:8px; border:none; cursor:pointer; font-weight:600; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <span>💸</span> Refund Transaksi
+                </button>
+            </div>`;
+        }
+
+        let refundInfoHtml = '';
+        let printRefundButtonHtml = '';
+        if (order.status === 'Refund') {
+            const refundTime = order.refundedAt ? fmtTime(order.refundedAt) : '-';
+            refundInfoHtml = `
+            <div style="background-color:#fee2e2; border:1px solid #fecaca; border-radius:8px; padding:12px; margin-bottom:16px; font-size:13px; color:#991b1b;">
+                <div style="font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+                    <span>ℹ️</span> Informasi Refund
+                </div>
+                <div style="margin-bottom:2px;"><strong>Alasan:</strong> ${order.refundReason || '-'}</div>
+                <div style="margin-bottom:2px;"><strong>Oleh:</strong> ${order.refundedBy || '-'}</div>
+                <div><strong>Waktu:</strong> ${refundTime}</div>
+            </div>`;
+            
+            printRefundButtonHtml = `
+            <div style="margin-top:8px;">
+                <button onclick="printRefundReceipt('${order.id}')" class="btn" style="width:100%; background-color:#fff; color:#dc2626; padding:12px; border-radius:8px; border:1px solid #dc2626; cursor:pointer; font-weight:600; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <span>🖨️</span> Cetak Bukti Refund
+                </button>
+            </div>`;
+        }
+
+        const detailsHtml = `
+            ${refundInfoHtml}
+            <div style="margin-bottom:16px; font-size:13px; color:#374151;">
+                <div style="display:flex; justify-content:space-between;"><span>ID Order:</span> <strong>${order.id || '-'}</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>Waktu:</span> <strong>${fmtTime(order.date)}</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>Asal:</span> <strong>${sourceLabel}</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>Tipe:</span> <strong>${order.details?.type || '-'} ${order.details?.tableNumber ? '(' + order.details.tableNumber + ')' : ''}</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>Status:</span> <strong style="color:${order.status==='Sudah Dibayar'?'#059669':(order.status==='Refund'?'#dc2626':'#d97706')}">${order.status}</strong></div>
+            </div>
+            ${itemsHtml}
+            <div style="border-top:2px solid #e5e7eb; padding-top:12px; font-size:13px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Subtotal</span> <span>${formatRupiah(calcSubtotal)}</span></div>
+                ${discount > 0 ? `<div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#ef4444;"><span>Diskon</span> <span>-${formatRupiah(discount)}</span></div>` : ''}
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>PPN (10%)</span> <span>${formatRupiah(tax)}</span></div>
+                <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:16px; font-weight:700;"><span>Total</span> <span>${formatRupiah(total)}</span></div>
+                <div style="text-align:right; font-size:12px; color:#6b7280; margin-top:4px;">Metode Pembayaran: ${methodHtml}</div>
+            </div>
+            <div style="margin-top:16px;">
+                <button id="btn-reprint-receipt" class="btn btn-primary" style="width:100%; background-color:#4C2A85; color:white; padding:12px; border-radius:8px; border:none; cursor:pointer; font-weight:600; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <span>🖨️</span> Cetak Ulang Struk
+                </button>
+                ${deleteButtonHtml}
+                ${printRefundButtonHtml}
+            </div>
+        `;
+        content.innerHTML = detailsHtml;
+        
+        document.getElementById('btn-reprint-receipt').onclick = function() {
+            reprintReceipt(order);
+        };
+
+        modal.classList.add('show');
+      };
+
+      // Fungsi Cetak Bukti Refund
+      window.printRefundReceipt = async function(orderId) {
+          const outlet = document.getElementById('outlet').value;
+          try {
+              const snap = await db.ref(`orders/${outlet}/${orderId}`).once('value');
+              const order = snap.val();
+              if (!order) return CustomUI.alert('Data transaksi tidak ditemukan');
+
+              const outletName = document.getElementById('outlet').options[document.getElementById('outlet').selectedIndex].text;
+              const refundTime = order.refundedAt ? new Date(order.refundedAt).toLocaleString('id-ID') : '-';
+              const total = formatRupiah(order.payment?.total || 0).replace('Rp ', '');
+              
+              let itemsHtml = '';
+              const items = order.items ? (Array.isArray(order.items) ? order.items : Object.values(order.items)) : [];
+              items.forEach(it => {
+                  itemsHtml += `<div>${it.name} x${it.quantity}</div>`;
+              });
+
+              const htmlContent = `<!DOCTYPE html>
+              <html><head><meta charset="utf-8">
+              <style>
+                  @page { size: 80mm auto; margin: 0; padding: 0; }
+                  body { font-family: 'Courier New', monospace; width: 72mm; margin: 0; padding: 4mm; font-size: 10pt; line-height: 1.2; }
+                  .center { text-align:center; }
+                  .line { border-top:1px dashed #000; margin:8px 0; }
+                  .row { display:flex; justify-content:space-between; }
+                  .bold { font-weight:bold; }
+              </style></head>
+              <body>
+                  <div class="center bold">BUKTI REFUND</div>
+                  <div class="center">${outletName}</div>
+                  <div class="center" style="font-size:9pt; margin-bottom:8px;">${refundTime}</div>
+                  <div class="line"></div>
+                  <div class="row"><span>ID Order</span><span>${order.id}</span></div>
+                  <div class="row"><span>Oleh</span><span>${order.refundedBy || '-'}</span></div>
+                  <div class="line"></div>
+                  <div style="margin-bottom:8px;">${itemsHtml || '-'}</div>
+                  <div class="line"></div>
+                  <div class="row bold" style="font-size:12pt;"><span>Total Refund</span><span>Rp ${total}</span></div>
+                  <div class="line"></div>
+                  <div style="font-size:9pt;"><strong>Alasan:</strong><br>${order.refundReason || '-'}</div>
+                  <div class="center" style="margin-top:15px; font-size:9pt;">Simpan sebagai bukti</div>
+              </body></html>`;
+
+              const iframe = document.createElement('iframe');
+              iframe.style.position = 'fixed';
+              iframe.style.right = '0';
+              iframe.style.bottom = '0';
+              iframe.style.width = '0';
+              iframe.style.height = '0';
+              iframe.style.border = '0';
+              document.body.appendChild(iframe);
+              
+              const doc = iframe.contentWindow.document;
+              doc.open();
+              doc.write(htmlContent);
+              doc.close();
+              
+              iframe.onload = () => {
+                  setTimeout(() => {
+                      iframe.contentWindow.focus();
+                      iframe.contentWindow.print();
+                      setTimeout(() => {
+                          document.body.removeChild(iframe);
+                      }, 1000);
+                  }, 500);
+              };
+          } catch (e) {
+              CustomUI.error('Gagal mencetak: ' + e.message);
+          }
+      };
+
+      // Fungsi Cetak Ulang Struk
+      window.reprintReceipt = function(order) {
+          const outletName = outletSel.options[outletSel.selectedIndex].text;
+          const time = new Date(order.date).toLocaleString('id-ID');
+          const method = order.payment?.method || '-';
+          const total = formatRupiah(order.payment?.total || 0).replace('Rp ', '');
+          const orderType = order.details?.type === 'Dine-in' ? `Meja ${order.details?.tableNumber || '-'}` : 'Bawa Pulang';
+
+          let itemsHtml = '';
+          const items = order.items ? (Array.isArray(order.items) ? order.items : Object.values(order.items)) : [];
+          items.forEach(it => {
+              const note = it.note ? `<div style="font-size:10px;opacity:.8;padding-left:10px;">Catatan: ${it.note}</div>` : '';
+              itemsHtml += `<div>${it.name} x${it.quantity}${note}</div>`;
+          });
+
+          const htmlContent = `<!DOCTYPE html>
+          <html><head><meta charset="utf-8">
+          <style>
+              @page { size: 80mm auto; margin: 0; padding: 0; }
+              body { font-family: 'Courier New', monospace; width: 72mm; margin: 0; padding: 4mm; font-size: 10pt; line-height: 1.2; }
+              .center { text-align:center; }
+              .line { border-top:1px dashed #000; margin:8px 0; }
+              .row { display:flex; justify-content:space-between; }
+              .bold { font-weight:bold; }
+          </style></head>
+          <body>
+              <div class="center bold">RICE BOWL MONSTER</div>
+              <div class="center">${outletName}</div>
+              <div class="center" style="font-size:9pt; margin-bottom:8px;">${time}</div>
+              <div class="line"></div>
+              <div class="row"><span>Tipe</span><span>${orderType}</span></div>
+              <div class="row"><span>Bayar</span><span>${method}</span></div>
+              <div class="line"></div>
+              <div style="margin-bottom:8px;">${itemsHtml || '-'}</div>
+              <div class="line"></div>
+              <div class="row bold" style="font-size:12pt;"><span>Total</span><span>Rp ${total}</span></div>
+              <div class="center" style="margin-top:15px; font-size:9pt;">Terima Kasih</div>
+              <div class="center" style="font-size:8pt;">(Cetak Ulang)</div>
+          </body></html>`;
+
+          const iframe = document.createElement('iframe');
+          iframe.style.position = 'fixed';
+          iframe.style.right = '0';
+          iframe.style.bottom = '0';
+          iframe.style.width = '0';
+          iframe.style.height = '0';
+          iframe.style.border = '0';
+          document.body.appendChild(iframe);
+          
+          const doc = iframe.contentWindow.document;
+          doc.open();
+          doc.write(htmlContent);
+          doc.close();
+          
+          iframe.onload = () => {
+              setTimeout(() => {
+                  iframe.contentWindow.focus();
+                  iframe.contentWindow.print();
+                  setTimeout(() => {
+                      document.body.removeChild(iframe);
+                  }, 1000);
+              }, 500);
+          };
+      };
+
+      // [BARU] Variabel Global untuk Modal
+      let currentEditOrderId = null;
+      let currentDeleteOrderId = null;
+
+      // [BARU] Fungsi Buka Modal Edit Payment
+      window.editPaymentMethod = function(orderId, currentMethod) {
+          currentEditOrderId = orderId;
+          const select = document.getElementById('edit-payment-select');
+          select.innerHTML = '';
+          
+          // Ambil metode dari localStorage (yang diset di settings.html) atau default
+          let methods = JSON.parse(localStorage.getItem('rbm_payment_methods') || '[]');
+          if (methods.length === 0) {
+              methods = [
+                  { name: 'Cash', type: 'Cash' },
+                  { name: 'QRIS', type: 'QRIS' },
+                  { name: 'Transfer', type: 'Transfer' },
+                  { name: 'Debit', type: 'Card' }
+              ];
+          }
+
+          methods.forEach(m => {
+              const opt = document.createElement('option');
+              opt.value = m.name;
+              opt.textContent = `${m.name} (${m.type})`;
+              if (m.name === currentMethod) opt.selected = true;
+              select.appendChild(opt);
+          });
+
+          document.getElementById('edit-payment-modal').classList.add('show');
+      };
+
+      window.closeEditPaymentModal = function() {
+          document.getElementById('edit-payment-modal').classList.remove('show');
+          currentEditOrderId = null;
+      };
+
+      // [BARU] Handler Simpan Payment
+      document.getElementById('btn-save-payment').addEventListener('click', async () => {
+          if (!currentEditOrderId) return;
+          const newMethod = document.getElementById('edit-payment-select').value;
+          const outlet = outletSel.value;
+          
+          try {
+              await db.ref(`orders/${outlet}/${currentEditOrderId}/payment/method`).set(newMethod);
+              CustomUI.success('Metode pembayaran berhasil diubah.');
+              closeEditPaymentModal();
+              document.getElementById('transaction-detail-modal').classList.remove('show');
+              loadData();
+          } catch (e) {
+              CustomUI.error('Gagal: ' + e.message);
+          }
+      });
+
+      // [BARU] Fungsi Buka Modal Hapus
+      window.deleteTransaction = function(orderId) {
+          currentDeleteOrderId = orderId;
+          document.getElementById('delete-reason-input').value = '';
+          document.getElementById('delete-transaction-modal').classList.add('show');
+      };
+
+      window.closeDeleteTransactionModal = function() {
+          document.getElementById('delete-transaction-modal').classList.remove('show');
+          currentDeleteOrderId = null;
+      };
+
+      // [BARU] Handler Konfirmasi Hapus
+      document.getElementById('btn-confirm-delete').addEventListener('click', async () => {
+          if (!currentDeleteOrderId) return;
+          const reason = document.getElementById('delete-reason-input').value.trim();
+          
+          if (!reason) {
+              CustomUI.alert("Alasan refund wajib diisi!");
+              return;
+          }
+
+          const outlet = outletSel.value;
+          try {
+              const snap = await db.ref(`orders/${outlet}/${currentDeleteOrderId}`).once('value');
+              const orderData = snap.val();
+              if (orderData) {
+                  const user = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+                  
+                  // [DIUBAH] Update status menjadi 'Refund' agar tetap masuk laporan
+                  await db.ref(`orders/${outlet}/${currentDeleteOrderId}`).update({
+                      status: 'Refund',
+                      refundReason: reason,
+                      refundedAt: firebase.database.ServerValue.TIMESTAMP,
+                      refundedBy: user.username || 'Unknown'
+                  });
+                  
+                  CustomUI.success('Transaksi berhasil di-refund (Dibatalkan).');
+                  closeDeleteTransactionModal();
+                  document.getElementById('transaction-detail-modal').classList.remove('show');
+                  loadData();
+              }
+          } catch (e) { CustomUI.error('Gagal refund: ' + e.message); }
+      });
+
+      // Fungsi Load Data
+      async function loadData() {
+        const outlet = outletSel.value;
+        const start = toStartOfDay(dateFromInput.value);
+        const end = toEndOfDay(dateToInput.value);
+
+        detailTbody.innerHTML = '<tr><td colspan="8" class="muted">Memuat data...</td></tr>';
+
+        try {
+            const snap = await db.ref('orders/' + outlet).orderByChild('date').startAt(start).endAt(end).once('value');
+            const val = snap.val() || {};
+            // [DIUBAH] Filter hanya pesanan yang sudah dibayar/diproses
+            const validStatuses = ['Sudah Dibayar', 'Diproses', 'Siap Diambil', 'Selesai', 'Refund'];
+            const orders = Object.values(val).filter(o => validStatuses.includes(o.status)).sort((a,b) => (b.date||0) - (a.date||0));
+
+            detailTbody.innerHTML = '';
+            if (orders.length === 0) {
+            detailTbody.innerHTML = '<tr><td colspan="8" class="muted">Tidak ada data</td></tr>';
+            } else {
+            orders.forEach(o => {
+                const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                tr.onclick = () => showOrderDetail(o);
+                const orderTime = fmtTime(o.date || new Date().getTime());
+                const orderType = o.details?.type === 'Dine-in' ? ('Meja ' + (o.details?.tableNumber || '-')) : 'Bawa Pulang';
+                
+                // [BARU] Tampilkan info diskon jika ada
+                const discountVal = o.payment?.discount || 0;
+                const promoName = o.promo?.name || 'Potongan';
+                const discountHtml = discountVal > 0 ? `<div style="color:#ef4444; font-weight:600;">${promoName}</div><div style="font-size:11px; color:#ef4444;">-${formatRupiah(discountVal)}</div>` : '-';
+                
+                // [BARU] Badge Asal Pesanan (POS vs Web)
+                const isPos = o.source === 'pos';
+                const sourceBadge = isPos ? '<span style="background:#f3f4f6; color:#374151; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:600; border:1px solid #d1d5db;">Kasir</span>' : '<span style="background:#eef2ff; color:#4C2A85; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:600; border:1px solid #c7d2fe;">Web App</span>';
+
+                tr.innerHTML = `
+                <td style="font-weight:600; font-size:12px;">${o.id}</td>
+                <td>${orderTime}</td>
+                <td>${sourceBadge}</td>
+                <td>${orderType}</td>
+                <td>${o.payment?.method || 'N/A'}</td>
+                <td>${discountHtml}</td>
+                <td style="color:${o.status==='Refund'?'#dc2626':(o.status==='Sudah Dibayar'?'#059669':'#374151')}">${o.status}</td>
+                <td style="${o.status==='Refund'?'color:#dc2626':''}">${o.status === 'Refund' ? '-' : ''}${formatRupiah(o.payment?.total || 0)}</td>
+                `;
+                detailTbody.appendChild(tr);
+            });
+            }
+        } catch (error) {
+            console.error(error);
+            detailTbody.innerHTML = `<tr><td colspan="8" style="color:red;">Error: ${error.message}</td></tr>`;
+        }
+      }
+
+      // Muat data pertama kali
+      loadData();
+      
+      // [BARU] Sinkronisasi Payment Methods dari Firebase saat load
+      db.ref('payment_methods').once('value').then(snap => {
+          if (snap.exists()) {
+              localStorage.setItem('rbm_payment_methods', JSON.stringify(snap.val()));
+          }
+      });
+    });
+  </script>
+</body>
+</html>

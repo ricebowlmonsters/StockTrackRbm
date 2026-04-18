@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "framework": null,
+  "buildCommand": null,
+  "builds": [
+    { "src": "**/*.html", "use": "@vercel/static" },
+    { "src": "**/*.js", "use": "@vercel/static" },
+    { "src": "**/*.css", "use": "@vercel/static" },
+    { "src": "**/*.json", "use": "@vercel/static" },
+    { "src": "**/*.@(png|jpg|jpeg|gif|ico|svg|webp)", "use": "@vercel/static" },
+    { "src": "**/*.@(woff|woff2|ttf|eot)", "use": "@vercel/static" }
+  ],
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" }
+  ]
+}

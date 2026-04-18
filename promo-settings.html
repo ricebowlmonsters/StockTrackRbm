@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelola Promo - RBM Kasir</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .back-btn { text-decoration: none; font-size: 24px; color: #333; margin-right: 15px; }
+        .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 24px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #374151; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #4C2A85; color: white; }
+        .btn-primary:hover { background: #3c216b; }
+        .btn-danger { background: #ef4444; color: white; padding: 8px 16px; font-size: 12px; }
+        
+        .promo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .promo-item { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid #e5e7eb; display: flex; flex-direction: column; }
+        .promo-img { width: 100%; height: 160px; object-fit: cover; background: #f3f4f6; }
+        .promo-info { padding: 16px; flex-grow: 1; }
+        .promo-title { font-weight: 700; margin-bottom: 8px; font-size: 16px; color: #374151; }
+        .promo-desc { font-size: 14px; color: #6b7280; margin-bottom: 12px; line-height: 1.4; }
+        .promo-meta { font-size: 12px; color: #4C2A85; font-weight: 600; background: #f3f4f6; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 12px; }
+        .delete-btn-wrapper { text-align: right; margin-top: auto; }
+        .preview-img { width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-top: 8px; display: none; border: 1px solid #e5e7eb; }
+        .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="display: flex; align-items: center;">
+                <a href="index.html" class="back-btn">‹</a>
+                <h1 style="margin: 0; font-size: 24px;">Kelola Promo & Diskon</h1>
+            </div>
+        </div>
+
+        <!-- POS DISCOUNT & WEB SETTINGS -->
+        <div id="tab-pos">
+            <div class="card">
+                <h2 style="margin-top: 0; margin-bottom: 20px; font-size: 18px;">Atur Promo & Diskon</h2>
+                <div class="form-group">
+                    <label>Pilih Outlet</label>
+                    <select id="posOutletSelect" class="form-control" onchange="loadPosPromos()">
+                        <!-- Options loaded via JS -->
+                    </select>
+                </div>
+                <form id="addPosPromoForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Nama Promo/Diskon</label>
+                            <input type="text" id="posName" class="form-control" placeholder="Contoh: Diskon Karyawan" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Jenis</label>
+                            <select id="posKind" class="form-control">
+                                <option value="discount">Diskon (Menu % Disc)</option>
+                                <option value="promo">Promo (Menu Promo)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Tipe Potongan</label>
+                            <select id="posType" class="form-control">
+                                <option value="percent">Persentase (%)</option>
+                                <option value="fixed">Nominal (Rp)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Nilai Potongan</label>
+                            <input type="number" id="posValue" class="form-control" placeholder="Contoh: 10 atau 5000" required>
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Min. Belanja (Rp)</label>
+                            <input type="number" id="posMinPurchase" class="form-control" placeholder="0 = Tidak ada">
+                        </div>
+                        <div class="form-group">
+                            <label>Kuota (Max Usage)</label>
+                            <input type="number" id="posMaxUsage" class="form-control" placeholder="0 = Unlimited">
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Periode Mulai</label>
+                            <input type="date" id="posStart" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Periode Selesai</label>
+                            <input type="date" id="posEnd" class="form-control">
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Happy Hour Mulai</label>
+                            <input type="time" id="posHourStart" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Happy Hour Selesai</label>
+                            <input type="time" id="posHourEnd" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Lingkup (Scope)</label>
+                            <select id="posScope" class="form-control">
+                                <option value="bill">Per Bill (Struk)</option>
+                                <option value="item">Per Item</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Target Item</label>
+                            <select id="posTargetType" class="form-control">
+                                <option value="all">Semua Item</option>
+                                <option value="category">Kategori Tertentu</option>
+                                <option value="item">Item Tertentu</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Item Picker UI -->
+                    <div class="form-group" id="posItemPickerGroup" style="display:none; border: 1px solid #e5e7eb; padding: 10px; border-radius: 8px; background: #f9fafb;">
+                        <label style="margin-bottom: 8px; display: block;">Pilih Item:</label>
+                        <div style="display:flex; gap:8px; margin-bottom:8px;">
+                             <button type="button" id="btnSelectAllItems" style="padding:4px 8px; font-size:12px; background:#eef2ff; color:#4C2A85; border:1px solid #c7d2fe; border-radius:4px; cursor:pointer;">Pilih Semua</button>
+                             <button type="button" id="btnDeselectAllItems" style="padding:4px 8px; font-size:12px; background:#fff; border:1px solid #e5e7eb; border-radius:4px; cursor:pointer;">Hapus Semua</button>
+                        </div>
+                        <div id="posItemsList" style="max-height: 300px; overflow-y: auto; background: white; border: 1px solid #e5e7eb; padding: 8px; border-radius: 4px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
+                            <p style="color:#6b7280; font-size:12px; grid-column: 1/-1;">Memuat menu...</p>
+                        </div>
+                    </div>
+
+                    <!-- Category Picker UI -->
+                    <div class="form-group" id="posCategoryPickerGroup" style="display:none;">
+                        <label>Pilih Kategori</label>
+                        <select id="posTargetCategory" class="form-control">
+                            <option value="">Semua Kategori</option>
+                        </select>
+                    </div>
+
+                    <!-- [BARU] Pengaturan Tampilan Web Customer -->
+                    <div class="form-group" style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px;">
+                        <label style="display:block; margin-bottom:8px; font-weight:600;">Platform (Tampilkan di):</label>
+                        <div style="display:flex; gap: 20px; margin-bottom: 12px;">
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                                <input type="checkbox" id="posShowInPos" checked style="width:18px; height:18px;"> 
+                                <span style="font-weight:600; color: #374151;">Kasir (POS)</span>
+                            </label>
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                                <input type="checkbox" id="posShowInApp" style="width:18px; height:18px;"> 
+                                <span style="font-weight:600; color: #4C2A85;">Web Customer</span>
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Deskripsi (Untuk Web)</label>
+                            <textarea id="posDescription" class="form-control" rows="2" placeholder="Keterangan promo untuk pelanggan..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Gambar Banner (Untuk Web)</label>
+                            <input type="file" id="posImageFile" class="form-control" accept="image/*">
+                            <input type="hidden" id="posImageBase64">
+                            <img id="posImagePreview" class="preview-img" alt="Preview">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                            <input type="checkbox" id="posAutoApply" style="width:18px; height:18px;"> 
+                            <span style="font-weight:600;">Otomatis Terapkan (Auto-Apply)</span>
+                        </label>
+                        <p style="font-size:12px; color:#6b7280; margin-top:4px;">Diskon akan otomatis terpasang jika syarat terpenuhi.</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                            <input type="checkbox" id="posActive" checked style="width:18px; height:18px;"> 
+                            <span style="font-weight:600;">Status Aktif</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Simpan Pengaturan</button>
+                </form>
+            </div>
+
+            <h2 style="margin-bottom: 15px; font-size: 18px;">Daftar Diskon POS Aktif</h2>
+            <div id="posPromoList" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <p style="text-align: center; color: #6b7280; grid-column: 1 / -1;">Pilih outlet untuk melihat diskon.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="customConfirmModal" class="modal-overlay" style="display:none;">
+        <div class="modal">
+            <h3 style="margin-top:0;">Konfirmasi</h3>
+            <p id="confirmMessage">Apakah Anda yakin?</p>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+                <button class="btn btn-secondary" onclick="closeConfirmModal()">Batal</button>
+                <button class="btn btn-danger" id="confirmBtn">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script>
+        // [DIUBAH] Gunakan initRbmDB dari custom-ui.js
+        const db = initRbmDB();
+        
+        // Refs
+        let editingPromoId = null;
+        
+        // Image Upload Logic (Resize)
+        document.getElementById('posImageFile').addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const maxWidth = 600; 
+                        const scale = maxWidth / img.width;
+                        const width = (img.width > maxWidth) ? maxWidth : img.width;
+                        const height = (img.width > maxWidth) ? img.height * scale : img.height;
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        document.getElementById('posImagePreview').src = dataUrl;
+                        document.getElementById('posImagePreview').style.display = 'block';
+                        document.getElementById('posImageBase64').value = dataUrl;
+                    }
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        // --- POS DISCOUNT LOGIC ---
+        
+        // Load Outlets for Select
+        const loadOutletsToSelect = () => {
+            const select = document.getElementById('posOutletSelect');
+            select.innerHTML = '';
+            let allOutlets = JSON.parse(localStorage.getItem('rbm_outlets') || '[]');
+            let outletNames = JSON.parse(localStorage.getItem('rbm_outlet_names') || '{}');
+            if (!Array.isArray(allOutlets) || allOutlets.length === 0) allOutlets = ['sidoarjo', 'surabaya']; // Fallback
+            
+            allOutlets.forEach(outlet => {
+                if (typeof outlet !== 'string') outlet = String(outlet.id || outlet);
+                if (!outlet) return;
+                const opt = document.createElement('option');
+                opt.value = outlet;
+                opt.textContent = outletNames[outlet] || (outlet.charAt(0).toUpperCase() + outlet.slice(1));
+                select.appendChild(opt);
+            });
+
+            if (select.value) {
+                loadPosPromos();
+                loadProductsForPicker(select.value);
+            }
+        };
+
+        const outletsRef = db.ref('customer_app_settings/outlets');
+        outletsRef.once('value').then(snap => {
+            const outletsData = snap.val();
+            if (outletsData) {
+                const list = Array.isArray(outletsData) ? outletsData : Object.values(outletsData).filter(i => i);
+                const ids = list.map(o => o.id).filter(id => id);
+                const names = {};
+                list.forEach(o => { if(o.id) names[o.id] = o.name; });
+                if (ids.length > 0) {
+                    localStorage.setItem('rbm_outlets', JSON.stringify(ids));
+                    localStorage.setItem('rbm_outlet_names', JSON.stringify(names));
+                }
+            }
+            loadOutletsToSelect();
+        }).catch(() => {
+            loadOutletsToSelect();
+        });
+
+        // Handle Scope & Target Type Visibility
+        const posScope = document.getElementById('posScope');
+        const posTargetType = document.getElementById('posTargetType');
+        const posItemPickerGroup = document.getElementById('posItemPickerGroup');
+        const posCategoryPickerGroup = document.getElementById('posCategoryPickerGroup');
+
+        function updatePosFormVisibility() {
+            const scope = posScope.value;
+            const target = posTargetType.value;
+
+            if (scope === 'item') {
+                posTargetType.parentElement.style.display = 'block';
+                posItemPickerGroup.style.display = (target === 'item') ? 'block' : 'none';
+                posCategoryPickerGroup.style.display = (target === 'category') ? 'block' : 'none';
+                posScope.parentElement.parentElement.style.gridTemplateColumns = '1fr 1fr';
+            } else {
+                // Jika Bill, sembunyikan target type selector
+                posTargetType.parentElement.style.display = 'none';
+                posItemPickerGroup.style.display = 'none';
+                posCategoryPickerGroup.style.display = 'none';
+                posScope.parentElement.parentElement.style.gridTemplateColumns = '1fr';
+            }
+        }
+
+        posScope.addEventListener('change', updatePosFormVisibility);
+        posTargetType.addEventListener('change', updatePosFormVisibility);
+        
+        // Initialize visibility state
+        updatePosFormVisibility();
+
+        // Load Products for Item Picker
+        async function loadProductsForPicker(outlet) {
+            const list = document.getElementById('posItemsList');
+            const catSelect = document.getElementById('posTargetCategory');
+            list.innerHTML = '<p style="color:#6b7280; font-size:12px; grid-column: 1/-1;">Memuat menu...</p>';
+            catSelect.innerHTML = '<option value="">Semua Kategori</option>';
+
+            try {
+                const snap = await db.ref(`products/${outlet}`).once('value');
+                const val = snap.val();
+                const items = [];
+                const categories = new Set();
+
+                if (val) {
+                    Object.values(val).forEach(p => {
+                        if (!p) return;
+                        // Handle flat structure
+                        const itemName = p.name || p.nama || p.title;
+                        if (itemName) {
+                            items.push(itemName);
+                            if (p.category) categories.add(p.category);
+                        }
+                        // Handle grouped structure
+                        else if (typeof p === 'object') {
+                            Object.values(p).forEach(sub => {
+                                const subName = sub && (sub.name || sub.nama || sub.title);
+                                if (subName) {
+                                    items.push(subName);
+                                    if (sub.category) categories.add(sub.category);
+                                }
+                            });
+                        }
+                    });
+                }
+
+                // Render Items Checkbox
+                list.innerHTML = '';
+                items.sort().forEach(name => {
+                    const div = document.createElement('div');
+                    div.innerHTML = `
+                        <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:normal;">
+                            <input type="checkbox" value="${name}" class="pos-item-checkbox"> ${name}
+                        </label>
+                    `;
+                    list.appendChild(div);
+                });
+
+                // Render Categories
+                categories.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c;
+                    opt.textContent = c;
+                    catSelect.appendChild(opt);
+                });
+
+            } catch (e) {
+                list.innerHTML = '<p style="color:red;">Gagal memuat menu.</p>';
+            }
+        }
+
+        // Reload products when outlet changes
+        document.getElementById('posOutletSelect').addEventListener('change', function() {
+            loadPosPromos();
+            loadProductsForPicker(this.value);
+        });
+
+        // Select/Deselect All
+        document.getElementById('btnSelectAllItems').addEventListener('click', () => {
+            document.querySelectorAll('.pos-item-checkbox').forEach(cb => cb.checked = true);
+        });
+        document.getElementById('btnDeselectAllItems').addEventListener('click', () => {
+            document.querySelectorAll('.pos-item-checkbox').forEach(cb => cb.checked = false);
+        });
+
+        document.getElementById('addPosPromoForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const outlet = document.getElementById('posOutletSelect').value;
+            if (!outlet) { alert('Pilih outlet terlebih dahulu'); return; }
+
+            // Collect Item Selection
+            const selectedItems = [];
+            document.querySelectorAll('.pos-item-checkbox:checked').forEach(cb => {
+                selectedItems.push(cb.value);
+            });
+
+            const data = {
+                name: document.getElementById('posName').value,
+                kind: document.getElementById('posKind').value, // discount / promo
+                type: document.getElementById('posType').value,
+                value: parseFloat(document.getElementById('posValue').value),
+                
+                minPurchase: parseFloat(document.getElementById('posMinPurchase').value) || 0,
+                maxUsage: parseInt(document.getElementById('posMaxUsage').value) || 0,
+                
+                start: document.getElementById('posStart').value || null,
+                end: document.getElementById('posEnd').value || null,
+                happyHourStart: document.getElementById('posHourStart').value || null,
+                happyHourEnd: document.getElementById('posHourEnd').value || null,
+
+                applyScope: document.getElementById('posScope').value, // bill / item
+                targetType: document.getElementById('posTargetType').value, // all / category / item
+                
+                targetValue: document.getElementById('posTargetCategory').value || '', // for category
+                targetItems: selectedItems, // for item list
+                targetItem: selectedItems.length > 0 ? selectedItems[0] : '', // fallback single item
+                
+                autoApply: document.getElementById('posAutoApply').checked,
+                active: document.getElementById('posActive').checked,
+
+                // [BARU] Web App Fields
+                showInPos: document.getElementById('posShowInPos').checked,
+                showInApp: document.getElementById('posShowInApp').checked,
+                description: document.getElementById('posDescription').value,
+                image: document.getElementById('posImageBase64').value
+            };
+
+            if (editingPromoId) {
+                data.updatedAt = firebase.database.ServerValue.TIMESTAMP;
+                db.ref(`pos_promos/${outlet}/${editingPromoId}`).update(data).then(() => {
+                    alert('Diskon POS berhasil diperbarui!');
+                    resetPosForm();
+                });
+            } else {
+                data.createdAt = firebase.database.ServerValue.TIMESTAMP;
+                db.ref(`pos_promos/${outlet}`).push(data).then(() => {
+                    alert('Diskon POS berhasil ditambahkan!');
+                    resetPosForm();
+                });
+            }
+        });
+
+        function resetPosForm() {
+            document.getElementById('addPosPromoForm').reset();
+            editingPromoId = null;
+            document.getElementById('posActive').checked = true;
+            document.getElementById('posShowInPos').checked = true;
+            document.getElementById('posImagePreview').style.display = 'none';
+            document.getElementById('posImageBase64').value = '';
+            updatePosFormVisibility();
+            document.querySelectorAll('.pos-item-checkbox').forEach(cb => cb.checked = false);
+            
+            const btn = document.querySelector('#addPosPromoForm button[type="submit"]');
+            btn.textContent = 'Simpan Pengaturan';
+            
+            const cancelBtn = document.getElementById('btnCancelEdit');
+            if (cancelBtn) cancelBtn.remove();
+        }
+
+        // Custom Modal Logic
+        let deleteTargetId = null;
+        window.requestDeletePromo = function(key) {
+            deleteTargetId = key;
+            document.getElementById('confirmMessage').textContent = 'Hapus diskon ini? Tindakan tidak dapat dibatalkan.';
+            document.getElementById('customConfirmModal').style.display = 'flex';
+        }
+
+        window.closeConfirmModal = function() {
+            document.getElementById('customConfirmModal').style.display = 'none';
+            deleteTargetId = null;
+        }
+
+        document.getElementById('confirmBtn').addEventListener('click', () => {
+            if (deleteTargetId) {
+                const outlet = document.getElementById('posOutletSelect').value;
+                db.ref(`pos_promos/${outlet}/${deleteTargetId}`).remove().then(() => {
+                    closeConfirmModal();
+                });
+            }
+        });
+
+        window.editPosPromo = function(key, p) {
+            editingPromoId = key;
+            document.getElementById('posName').value = p.name || '';
+            document.getElementById('posKind').value = p.kind || 'discount';
+            document.getElementById('posType').value = p.type || 'percent';
+            document.getElementById('posValue').value = p.value || 0;
+            document.getElementById('posMinPurchase').value = p.minPurchase || '';
+            document.getElementById('posMaxUsage').value = p.maxUsage || '';
+            document.getElementById('posStart').value = p.start || '';
+            document.getElementById('posEnd').value = p.end || '';
+            document.getElementById('posHourStart').value = p.happyHourStart || '';
+            document.getElementById('posHourEnd').value = p.happyHourEnd || '';
+            
+            document.getElementById('posScope').value = p.applyScope || 'bill';
+            document.getElementById('posTargetType').value = p.targetType || 'all';
+
+            // [BARU] Load Web Fields
+            document.getElementById('posShowInPos').checked = p.showInPos !== false;
+            document.getElementById('posShowInApp').checked = p.showInApp === true;
+            document.getElementById('posDescription').value = p.description || '';
+            document.getElementById('posImageBase64').value = p.image || '';
+            document.getElementById('posImagePreview').src = p.image || '';
+            document.getElementById('posImagePreview').style.display = p.image ? 'block' : 'none';
+            
+            updatePosFormVisibility();
+            
+            if (p.targetType === 'category') {
+                document.getElementById('posTargetCategory').value = p.targetValue || '';
+            } else if (p.targetType === 'item') {
+                document.querySelectorAll('.pos-item-checkbox').forEach(cb => cb.checked = false);
+                if (p.targetItems && Array.isArray(p.targetItems)) {
+                    p.targetItems.forEach(item => {
+                        const cb = document.querySelector(`.pos-item-checkbox[value="${item}"]`);
+                        if (cb) cb.checked = true;
+                    });
+                } else if (p.targetItem) {
+                     const cb = document.querySelector(`.pos-item-checkbox[value="${p.targetItem}"]`);
+                     if (cb) cb.checked = true;
+                }
+            }
+            
+            document.getElementById('posAutoApply').checked = p.autoApply === true;
+            document.getElementById('posActive').checked = p.active !== false;
+
+            const btn = document.querySelector('#addPosPromoForm button[type="submit"]');
+            btn.textContent = 'Update Pengaturan';
+            
+            if (!document.getElementById('btnCancelEdit')) {
+                const cancelBtn = document.createElement('button');
+                cancelBtn.type = 'button';
+                cancelBtn.id = 'btnCancelEdit';
+                cancelBtn.className = 'btn btn-secondary';
+                cancelBtn.textContent = 'Batal';
+                cancelBtn.style.marginLeft = '10px';
+                cancelBtn.onclick = resetPosForm;
+                btn.parentNode.insertBefore(cancelBtn, btn.nextSibling);
+            }
+            
+            document.getElementById('addPosPromoForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        window.loadPosPromos = function() {
+            const outlet = document.getElementById('posOutletSelect').value;
+            const list = document.getElementById('posPromoList');
+            if (!outlet) return;
+
+            db.ref(`pos_promos/${outlet}`).on('value', snap => {
+                list.innerHTML = '';
+                const data = snap.val();
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        const p = data[key];
+                        const el = document.createElement('div');
+                        el.style.cssText = 'background:white; padding:12px; border-radius:8px; border:1px solid #e5e7eb; display:flex; flex-direction:column; justify-content:space-between; gap:10px;';
+                        
+                        const kindBadge = p.kind === 'promo' ? '<span class="badge" style="background:#8b5cf6">Promo</span>' : '<span class="badge" style="background:#3b82f6">Disc</span>';
+                        const typeBadge = p.type === 'percent' ? '<span class="badge" style="background:#3b82f6">%</span>' : '<span class="badge" style="background:#10b981">Rp</span>';
+                        const scopeBadge = `<span class="badge" style="background:#6b7280">${p.applyScope || 'bill'}</span>`;
+                        const autoBadge = p.autoApply ? '<span class="badge" style="background:#f59e0b">Auto</span>' : '';
+                        const activeText = p.active ? '<span style="color:#059669; font-size:11px; font-weight:bold;">Aktif</span>' : '<span style="color:#ef4444; font-size:11px;">Non-Aktif</span>';
+                        const posBadge = (p.showInPos !== false) ? '<span class="badge" style="background:#374151">POS</span>' : '<span class="badge" style="background:#e5e7eb; color:#9ca3af">No POS</span>';
+                        const webBadge = p.showInApp ? '<span class="badge" style="background:#4C2A85">WEB</span>' : '<span class="badge" style="background:#e5e7eb; color:#9ca3af">No WEB</span>';
+
+                        let targetInfo = '';
+                        if (p.targetType === 'category') targetInfo = `(Kat: ${p.targetValue})`;
+                        else if (p.targetType === 'item') targetInfo = `(${p.targetItems ? p.targetItems.length + ' items' : 'Item'})`;
+
+                        el.innerHTML = `
+                            ${p.image ? `<img src="${p.image}" class="promo-img" style="height:100px;">` : ''}
+                            <div>
+                                <div style="font-weight:700; font-size:14px; margin-top:8px;">${p.name} ${kindBadge} ${posBadge} ${webBadge} ${activeText}</div>
+                                <div style="font-size:12px; color:#6b7280; margin-top:4px;">
+                                    ${typeBadge} Potongan: ${p.value} ${scopeBadge} ${autoBadge}
+                                    ${targetInfo}
+                                </div>
+                            </div>
+                        `;
+                        
+                        const btnGroup = document.createElement('div');
+                        btnGroup.style.display = 'flex';
+                        btnGroup.style.gap = '8px';
+                        btnGroup.style.width = '100%';
+                        
+                        btnGroup.innerHTML = `
+                            <button class="btn btn-secondary" style="padding:6px 12px; font-size:12px; flex:1;" onclick='editPosPromo("${key}", ${JSON.stringify(p).replace(/'/g, "&#39;")})'>Edit</button>
+                            <button class="btn btn-danger" style="padding:6px 12px; font-size:12px; flex:1;" onclick="requestDeletePromo('${key}')">Hapus</button>
+                        `;
+                        
+                        el.appendChild(btnGroup);
+                        list.appendChild(el);
+                    });
+                } else {
+                    list.innerHTML = '<p style="text-align: center; color: #6b7280; grid-column: 1 / -1;">Belum ada diskon untuk outlet ini.</p>';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

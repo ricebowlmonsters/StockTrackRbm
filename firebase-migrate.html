@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RBM Firebase Migration (Owner Only)</title>
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 18px; }
+    h1 { font-size: 18px; margin: 0 0 8px; }
+    .box { border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; margin-bottom: 12px; background: #fff; }
+    label { display:block; font-size: 12px; color:#374151; margin-top: 10px; margin-bottom: 6px; }
+    input { width: 320px; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 8px; }
+    .row { display:flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    button { padding: 10px 12px; border: 0; border-radius: 10px; background: #4C2A85; color: #fff; cursor:pointer; margin-top: 12px; }
+    button.secondary { background:#6b7280; }
+    button.danger { background:#dc2626; }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+    pre { background: #0b1220; color:#34d399; padding: 12px; border-radius: 12px; max-height: 320px; overflow:auto; }
+    .hint { font-size: 12px; color:#6b7280; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <h1>RBM Firebase Migration (Owner Only)</h1>
+  <div class="box">
+    <div style="font-size:13px; color:#374151;">
+      Skrip migrasi ini untuk merapikan struktur <code>rbm_pro</code> supaya dibaca cepat (per-outlet & per-bulan).
+      <br/>Sebelum menjalankan: <b>backup database</b> dulu (export JSON dari Firebase).
+    </div>
+    <div class="hint">
+      Fokus yang disediakan:
+      <code>rbm_pro/petty_cash</code> (flat → per-outlet) + <code>rbm_pro/petty_cash_index</code> (rebuild per bulan)
+      <br/>dan <code>rbm_pro/pembukuan</code> (flat → per-outlet).
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="row">
+      <div>
+        <label>Outlet ID (contoh: default, sidoarjo, trosobo)</label>
+        <input id="outlet" value="default"/>
+      </div>
+      <div>
+        <label>From Month (YYYY-MM)</label>
+        <input id="fromMonth"/>
+      </div>
+      <div>
+        <label>To Month (YYYY-MM)</label>
+        <input id="toMonth"/>
+      </div>
+    </div>
+
+    <div class="hint">
+      Disarankan pilih 1 bulan dulu agar aman & cepat.
+    </div>
+
+    <button onclick="migratePettyCashFlatToOutlet()" id="btnPettyCashMigrate">
+      Migrasi Petty Cash (flat → per-outlet)
+    </button>
+    <button class="secondary" onclick="rebuildPettyCashIndex()" id="btnPettyCashIndex">
+      Rebuild Petty Cash Index (per bulan)
+    </button>
+    <hr/>
+    <button class="secondary" onclick="rebuildPettyCashIndexAllOutlets()" id="btnPettyCashIndexAll">
+      Rebuild Petty Cash Index (SEMUA outlet)
+    </button>
+    <button class="danger" onclick="migratePembukuanFlatToOutlet()" id="btnPembukuanMigrate">
+      Migrasi Pembukuan (flat → per-outlet)
+    </button>
+  </div>
+
+  <div class="box">
+    <div style="font-size:13px; font-weight:600; margin-bottom: 8px;">Log</div>
+    <pre id="log"></pre>
+  </div>
+
+  <div class="box">
+    <div style="font-size:13px;font-weight:700;margin-bottom:6px;">Opsi Aman (disarankan)</div>
+    <label style="margin-top:0;">
+      <input type="checkbox" id="dryRun" checked />
+      Jalankan <b>DRY RUN</b> dulu (tidak menghapus/memindahkan data)
+    </label>
+    <label>
+      <input type="checkbox" id="confirmDeleteOld" />
+      Centang ini kalau kamu benar-benar ingin <b>hapus data lama</b> setelah migrasi berhasil
+    </label>
+    <div class="hint">
+      Flat data tidak bisa otomatis tahu outlet-nya. Karena itu, migrasi flat → per-outlet selalu butuh outlet yang kamu pilih.
+    </div>
+  </div>
+
+  <div class="box">
+    <div style="font-size:13px;font-weight:700;margin-bottom:6px;">Reset Database (Trial - Destruktif)</div>
+    <div class="hint" style="margin-top:0;">
+      Rekomendasi: <b>wipe rbm_pro saja</b> lalu import ulang data trial.
+      Jika kamu sudah yakin, baru wipe <b>ALL</b>.
+    </div>
+
+    <label style="margin-top:0;">
+      <input type="checkbox" id="resetDryRun" checked />
+      Jalankan reset dalam mode DRY RUN (tidak menghapus)
+    </label>
+    <label>
+      Ketik <b>I_UNDERSTAND</b> untuk konfirmasi reset destruktif
+      <input id="resetConfirmText" placeholder="I_UNDERSTAND" style="margin-top:6px;" />
+    </label>
+
+    <div class="row" style="margin-top:10px;">
+      <button class="secondary" onclick="wipeRbMPro()">Wipe rbm_pro (disarankan)</button>
+      <button class="danger" onclick="wipeAll()">Wipe ALL (/)</button>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <script>
+    const DEFAULT_FIREBASE_CONFIG = {
+      apiKey: 'AIzaSyDWQG53tP2zKILTwPSJQpiVzFNyvYLxLqw',
+      authDomain: 'ricebowlmonst.firebaseapp.com',
+      databaseURL: 'https://ricebowlmonst-default-rtdb.firebaseio.com',
+      projectId: 'ricebowlmonst',
+      storageBucket: 'ricebowlmonst.firebasestorage.app',
+      messagingSenderId: '723669558962',
+      appId: '1:723669558962:web:c17a1a4683a86cc5a88bab',
+      type: 'firebase'
+    };
+
+    function safeOutletKey(s) {
+      return String(s || '').trim().replace(/[.#$[\]]/g, '_') || 'default';
+    }
+
+    function fmtMonth(d) {
+      return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2);
+    }
+
+    (function initDefaults() {
+      const now = new Date();
+      const cur = fmtMonth(now);
+      const from = cur;
+      document.getElementById('fromMonth').value = from;
+      document.getElementById('toMonth').value = cur;
+    })();
+
+    function log(msg) {
+      const el = document.getElementById('log');
+      el.textContent += msg + "\\n";
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function getActiveFirebaseConfig() {
+      try {
+        const stored = localStorage.getItem('rbm_db_connections');
+        const activeIdx = parseInt(localStorage.getItem('rbm_active_connection_index') || '0', 10);
+        const conns = stored ? JSON.parse(stored) : [];
+        if (!conns.length) return DEFAULT_FIREBASE_CONFIG;
+        const pick = conns[Math.min(Math.max(activeIdx, 0), conns.length - 1)] || conns[0];
+        if (pick && pick.config && pick.config.type === 'firebase') return pick.config;
+      } catch (e) {}
+      return DEFAULT_FIREBASE_CONFIG;
+    }
+
+    function ensureFirebase() {
+      const cfg = getActiveFirebaseConfig();
+      if (!window.firebase) throw new Error('Firebase SDK not loaded');
+      if (!firebase.apps.length) firebase.initializeApp(cfg);
+      return firebase.database();
+    }
+
+    function assertOwner() {
+      const u = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+      const role = u.role || '';
+      const username = (u.username || '').toString().toLowerCase();
+      if (!(role === 'owner' || username === 'burhan')) {
+        throw new Error('Akses ditolak: hanya Owner/Developer yang boleh migrasi.');
+      }
+    }
+
+    function monthRange(fromMonth, toMonth) {
+      // fromMonth/toMonth: YYYY-MM
+      const [fy, fm] = fromMonth.split('-').map(x => parseInt(x, 10));
+      const [ty, tm] = toMonth.split('-').map(x => parseInt(x, 10));
+      const res = [];
+      const start = new Date(fy, fm - 1, 1);
+      const end = new Date(ty, tm - 1, 1);
+      for (let d = new Date(start.getTime()); d <= end; d.setMonth(d.getMonth() + 1)) {
+        res.push(fmtMonth(d));
+      }
+      return res;
+    }
+
+    function toDateKeyRange(month, dayStart, dayEnd) {
+      const [y, m] = month.split('-').map(x => parseInt(x, 10));
+      const start = y + '-' + ('0' + m).slice(-2) + '-' + ('0' + dayStart).slice(-2);
+      const end = y + '-' + ('0' + m).slice(-2) + '-' + ('0' + dayEnd).slice(-2);
+      return { start, end };
+    }
+
+    function isYyyyMmDd(k) {
+      return /^\d{4}-\d{2}-\d{2}$/.test(k);
+    }
+    function isYyyyMm(k) {
+      return /^\d{4}-\d{2}$/.test(k);
+    }
+
+    function getDryRun() {
+      return !!document.getElementById('dryRun').checked;
+    }
+
+    function getConfirmDeleteOld() {
+      return !!document.getElementById('confirmDeleteOld').checked;
+    }
+
+    async function safeUpdate(db, updates, label) {
+      const dry = getDryRun();
+      log((dry ? '[DRY RUN] ' : '') + 'Update: ' + label);
+      if (dry) return;
+      return db.ref().update(updates);
+    }
+
+    function requireResetConfirm() {
+      const phrase = (document.getElementById('resetConfirmText').value || '').trim();
+      if (phrase !== 'I_UNDERSTAND') throw new Error('Konfirmasi reset tidak valid. Ketik: I_UNDERSTAND');
+    }
+
+    function isResetDryRun() {
+      return !!document.getElementById('resetDryRun').checked;
+    }
+
+    async function wipePath(path) {
+      const db = ensureFirebase();
+      const dry = isResetDryRun();
+      requireResetConfirm();
+      log((dry ? '[DRY RUN] ' : '') + 'Wipe path: ' + path);
+      if (dry) return { removed: 0, path };
+      await db.ref(path).remove();
+      log('Selesai wipe: ' + path);
+      return { removed: 1, path };
+    }
+
+    async function wipeRbMPro() {
+      try {
+        await wipePath('rbm_pro');
+        alert('Selesai wipe rbm_pro. Silakan import ulang data trial.');
+      } catch (e) {
+        alert('ERROR: ' + (e && e.message ? e.message : String(e)));
+        log('ERROR: ' + (e && e.message ? e.message : String(e)));
+      }
+    }
+
+    async function wipeAll() {
+      try {
+        await wipePath('/');
+        alert('Selesai wipe ALL (/). Pastikan import ulang data lengkap.');
+      } catch (e) {
+        alert('ERROR: ' + (e && e.message ? e.message : String(e)));
+        log('ERROR: ' + (e && e.message ? e.message : String(e)));
+      }
+    }
+
+    async function migratePettyCashFlatToOutlet() {
+      try {
+        assertOwner();
+        const outlet = safeOutletKey(document.getElementById('outlet').value);
+        const fromMonth = document.getElementById('fromMonth').value;
+        const toMonth = document.getElementById('toMonth').value;
+        const db = ensureFirebase();
+
+        log('--- Migrasi Petty Cash flat -> per-outlet untuk outlet: ' + outlet);
+        log('Range: ' + fromMonth + ' s/d ' + toMonth);
+
+        const base = 'rbm_pro/petty_cash';
+        log('Baca ' + base + ' ...');
+        const snap = await db.ref(base).once('value');
+        const root = snap.val() || {};
+
+        // Cari tanggal flat di root yang match range
+        const dateKeys = Object.keys(root)
+          .filter(k => isYyyyMmDd(k))
+          .filter(k => k >= (fromMonth + '-01') && k <= (toMonth + '-31'))
+          .sort();
+
+        log('Tanggal flat ditemukan: ' + dateKeys.length);
+        if (!dateKeys.length) { log('Tidak ada yang dipindah.'); return; }
+
+        const updates = {};
+        let moved = 0;
+        for (const dateKey of dateKeys) {
+          // target node
+          updates[base + '/' + outlet + '/' + dateKey] = root[dateKey];
+          // hapus sumber (hanya kalau confirmDeleteOld dan tidak dry-run)
+          if (getConfirmDeleteOld()) updates[base + '/' + dateKey] = null;
+          moved++;
+        }
+
+        log('Menulis update pindah: ' + moved + ' tanggal ...');
+        await safeUpdate(db, updates, 'migratePettyCashFlatToOutlet (' + outlet + ')');
+        log('Selesai migrasi petty_cash flat untuk outlet ' + outlet);
+      } catch (e) {
+        log('ERROR: ' + (e && e.message ? e.message : String(e)));
+        alert('ERROR: ' + (e && e.message ? e.message : String(e)));
+      }
+    }
+
+    async function migratePembukuanFlatToOutlet() {
+      try {
+        assertOwner();
+        const outlet = safeOutletKey(document.getElementById('outlet').value);
+        const fromMonth = document.getElementById('fromMonth').value;
+        const toMonth = document.getElementById('toMonth').value;
+        const db = ensureFirebase();
+
+        log('--- Migrasi Pembukuan flat -> per-outlet untuk outlet: ' + outlet);
+        log('Range: ' + fromMonth + ' s/d ' + toMonth);
+
+        const base = 'rbm_pro/pembukuan';
+        log('Baca ' + base + ' ...');
+        const snap = await db.ref(base).once('value');
+        const root = snap.val() || {};
+
+        const dateKeys = Object.keys(root).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k))
+          .filter(k => k >= (fromMonth + '-01') && k <= (toMonth + '-31'))
+          .sort();
+
+        log('Tanggal flat ditemukan: ' + dateKeys.length);
+        if (!dateKeys.length) { log('Tidak ada yang dipindah.'); return; }
+
+        const updates = {};
+        let moved = 0;
+        for (const dateKey of dateKeys) {
+          updates[base + '/' + outlet + '/' + dateKey] = root[dateKey];
+          if (getConfirmDeleteOld()) updates[base + '/' + dateKey] = null;
+          moved++;
+        }
+
+        log('Menulis update pindah: ' + moved + ' tanggal ...');
+        await safeUpdate(db, updates, 'migratePembukuanFlatToOutlet (' + outlet + ')');
+        log('Selesai migrasi pembukuan flat untuk outlet ' + outlet);
+      } catch (e) {
+        log('ERROR: ' + (e && e.message ? e.message : String(e)));
+        alert('ERROR: ' + (e && e.message ? e.message : String(e)));
+      }
+    }
+
+    async function rebuildPettyCashIndex() {
+      try {
+        assertOwner();
+        const outlet = safeOutletKey(document.getElementById('outlet').value);
+        const fromMonth = document.getElementById('fromMonth').value;
+        const toMonth = document.getElementById('toMonth').value;
+        const db = ensureFirebase();
+
+        log('--- Rebuild Petty Cash Index untuk outlet: ' + outlet);
+        log('Range bulan: ' + fromMonth + ' s/d ' + toMonth);
+
+        const months = monthRange(fromMonth, toMonth);
+        const pettyBase = 'rbm_pro/petty_cash/' + outlet;
+        const idxBase = 'rbm_pro/petty_cash_index/' + outlet;
+
+        // optional: hapus index month dulu (hanya dry-run yang tidak menghapus)
+        for (const ym of months) {
+          log('Reset index bulan: ' + ym);
+          if (!getDryRun()) await db.ref(idxBase + '/' + ym).set(null);
+        }
+
+        for (const ym of months) {
+          // ambil data petty cash per bulan
+          log('Ambil petty_cash bulan: ' + ym);
+          const [yy, mm] = ym.split('-').map(x => parseInt(x, 10));
+          const endDay = new Date(yy, mm, 0).getDate();
+          const start = ym + '-01';
+          const end = ym + '-' + ('0' + endDay).slice(-2);
+
+          const snap = await db.ref(pettyBase).orderByKey().startAt(start).endAt(end).once('value');
+          const outletNode = snap.val() || {};
+
+          const updates = {};
+          let count = 0;
+          const dateKeys = Object.keys(outletNode).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
+
+          for (const dateKey of dateKeys) {
+            const node = outletNode[dateKey] || {};
+            let tx = [];
+            if (Array.isArray(node.transactions)) tx = node.transactions;
+            else if (node.transactions && typeof node.transactions === 'object') tx = Object.values(node.transactions);
+
+            for (let i = 0; i < tx.length; i++) {
+              const r = tx[i] || {};
+              const key = dateKey + '_' + i;
+              const entry = {
+                tanggal: dateKey,
+                nama: (r.nama || '').toString(),
+                jumlah: r.jumlah,
+                satuan: r.satuan || '',
+                harga: r.harga,
+                debit: Number(r.debit ?? r.keluar ?? 0) || 0,
+                kredit: Number(r.kredit ?? r.masuk ?? 0) || 0,
+                refDate: dateKey,
+                refIndex: i
+              };
+              updates[`${idxBase}/${ym}/${key}`] = entry;
+              count++;
+            }
+          }
+
+          log('Menulis ' + count + ' index item untuk bulan ' + ym);
+          const keys = Object.keys(updates);
+          const chunk = 500;
+          for (let p = 0; p < keys.length; p += chunk) {
+            const part = {};
+            for (let j = p; j < Math.min(keys.length, p + chunk); j++) part[keys[j]] = updates[keys[j]];
+              if (!getDryRun()) await db.ref().update(part);
+          }
+          log('Selesai bulan ' + ym);
+        }
+
+        log('Selesai rebuild petty_cash_index.');
+        alert('Selesai rebuild petty_cash_index untuk outlet ' + outlet);
+      } catch (e) {
+        log('ERROR: ' + (e && e.message ? e.message : String(e)));
+        alert('ERROR: ' + (e && e.message ? e.message : String(e)));
+      }
+    }
+
+    // Rebuild index untuk semua outlet yang terdeteksi dari rbm_pro/petty_cash/*
+    async function rebuildPettyCashIndexAllOutlets() {
+      try {
+        assertOwner();
+        const fromMonth = document.getElementById('fromMonth').value;
+        const toMonth = document.getElementById('toMonth').value;
+        if (!isYyyyMm(fromMonth) || !isYyyyMm(toMonth)) {
+          alert('From Month dan To Month wajib format YYYY-MM');
+          return;
+        }
+        const db = ensureFirebase();
+        const base = 'rbm_pro/petty_cash';
+
+        log('--- Deteksi outlet dari ' + base);
+        const snap = await db.ref(base).once('value');
+        const root = snap.val() || {};
+        const outlets = Object.keys(root).filter(k => !isYyyyMmDd(k));
+        if (!outlets.length) {
+          alert('Tidak ada outlet terdeteksi (kemungkinan data flat). Gunakan migrasi flat -> per-outlet untuk outlet tertentu.');
+          return;
+        }
+
+        log('Outlet terdeteksi: ' + outlets.join(', '));
+        const months = monthRange(fromMonth, toMonth);
+
+        for (const outletRaw of outlets) {
+          const outlet = safeOutletKey(outletRaw);
+          log('======================================');
+          log('Rebuild index untuk outlet: ' + outlet);
+          const idxBase = 'rbm_pro/petty_cash_index/' + outlet;
+          for (const ym of months) {
+            log('Reset index bulan: ' + ym);
+            if (!getDryRun()) await db.ref(idxBase + '/' + ym).set(null);
+          }
+
+          const pettyBase = 'rbm_pro/petty_cash/' + outlet;
+          for (const ym of months) {
+            log('Ambil petty_cash bulan: ' + ym);
+            const [yy, mm] = ym.split('-').map(x => parseInt(x, 10));
+            const endDay = new Date(yy, mm, 0).getDate();
+            const start = ym + '-01';
+            const end = ym + '-' + ('0' + endDay).slice(-2);
+
+            const ss = await db.ref(pettyBase).orderByKey().startAt(start).endAt(end).once('value');
+            const outletNode = ss.val() || {};
+
+            const updates = {};
+            let count = 0;
+
+            const dateKeys = Object.keys(outletNode).filter(k => isYyyyMmDd(k)).sort();
+            for (const dateKey of dateKeys) {
+              const node = outletNode[dateKey] || {};
+              let tx = [];
+              if (Array.isArray(node.transactions)) tx = node.transactions;
+              else if (node.transactions && typeof node.transactions === 'object') tx = Object.values(node.transactions);
+
+              for (let i = 0; i < tx.length; i++) {
+                const r = tx[i] || {};
+                const key = dateKey + '_' + i;
+                updates[`${idxBase}/${ym}/${key}`] = {
+                  tanggal: dateKey,
+                  nama: (r.nama || '').toString(),
+                  jumlah: r.jumlah,
+                  satuan: r.satuan || '',
+                  harga: r.harga,
+                  debit: Number(r.debit ?? r.keluar ?? 0) || 0,
+                  kredit: Number(r.kredit ?? r.masuk ?? 0) || 0,
+                  refDate: dateKey,
+                  refIndex: i
+                };
+                count++;
+              }
+            }
+
+            log('Menulis ' + count + ' index item untuk bulan ' + ym);
+            const keys = Object.keys(updates);
+            const chunk = 500;
+            for (let p = 0; p < keys.length; p += chunk) {
+              if (getDryRun()) break;
+              const part = {};
+              for (let j = p; j < Math.min(keys.length, p + chunk); j++) part[keys[j]] = updates[keys[j]];
+              await db.ref().update(part);
+            }
+            if (getDryRun()) log('[DRY RUN] Skip menulis karena dryRun=true');
+          }
+        }
+
+        log('Selesai rebuild petty_cash_index untuk semua outlet');
+        alert('Selesai rebuild index untuk semua outlet');
+      } catch (e) {
+        log('ERROR: ' + (e && e.message ? e.message : String(e)));
+        alert('ERROR: ' + (e && e.message ? e.message : String(e)));
+      }
+    }
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,7 @@
+# Jangan deploy sebagai serverless - hanya file statis
+node_modules
+print-bridge.js
+*.log
+.env
+.env.*
+.git

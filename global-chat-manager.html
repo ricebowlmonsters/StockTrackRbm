@@ -1,0 +1,241 @@
+<!-- c:\Users\RUFINA\Documents\Koding\Projek Kasir\wep app kasir\global-chat-manager.html -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelola Community Chat - RBM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px; color: #374151; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .header h1 { margin: 0; color: #4C2A85; font-size: 24px; }
+        .btn { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; text-decoration: none; display: inline-block; }
+        .btn-secondary { background: #e5e7eb; color: #374151; }
+        .btn-danger { background-color: #ef4444; color: white; padding: 6px 12px; font-size: 12px; }
+        
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 20px; }
+        
+        .chat-list { display: flex; flex-direction: column; gap: 12px; }
+        .chat-item { background: white; border-radius: 12px; padding: 16px; border: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: flex-start; }
+        .chat-content { flex: 1; }
+        .chat-sender { font-weight: 700; font-size: 14px; color: #4C2A85; margin-bottom: 4px; }
+        .chat-text { font-size: 14px; color: #374151; line-height: 1.4; white-space: pre-wrap; }
+        .chat-meta { font-size: 11px; color: #9ca3af; margin-top: 6px; }
+        
+        .empty-state { text-align: center; padding: 40px; color: #9ca3af; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>💬 Kelola Community Chat</h1>
+        <a href="customer-settings.html" class="btn btn-secondary">Kembali</a>
+    </div>
+
+    <!-- Menu Navigasi Halaman (Top) -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 20px;">
+        <a href="customer-settings.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">📱</span>
+            <span style="font-size: 11px; font-weight: 600;">Pengaturan Web</span>
+        </a>
+        <a href="customer-account-settings.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">⚙️</span>
+            <span style="font-size: 11px; font-weight: 600;">Halaman Akun</span>
+        </a>
+        <a href="ai-settings.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">🤖</span>
+            <span style="font-size: 11px; font-weight: 600;">AI Chatbot</span>
+        </a>
+        <a href="global-chat-manager.html" style="background: #eef2ff; border-color: #4C2A85; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #4C2A85; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #4C2A85; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">💬</span>
+            <span style="font-size: 11px; font-weight: 600;">Community Chat</span>
+        </a>
+        <a href="storage-viewer.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">💾</span>
+            <span style="font-size: 11px; font-weight: 600;">Data & Storage</span>
+        </a>
+    </div>
+
+    <!-- [BARU] Form Kirim Pengumuman -->
+    <div id="inputCard" class="card" style="margin-bottom: 20px; border-left: 5px solid #f59e0b;">
+        <h3 style="margin-top: 0; color: #4C2A85;">💬 Kirim Pesan</h3>
+        <div id="replyIndicator" style="display:none; background:#fffbeb; padding:8px; border-left:3px solid #d97706; margin-bottom:10px; border-radius:4px; font-size:13px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="color:#b45309;">Membalas: <b id="replyToSender">Name</b></span>
+                <button onclick="cancelReply()" style="border:none; background:none; cursor:pointer; color:#ef4444; font-weight:bold;">✕ Batal</button>
+            </div>
+            <div id="replyToText" style="color:#6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top:4px;">Message text...</div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="messageInput" style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-family: inherit;" placeholder="Tulis pesan untuk semua user...">
+            <button onclick="sendMessage()" class="btn" style="background-color: #4C2A85; color: white;">Kirim</button>
+        </div>
+    </div>
+    <div id="loginWarning" class="card" style="display:none; text-align:center; color:#d97706; border-left: 5px solid #f59e0b; margin-bottom: 20px;">
+        <p style="margin:0;">🔒 Anda harus <b>Login</b> untuk mengirim pesan/pengumuman.</p>
+    </div>
+
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0;">Daftar Pesan Komunitas</h3>
+            <button onclick="deleteAllChat()" class="btn btn-danger" style="background-color: #dc2626;">Hapus Semua</button>
+        </div>
+        <div id="chatList" class="chat-list">
+            <div class="empty-state">Memuat pesan...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyDWQG53tP2zKILTwPSJQpiVzFNyvYLxLqw",
+        authDomain: "ricebowlmonst.firebaseapp.com",
+        databaseURL: "https://ricebowlmonst-default-rtdb.firebaseio.com",
+        projectId: "ricebowlmonst",
+        storageBucket: "ricebowlmonst.firebasestorage.app",
+        messagingSenderId: "723669558962",
+        appId: "1:723669558962:web:c17a1a4683a86cc5a88bab"
+    };
+    
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const chatRef = db.ref('global_chat');
+
+    let currentReply = null;
+    let allChatMessages = {}; // [BARU] Simpan semua pesan untuk referensi reply
+    let appName = ''; // [DIUBAH] Hapus default, inisialisasi kosong
+
+    // [BARU] Ambil nama aplikasi dari pengaturan Firebase
+    db.ref('customer_app_settings/account_page/title').on('value', snapshot => {
+        appName = snapshot.val() || ''; // Ambil dari Firebase, jika kosong ya kosong
+        console.log('Nama aplikasi diatur ke:', appName);
+    });
+
+    // Cek Status Login
+    const user = JSON.parse(localStorage.getItem('rbm_user'));
+    
+    if (!user) {
+        // Jika tidak login: Sembunyikan form input & tombol hapus semua
+        document.getElementById('inputCard').style.display = 'none';
+        document.getElementById('loginWarning').style.display = 'block';
+        document.querySelector('button[onclick="deleteAllChat()"]').style.display = 'none';
+    }
+
+    // Load Data (Ambil 100 pesan terakhir)
+    chatRef.limitToLast(100).on('value', (snapshot) => {
+        const data = snapshot.val();
+        allChatMessages = data || {}; // [BARU] Update data global
+        const list = document.getElementById('chatList');
+        list.innerHTML = '';
+
+        if (data) {
+            // Convert object ke array dan balik urutan agar pesan terbaru di atas
+            const messages = Object.entries(data).map(([key, val]) => ({ key, ...val })).reverse();
+            
+            messages.forEach(msg => {
+                const date = new Date(msg.timestamp).toLocaleString('id-ID');
+                const el = document.createElement('div');
+                el.className = 'chat-item';
+                
+                // [BARU] Style khusus jika pesan adalah pengumuman
+                if (msg.isAnnouncement) {
+                    el.style.backgroundColor = '#fffbeb';
+                    el.style.borderColor = '#fcd34d';
+                }
+
+                el.innerHTML = `
+                    <div class="chat-content">
+                        ${msg.replyTo ? `
+                        <div style="background:#f3f4f6; border-left:3px solid #ccc; padding:4px 8px; margin-bottom:6px; font-size:12px; color:#666; border-radius:4px;">
+                            <strong>${msg.replyTo.sender}</strong>: ${msg.replyTo.text}
+                        </div>` : ''}
+                        <div class="chat-sender">${msg.isAnnouncement ? '📢 ' : ''}${msg.sender || 'Guest'} <span style="font-weight:400; color:#6b7280; font-size:12px;">(${msg.phone || '-'})</span></div>
+                        <div class="chat-text" style="${msg.isAnnouncement ? 'font-weight:600; color:#b45309;' : ''}">${msg.text}</div>
+                        <div class="chat-meta"></div>
+                        ${msg.isPinned ? '<div style="font-size:10px; color:#d97706; margin-top:4px; font-weight:bold;">📌 Tersemat</div>' : ''}
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:4px; margin-left:8px;">
+                        ${user ? `<button onclick="replyChat('${msg.key}')" class="btn" style="background-color:#3b82f6; color:white; padding:4px 8px; font-size:11px;">Balas</button>` : ''}
+                        ${user ? `<button onclick="togglePin('${msg.key}', ${msg.isPinned || false})" class="btn" style="background-color:${msg.isPinned ? '#4b5563' : '#f59e0b'}; color:white; padding:4px 8px; font-size:11px;">${msg.isPinned ? 'Unpin' : 'Pin'}</button>` : ''}
+                        ${user ? `<button onclick="deleteChat('${msg.key}')" class="btn btn-danger" style="padding:4px 8px; font-size:11px;">Hapus</button>` : ''}
+                    </div>
+                `;
+                list.appendChild(el);
+            });
+        } else {
+            list.innerHTML = '<div class="empty-state">Belum ada pesan di Community Chat.</div>';
+        }
+    });
+
+    // [DIUBAH] Fungsi Kirim Pesan (sebelumnya sendAnnouncement)
+    function sendMessage() {
+        const user = JSON.parse(localStorage.getItem('rbm_user'));
+        if (!user) return alert('Akses ditolak. Harap login terlebih dahulu.');
+
+        const input = document.getElementById('messageInput');
+        const text = input.value.trim();
+        if (!text) return alert('Pesan tidak boleh kosong.');
+
+        const messageData = {
+            text: text,
+            sender: appName, // [DIUBAH] Menggunakan nama aplikasi dari pengaturan
+            phone: 'admin', // Gunakan 'admin' untuk menandai pesan dari panel ini
+            isAnnouncement: true, // Tandai sebagai pengumuman agar tampil beda
+            replyTo: currentReply, // Sertakan data reply jika ada
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        chatRef.push(messageData).then(() => {
+            input.value = '';
+            cancelReply(); // Reset reply setelah kirim
+            // alert('Pengumuman berhasil dikirim!');
+        });
+    }
+
+    function replyChat(key) {
+        const msg = allChatMessages[key];
+        if (!msg) return;
+        
+        const sender = msg.sender || 'Guest';
+        const text = msg.text || '';
+        
+        currentReply = { key, sender, text };
+        document.getElementById('replyToSender').textContent = sender;
+        document.getElementById('replyToText').textContent = text;
+        document.getElementById('replyIndicator').style.display = 'block';
+        document.getElementById('messageInput').focus();
+        document.getElementById('messageInput').placeholder = `Balas pesan ${sender}...`;
+    }
+
+    function cancelReply() {
+        currentReply = null;
+        document.getElementById('replyIndicator').style.display = 'none';
+        document.getElementById('messageInput').placeholder = "Tulis pesan untuk semua user...";
+    }
+
+    function togglePin(key, currentStatus) {
+        chatRef.child(key).update({ isPinned: !currentStatus });
+    }
+
+    function deleteChat(key) {
+        if(confirm('Hapus pesan ini?')) {
+            chatRef.child(key).remove();
+        }
+    }
+
+    function deleteAllChat() {
+        if(confirm('Yakin ingin menghapus SEMUA pesan? Tindakan ini tidak dapat dibatalkan.')) {
+            chatRef.remove();
+        }
+    }
+</script>
+
+</body>
+</html>

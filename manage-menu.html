@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kelola Menu - RBM</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Specific styles for menu management */
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 900px) {
+      .menu-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 600px) {
+      .menu-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .menu-item-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+    }
+    .menu-img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+    }
+    .menu-details {
+      padding: 10px;
+      flex-grow: 1;
+    }
+    .menu-name {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    .menu-price {
+      color: #4C2A85;
+      font-weight: 700;
+    }
+    .menu-category {
+      font-size: 12px;
+      color: #6b7280;
+      background: #f3f4f6;
+      padding: 2px 8px;
+      border-radius: 10px;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+    .menu-actions {
+      padding: 12px;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      gap: 8px;
+    }
+    .menu-actions button {
+      flex: 1;
+      padding: 6px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    /* Modal styles override or addition */
+    .form-group label {
+        font-size: 14px;
+    }
+    .preview-img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-top: 8px;
+        display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <a href="index.html" class="back-btn">‹</a>
+      <h1 class="page-title">Kelola Menu</h1>
+    </header>
+    <main class="content">
+      <!-- [BARU] Selector Outlet untuk Menu Berbeda Tiap Outlet -->
+      <section class="card" style="margin-bottom: 20px; padding: 16px;">
+           <select id="outlet-selector" class="form-input" style="width: auto; display: inline-block;"></select>
+      </section>
+
+      <!-- [BARU] Bagian Kelola Kategori -->
+      <section class="card" style="margin-bottom: 20px;">
+          <h3 class="card-title">Kelola Kategori (<span id="cat-outlet-name">-</span>)</h3>
+          <div id="category-list-container" style="margin-bottom: 16px;">
+              <!-- Daftar kategori akan dimuat di sini oleh JS -->
+          </div>
+          <form id="category-form" style="display: flex; gap: 10px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+              <input type="text" id="new-category-emoji" placeholder="Ikon (cth: 🔥)" style="width: 100px;" class="form-input">
+              <input type="text" id="new-category-name" placeholder="Nama Kategori Baru" required class="form-input" style="flex-grow: 1;">
+              <button type="submit" class="btn btn-secondary" style="width: auto;">Tambah</button>
+          </form>
+      </section>
+      <section class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 class="card-title" style="margin:0;">Daftar Menu</h3>
+            <button id="btn-add-menu" class="btn btn-primary" style="width:auto;">+ Tambah Menu</button>
+        </div>
+        
+        <div id="loading-indicator" class="text-center" style="padding:20px;">Memuat menu...</div>
+        <div id="menu-list" class="menu-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal Form -->
+  <div id="menu-modal" class="modal-overlay">
+    <div class="modal">
+      <h3 class="modal-title" id="modal-title">Tambah Menu</h3>
+      <form id="menu-form">
+        <input type="hidden" id="menu-id">
+        
+        <div class="form-group">
+            <label class="form-label" for="inp-name">Nama Menu</label>
+            <input type="text" id="inp-name" class="form-input" required placeholder="Contoh: Nasi Goreng">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="inp-category">Kategori</label>
+            <select id="inp-category" class="form-input">
+                <!-- Opsi akan dimuat oleh JavaScript -->
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="inp-price">Harga (Rp)</label>
+            <input type="number" id="inp-price" class="form-input" required placeholder="15000">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="inp-desc">Deskripsi Menu</label>
+            <textarea id="inp-desc" class="form-input" rows="3" placeholder="Deskripsi singkat menu..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="inp-image-file">Gambar Menu (Upload)</label>
+            <input type="file" id="inp-image-file" class="form-input" accept="image/*">
+            <input type="hidden" id="inp-image-base64">
+            <img id="img-preview" class="preview-img" alt="Preview">
+        </div>
+
+        <div class="form-group">
+            <div class="form-label">Status Publikasi</div>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" id="btn-active-true" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #e5e7eb; cursor: pointer; font-weight: 600;">Aktif</button>
+                <button type="button" id="btn-active-false" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #e5e7eb; cursor: pointer; font-weight: 600;">Non-Aktif</button>
+            </div>
+            <input type="hidden" id="inp-active" value="true">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="inp-available">Status Stok</label>
+            <select id="inp-available" class="form-input">
+                <option value="true">Tersedia</option>
+                <option value="false">Habis</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <div class="form-label">Pengaturan Promo</div>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px; padding:8px; background:#f9fafb; border-radius:6px; border:1px solid #e5e7eb;">
+                <input type="checkbox" id="inp-promo-eligible" checked style="width:18px; height:18px;">
+                <span>Bisa kena Diskon / Promo?</span>
+            </label>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="inp-printer">Cetak ke Printer</label>
+            <select id="inp-printer" class="form-input">
+                <option value="">-- Tidak dikirim ke printer --</option>
+                <!-- Opsi printer dimuat dari Pengaturan Kelompok Printer -->
+            </select>
+            <p style="font-size: 11px; color: #6b7280; margin-top: 4px;">Pilih printer untuk slip pesanan item ini (atur daftar printer di Pengaturan).</p>
+        </div>
+
+        <div class="modal-actions">
+            <button type="button" id="btn-cancel" class="btn btn-secondary">Batal</button>
+            <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+        <div style="margin-top:10px; text-align:center;">
+             <button type="button" id="btn-delete" class="btn" style="background:#fee2e2; color:#dc2626; border:none; display:none;">Hapus Menu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="custom-ui.js"></script>
+  <script src="firebase-storage.js"></script>
+  <script>
+    // Firebase Config
+    // [DIUBAH] Gunakan initRbmDB dari custom-ui.js
+    const db = initRbmDB();
+
+    // [DIUBAH] productsRef akan dinamis berdasarkan outlet
+    let productsRef = null; 
+    let categoriesRef = null;
+
+    // UI Elements
+    const menuList = document.getElementById('menu-list');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const modal = document.getElementById('menu-modal');
+    const form = document.getElementById('menu-form');
+    const btnAdd = document.getElementById('btn-add-menu');
+    const btnCancel = document.getElementById('btn-cancel');
+    const btnDelete = document.getElementById('btn-delete');
+    const imgFileInput = document.getElementById('inp-image-file');
+    const imgBase64Input = document.getElementById('inp-image-base64');
+    const imgPreview = document.getElementById('img-preview');
+    
+    // [BARU] Logic Tombol Aktif/Non-Aktif
+    const btnActiveTrue = document.getElementById('btn-active-true');
+    const btnActiveFalse = document.getElementById('btn-active-false');
+    const inpActive = document.getElementById('inp-active');
+    const outletSelector = document.getElementById('outlet-selector');
+
+    // [BARU] Inisialisasi Outlet dan Role
+    function initOutletSelection() {
+        const user = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+        const role = user.role || 'staff';
+        const userOutlet = user.outlet;
+        
+        // Ambil daftar outlet dari localStorage (disimpan oleh settings.html)
+        let outlets = JSON.parse(localStorage.getItem('rbm_outlets') || '[]');
+        if (!Array.isArray(outlets) || outlets.length === 0) outlets = ['sidoarjo', 'surabaya'];
+        const outletNames = JSON.parse(localStorage.getItem('rbm_outlet_names') || '{}');
+        
+        outletSelector.innerHTML = '';
+        outlets.forEach(outlet => {
+            if (typeof outlet !== 'string') outlet = String(outlet.id || outlet);
+            if (!outlet) return;
+            const opt = document.createElement('option');
+            opt.value = outlet;
+            opt.textContent = outletNames[outlet] || (outlet.charAt(0).toUpperCase() + outlet.slice(1));
+            outletSelector.appendChild(opt);
+        });
+
+        // [BARU] Sembunyikan bagian selector jika hanya 1 outlet (Mode Offline)
+        try {
+            if (outlets.length === 1 || (typeof isRbmOfflineMode === 'function' && isRbmOfflineMode())) {
+                const section = outletSelector.closest('section');
+                if (section) section.style.display = 'none';
+            }
+        } catch(e) {}
+
+        // Logika Role
+        if (role === 'manager') {
+            // Manager terkunci di outletnya
+            outletSelector.value = userOutlet;
+            outletSelector.disabled = true;
+        } else if (role === 'owner') {
+            // Owner bebas pilih, default ke yang pertama atau yang tersimpan
+            const savedOutlet = localStorage.getItem('rbm_manage_menu_outlet');
+            if (savedOutlet && outlets.includes(savedOutlet)) {
+                outletSelector.value = savedOutlet;
+            }
+        }
+
+        // Load data berdasarkan outlet terpilih
+        loadDataForOutlet(outletSelector.value);
+
+        // Listener perubahan outlet (hanya owner yang bisa ubah)
+        outletSelector.addEventListener('change', () => {
+            localStorage.setItem('rbm_manage_menu_outlet', outletSelector.value);
+            loadDataForOutlet(outletSelector.value);
+        });
+    }
+
+    function loadDataForOutlet(outlet) {
+        // Update referensi Firebase
+        productsRef = db.ref(`products/${outlet}`);
+        categoriesRef = db.ref(`categories/${outlet}`);
+        
+        // [BARU] Update Label Nama Outlet agar tidak bingung
+        document.getElementById('cat-outlet-name').textContent = outlet.toUpperCase();
+        
+        // Reset UI
+        menuList.innerHTML = '<div class="text-center" style="padding:20px;">Memuat menu...</div>';
+        
+        // Setup Listeners baru
+        setupFirebaseListeners();
+    }
+
+    function updateActiveToggleUI(isActive) {
+        const isTrue = String(isActive) === 'true';
+        inpActive.value = isTrue ? 'true' : 'false';
+        
+        if (isTrue) {
+            btnActiveTrue.style.background = '#dcfce7'; // Hijau muda
+            btnActiveTrue.style.color = '#166534';
+            btnActiveTrue.style.borderColor = '#bbf7d0';
+            
+            btnActiveFalse.style.background = '#f3f4f6';
+            btnActiveFalse.style.color = '#6b7280';
+            btnActiveFalse.style.borderColor = '#e5e7eb';
+        } else {
+            btnActiveTrue.style.background = '#f3f4f6';
+            btnActiveTrue.style.color = '#6b7280';
+            btnActiveTrue.style.borderColor = '#e5e7eb';
+
+            btnActiveFalse.style.background = '#fee2e2'; // Merah muda
+            btnActiveFalse.style.color = '#991b1b';
+            btnActiveFalse.style.borderColor = '#fecaca';
+        }
+    }
+
+    btnActiveTrue.addEventListener('click', () => updateActiveToggleUI(true));
+    btnActiveFalse.addEventListener('click', () => updateActiveToggleUI(false));
+    
+    // Set default state
+    updateActiveToggleUI(true);
+
+    // --- [BARU] MANAJEMEN KATEGORI ---
+    const CATEGORIES_KEY = 'rbm_menu_categories';
+    const categoryListContainer = document.getElementById('category-list-container');
+    const categoryForm = document.getElementById('category-form');
+    const inpCategoryDropdown = document.getElementById('inp-category');
+
+    const defaultCategories = []; // [DIUBAH] Kosongkan default agar tidak muncul kategori otomatis saat reset
+
+    function getStoredCategories() {
+        const stored = localStorage.getItem(CATEGORIES_KEY);
+        if (stored) {
+            try {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed) && parsed.every(c => typeof c === 'object' && c.name && c.value)) {
+                    return parsed;
+                }
+            } catch (e) {
+                console.error("Gagal mem-parsing kategori dari localStorage", e);
+            }
+        }
+        localStorage.setItem(CATEGORIES_KEY, JSON.stringify(defaultCategories));
+        return defaultCategories;
+    }
+    
+    function saveCategories(categories) {
+        // [DIUBAH] Simpan ke Firebase agar sinkron dengan aplikasi customer
+        if(categoriesRef) categoriesRef.set(categories);
+    }
+
+    function renderCategoryList() {
+        const categories = getStoredCategories();
+        if (!categoryListContainer) return;
+
+        categoryListContainer.innerHTML = categories.length === 0
+            ? '<p class="muted" style="text-align:center;">Belum ada kategori.</p>'
+            : `<div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                ${categories.map(cat => `
+                    <div style="background: #f3f4f6; padding: 6px 10px; border-radius: 16px; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                        <span>${cat.emoji || ''} ${cat.name}</span>
+                        <button class="btn-delete-category" data-value="${cat.value}" style="background:none; border:none; color:red; cursor:pointer; font-size: 14px; padding:0 4px; line-height:1;">&times;</button>
+                    </div>
+                `).join('')}
+            </div>`;
+    }
+
+    function populateCategoryDropdown() {
+        const categories = getStoredCategories();
+        if (!inpCategoryDropdown) return;
+        inpCategoryDropdown.innerHTML = categories.map(cat =>
+            `<option value="${cat.value}">${cat.emoji || ''} ${cat.name}</option>`
+        ).join('');
+    }
+
+    // [DIUBAH] Fungsi ini sekarang dipanggil oleh listener Firebase
+    function loadCategoriesAndRender() {
+        // Tidak perlu melakukan apa-apa di sini karena listener akan menanganinya
+    }
+
+    // [BARU] Listener untuk sinkronisasi kategori realtime
+    function setupFirebaseListeners() {
+        // Detach old listeners if any
+        categoriesRef.off();
+        productsRef.off();
+
+        categoriesRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            let categories = [];
+            if (data) {
+                categories = Array.isArray(data) ? data : Object.values(data);
+            } else {
+                // [DIUBAH] Jangan otomatis restore default jika kosong. Biarkan kosong agar user bisa hapus semua.
+                categories = []; 
+            }
+            localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
+            renderCategoryList();
+            populateCategoryDropdown();
+        });
+
+    // [BARU] Simpan status kategori yang terbuka agar tidak tertutup saat refresh data
+    const expandedCategories = new Set();
+
+    // Load Data
+    productsRef.on('value', (snapshot) => {
+        loadingIndicator.style.display = 'none';
+        menuList.innerHTML = '';
+        menuList.classList.remove('menu-grid'); // Hapus grid dari container utama agar bisa menampung section
+
+        const data = snapshot.val();
+        
+        if (!data) {
+            menuList.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#6b7280;">Belum ada menu.</p>';
+            return;
+        }
+
+        // 1. Kelompokkan menu berdasarkan kategori
+        const groupedMenu = {};
+        Object.keys(data).forEach(key => {
+            const item = data[key];
+            const category = item.category || 'Lainnya';
+            if (!groupedMenu[category]) {
+                groupedMenu[category] = [];
+            }
+            groupedMenu[category].push({ id: key, ...item });
+        });
+
+        // 2. Urutkan kategori sesuai pengaturan (agar sama dengan dropdown)
+        const storedCategories = getStoredCategories();
+        const sortedCategories = Object.keys(groupedMenu).sort((a, b) => {
+            const indexA = storedCategories.findIndex(c => c.value === a);
+            const indexB = storedCategories.findIndex(c => c.value === b);
+            // Jika kategori tidak ada di pengaturan, taruh di akhir
+            return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+        });
+
+        // 3. Render setiap kategori dalam section terpisah
+        sortedCategories.forEach(catKey => {
+            const catInfo = storedCategories.find(c => c.value === catKey);
+            const catDisplayName = catInfo ? `${catInfo.emoji || ''} ${catInfo.name}` : catKey;
+
+            const section = document.createElement('div');
+            section.style.marginBottom = '30px';
+            
+            // [BARU] Header dengan toggle collapse
+            const header = document.createElement('div');
+            header.style.cssText = 'display: flex; justify-content: flex-start; align-items: center; gap: 10px; cursor: pointer; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 12px; user-select: none;';
+            header.innerHTML = `
+                <span class="toggle-icon" style="font-size: 14px; color: #6b7280; transition: transform 0.2s; transform: rotate(-90deg);">▼</span>
+                <h4 style="font-size: 18px; font-weight: 700; color: #374151; margin: 0;">${catDisplayName}</h4>
+            `;
+            
+            const grid = document.createElement('div');
+            grid.className = 'menu-grid'; // Gunakan class grid yang sudah ada untuk layout kartu
+            // [DIUBAH] Cek apakah kategori ini sebelumnya terbuka
+            grid.style.display = expandedCategories.has(catKey) ? 'grid' : 'none';
+            
+            groupedMenu[catKey].forEach(item => {
+                const card = createCard(item.id, item);
+                grid.appendChild(card);
+            });
+
+            // Event Listener untuk Toggle
+            header.addEventListener('click', () => {
+                const isExpanded = grid.style.display === 'none';
+                grid.style.display = isExpanded ? 'grid' : 'none';
+                const icon = header.querySelector('.toggle-icon');
+                if (icon) icon.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)';
+                
+                // [BARU] Simpan status ke Set global
+                if (isExpanded) expandedCategories.add(catKey);
+                else expandedCategories.delete(catKey);
+            });
+
+            // [BARU] Set rotasi icon awal sesuai status
+            const icon = header.querySelector('.toggle-icon');
+            if (icon && expandedCategories.has(catKey)) {
+                icon.style.transform = 'rotate(0deg)';
+            }
+
+            section.appendChild(header);
+            section.appendChild(grid);
+            menuList.appendChild(section);
+        });
+    });
+    } // End setupFirebaseListeners
+
+    if (categoryForm) {
+        categoryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('new-category-name').value.trim();
+            const emoji = document.getElementById('new-category-emoji').value.trim();
+            if (!name) return CustomUI.alert('Nama kategori tidak boleh kosong.');
+
+            const value = name.toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/-$/, '');
+            let categories = getStoredCategories();
+            if (categories.some(cat => cat.value === value)) return CustomUI.alert('Kategori tersebut sudah ada.');
+
+            categories.push({ value, name, emoji });
+            saveCategories(categories);
+            categoryForm.reset();
+        });
+    }
+
+    if (categoryListContainer) {
+        categoryListContainer.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('btn-delete-category')) {
+                const valueToDelete = e.target.dataset.value;
+                if (await CustomUI.confirm(`Yakin ingin menghapus kategori ini?`, 'Hapus Kategori', true)) {
+                    let categories = getStoredCategories().filter(cat => cat.value !== valueToDelete);
+                    saveCategories(categories);
+                }
+            }
+        });
+    }
+
+    // [BARU] Sinkronisasi Outlet dari Firebase (Dipindahkan ke Global Scope)
+    function syncOutletsFromFirebase() {
+        db.ref('customer_app_settings/outlets').once('value').then(snapshot => {
+            const outletsData = snapshot.val();
+            if (outletsData) {
+                const outletsList = Array.isArray(outletsData) ? outletsData : Object.values(outletsData).filter(i => i);
+                const outletIds = outletsList.map(o => o.id).filter(id => id);
+                if (outletIds.length > 0) {
+                    localStorage.setItem('rbm_outlets', JSON.stringify(outletIds));
+                    initOutletSelection();
+                }
+            }
+        });
+    }
+
+    function createCard(id, item) {
+        const card = document.createElement('div');
+        card.className = 'menu-item-card';
+        
+        // [DIPERBAIKI] Gunakan Data URI untuk placeholder agar tidak error saat offline
+        const imgSrc = item.image || 'data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22300%22%20height%3D%22200%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20300%20200%22%20preserveAspectRatio%3D%22none%22%3E%3Crect%20width%3D%22300%22%20height%3D%22200%22%20fill%3D%22%23eee%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20dy%3D%22.3em%22%20text-anchor%3D%22middle%22%20fill%3D%22%23aaa%22%20font-family%3D%22Arial%22%20font-size%3D%2220%22%3ENo%20Image%3C%2Ftext%3E%3C%2Fsvg%3E';
+        const statusBadge = item.available === false || item.available === 'false' 
+            ? '<span style="color:red; font-weight:bold;">(Habis)</span>' 
+            : '';
+        const activeBadge = item.is_active === false || item.is_active === 'false'
+            ? '<span style="color:white; background:#6b7280; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:4px;">Non-Aktif</span>'
+            : '';
+
+        const isActive = !(item.is_active === false || item.is_active === 'false');
+        const activeBtnStyle = isActive 
+            ? 'background:#dcfce7; color:#166534; border:1px solid #bbf7d0;' 
+            : 'background:#f3f4f6; color:#6b7280; border:1px solid #e5e7eb;';
+        const activeBtnText = isActive ? '👁️' : '🚫';
+
+        card.innerHTML = `
+            <img src="${imgSrc}" class="menu-img" alt="${item.name}">
+            <div class="menu-details">
+                <div class="menu-category">${item.category || 'Umum'}</div>
+                <div class="menu-name">${item.name} ${statusBadge} ${activeBadge}</div>
+                <div class="menu-price">Rp ${parseInt(item.price).toLocaleString('id-ID')}</div>
+            </div>
+            <div class="menu-actions">
+                <button class="btn" style="${activeBtnStyle}" onclick="toggleActive('${id}', ${isActive})" title="${isActive ? 'Sembunyikan' : 'Tampilkan'}">${activeBtnText}</button>
+                <button class="btn btn-secondary" onclick="editMenu('${id}')">✏️ Edit</button>
+                <button class="btn" style="background:#fee2e2; color:#dc2626; border:none;" onclick="deleteMenu('${id}')">🗑️ Hapus</button>
+            </div>
+        `;
+        return card;
+    }
+
+    // [BARU] Isi dropdown printer dari Pengaturan Kelompok Printer
+    function fillPrinterSelect() {
+        const sel = document.getElementById('inp-printer');
+        if (!sel) return;
+        let printers = [];
+        try {
+            const raw = localStorage.getItem('rbm_printer_groups');
+            if (raw) {
+                const g = JSON.parse(raw);
+                printers = g.printers || [];
+            }
+        } catch (e) {}
+        const firstOpt = '<option value="">-- Tidak dikirim ke printer --</option>';
+        sel.innerHTML = firstOpt + printers.map(p => {
+            const id = (p.id || p.name || '').replace(/"/g, '&quot;');
+            const label = (p.name || p.id || '') + (p.ip ? ' (' + p.ip + ')' : '');
+            return '<option value="' + id + '">' + label.replace(/</g, '&lt;') + '</option>';
+        }).join('');
+    }
+
+    // Modal Logic
+    function openModal(isEdit = false) {
+        fillPrinterSelect();
+        modal.classList.add('show');
+        document.getElementById('modal-title').textContent = isEdit ? 'Edit Menu' : 'Tambah Menu';
+        btnDelete.style.display = isEdit ? 'inline-block' : 'none';
+    }
+
+    function closeModal() {
+        modal.classList.remove('show');
+        form.reset();
+        document.getElementById('menu-id').value = '';
+        imgPreview.style.display = 'none';
+        updateActiveToggleUI(true); // Reset ke Aktif
+        document.getElementById('inp-promo-eligible').checked = true; // Reset ke True
+    }
+
+    btnAdd.addEventListener('click', () => openModal(false));
+    btnCancel.addEventListener('click', closeModal);
+    
+    // [DIUBAH] Image Upload & Preview dengan Resize
+    imgFileInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    // Resize ke max width 300px agar ringan di database
+                    const maxWidth = 300;
+                    const scale = maxWidth / img.width;
+                    const width = (img.width > maxWidth) ? maxWidth : img.width;
+                    const height = (img.width > maxWidth) ? img.height * scale : img.height;
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.clearRect(0, 0, width, height); // Pastikan canvas bersih/transparan
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    const dataUrl = canvas.toDataURL('image/png'); // Gunakan PNG agar transparan
+                    imgPreview.src = dataUrl;
+                    imgPreview.style.display = 'block';
+                    imgBase64Input.value = dataUrl;
+                }
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+
+    // Edit Function (Global)
+    window.editMenu = function(id) {
+        if (!productsRef) return;
+        productsRef.child(id).once('value').then(snap => {
+            const item = snap.val();
+            if(item) {
+                fillPrinterSelect(); // Isi opsi printer sebelum set value
+                document.getElementById('menu-id').value = id;
+                document.getElementById('inp-name').value = item.name;
+                
+                const categories = getStoredCategories();
+                const categoryExists = categories.some(cat => cat.value === item.category);
+                document.getElementById('inp-category').value = (item.category && categoryExists) ? item.category : (categories.length > 0 ? categories[0].value : '');
+
+                document.getElementById('inp-price').value = item.price;
+                document.getElementById('inp-desc').value = item.description || '';
+                document.getElementById('inp-image-base64').value = item.image || '';
+                document.getElementById('inp-image-file').value = ''; // Reset file input
+                document.getElementById('inp-available').value = item.available === false || item.available === 'false' ? 'false' : 'true';
+                updateActiveToggleUI(item.is_active === false || item.is_active === 'false' ? 'false' : 'true');
+                document.getElementById('inp-promo-eligible').checked = item.is_promo_eligible !== false; // Default true jika undefined
+                const printerSel = document.getElementById('inp-printer');
+                if (printerSel) {
+                    const pid = (item.printerId || '').trim();
+                    if (pid && [].some.call(printerSel.options, o => o.value === pid)) printerSel.value = pid;
+                    else printerSel.value = '';
+                }
+                if(item.image) {
+                    imgPreview.src = item.image;
+                    imgPreview.style.display = 'block';
+                }
+
+                openModal(true);
+            }
+        });
+    }
+
+    // Toggle Active Function (Global)
+    window.toggleActive = function(id, currentState) {
+        productsRef.child(id).update({ is_active: !currentState });
+    }
+
+    // Delete Function (Global)
+    window.deleteMenu = async function(id) {
+        if(await CustomUI.confirm('Yakin ingin menghapus menu ini?', 'Hapus Menu', true)) {
+            productsRef.child(id).remove();
+        }
+    }
+
+    // Submit Form
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = document.getElementById('menu-id').value;
+        
+        const printerEl = document.getElementById('inp-printer');
+        const printerId = (printerEl && printerEl.value) ? printerEl.value.trim() : '';
+        const data = {
+            name: document.getElementById('inp-name').value,
+            category: document.getElementById('inp-category').value,
+            price: parseInt(document.getElementById('inp-price').value),
+            description: document.getElementById('inp-desc').value,
+            image: document.getElementById('inp-image-base64').value,
+            available: document.getElementById('inp-available').value === 'true',
+            is_active: document.getElementById('inp-active').value === 'true',
+            is_promo_eligible: document.getElementById('inp-promo-eligible').checked,
+            printerId: printerId || null
+        };
+
+        if (id) {
+            productsRef.child(id).update(data);
+        } else {
+            productsRef.push(data);
+        }
+        closeModal();
+    });
+
+    // Delete
+    btnDelete.addEventListener('click', async () => {
+        const id = document.getElementById('menu-id').value;
+        if(id && await CustomUI.confirm('Yakin ingin menghapus menu ini?', 'Hapus Menu', true)) {
+            productsRef.child(id).remove();
+            closeModal();
+        }
+    });
+
+    // Close on outside click
+    modal.addEventListener('click', (e) => {
+        if(e.target === modal) closeModal();
+    });
+
+    // Inisialisasi Kategori saat halaman dimuat
+    // loadCategoriesAndRender(); // Digantikan oleh listener Firebase
+    initOutletSelection(); // [BARU] Mulai inisialisasi
+    syncOutletsFromFirebase(); // [BARU] Sync data outlet
+  </script>
+</body>
+</html>

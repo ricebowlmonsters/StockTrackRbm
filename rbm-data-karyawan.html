@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data Karyawan (HR) - RBM Pro</title>
+  <link rel="stylesheet" href="rbm-pro.css">
+  <style>
+    .sp-item {
+        background: #fee2e2;
+        border-left: 4px solid #dc2626;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+    .sp-item button {
+        background: none; border: none; color: #dc2626; cursor: pointer; font-weight: bold; font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+<script>
+(function(){ 
+    try {
+        var u = JSON.parse(localStorage.getItem('rbm_user') || '{}'); 
+        if (u.role === 'staff') { 
+            // Penggunaan replace agar aman di lingkungan Iframe file:// lokal
+            window.location.replace('index.html'); 
+        } 
+    } catch(e) {
+        window.location.replace('index.html'); 
+    }
+})();
+</script>
+<header class="rbm-page-header">
+  <a href="index.html" class="rbm-back-btn">&#8249;</a>
+  <h1 class="rbm-page-title" style="display:flex; align-items:center; gap:8px;">
+    Data Karyawan (HR)
+    <button type="button" id="btn-setting-sp" onclick="openSpSettingsModal()" style="background:none; border:none; cursor:pointer; font-size:18px; color:#4b5563; display:none;" title="Pengaturan & Template Surat">⚙️</button>
+  </h1>
+</header>
+<div class="rbm-content-wrap">
+<section class="rbm-outlet-card">
+  <label for="rbm-outlet-select" class="rbm-outlet-label">Pilih Outlet:</label>
+  <select id="rbm-outlet-select" class="rbm-outlet-select"></select>
+  <button type="button" class="btn btn-secondary" onclick="loadKaryawanData()" style="margin-left: 8px; padding: 6px 12px; font-size: 12px;">🔄 Refresh</button>
+</section>
+<script>
+(function(){
+  var u = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+  var outlets = JSON.parse(localStorage.getItem('rbm_outlets') || '[]');
+  var names = JSON.parse(localStorage.getItem('rbm_outlet_names') || '{}');
+  var sel = document.getElementById('rbm-outlet-select');
+  if (sel) {
+    sel.innerHTML = '';
+    outlets.forEach(function(id) {
+      var opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = names[id] || (id.charAt(0).toUpperCase() + id.slice(1));
+      sel.appendChild(opt);
+    });
+    if (u.role === 'manager' && u.outlet) {
+      sel.value = u.outlet;
+      sel.disabled = true;
+    } else {
+      var last = localStorage.getItem('rbm_last_selected_outlet');
+      if (last && outlets.indexOf(last) >= 0) sel.value = last;
+      else if (outlets.length) sel.value = outlets[0];
+      sel.addEventListener('change', function() { 
+          localStorage.setItem('rbm_last_selected_outlet', sel.value); 
+          if (typeof loadKaryawanData === 'function') loadKaryawanData();
+      });
+    }
+  }
+})();
+</script>
+
+<div class="app-layout">
+  <main class="app-main" style="margin-left:0;">
+<div id="data-karyawan-view" class="view-container">
+  <div class="page-header">
+    <h2>Manajemen Data Karyawan (HR)</h2>
+    <p>Kelola kontrak, catatan, peringatan (SP), dan profil karyawan. Nama karyawan ditarik otomatis dari pengaturan absensi.</p>
+  </div>
+  
+  <div class="form-container" style="padding: 0; background: transparent; border: none; box-shadow: none;">
+    <div class="table-card">
+      <div class="table-wrapper">
+        <table class="data-table" id="hr_table">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Nama Karyawan</th>
+              <th>Jabatan</th>
+              <th>Masa Kontrak</th>
+              <th>Lama Bekerja (Join Date)</th>
+              <th>Surat Peringatan (SP)</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="hr_tbody">
+            <tr><td colspan="7" class="table-empty">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+  </main>
+</div>
+</div>
+
+<!-- Modal Edit Data HR -->
+<div id="hrModal" class="modal-overlay" style="display:none; align-items:flex-start; padding-top: 40px; overflow-y: auto;" onclick="closeHrModal()">
+  <div class="modal-content" style="background:white; padding:24px; width:700px; max-width:95%; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.15);" onclick="event.stopPropagation()">
+    <span class="modal-close" onclick="closeHrModal()" style="color:#333; top:10px; right:14px; cursor:pointer;">&times;</span>
+    <h3 style="margin:0 0 5px 0; font-size:18px;">Data HR: <span id="modal_emp_name" style="color:#4C2A85;">-</span></h3>
+    <p style="margin:0 0 20px 0; font-size:13px; color:#64748b;" id="modal_emp_jabatan">-</p>
+    
+    <input type="hidden" id="modal_emp_id">
+    
+    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        <!-- Kolom Kiri: Kontrak & Notes -->
+        <div style="flex: 1; min-width: 250px;">
+            <h4 style="margin-top:0; font-size:14px; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px;">Masa Kontrak</h4>
+            <div style="margin-bottom: 12px;">
+                <label style="display:block; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Mulai Berjalan</label>
+                <input type="date" id="hr_kontrak_mulai" class="form-input" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Berjalan: <strong id="hr_kontrak_berjalan">-</strong></div>
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label style="display:block; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Selesai Kontrak</label>
+                <input type="date" id="hr_kontrak_selesai" class="form-input" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display:block; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Upload Kontrak / Surat Kerja</label>
+                <input type="file" id="hr_kontrak_doc" accept="image/*,application/pdf" style="width: 100%; padding: 6px; font-size: 11px; border: 1px solid #d1d5db; border-radius: 6px;">
+                <input type="hidden" id="hr_kontrak_doc_base64">
+                <div id="hr_kontrak_doc_link" style="margin-top:4px; font-size:11px;"></div>
+            </div>
+            <div style="margin-bottom: 20px; background: #f0fdf4; padding: 10px; border-radius: 6px; border: 1px solid #bbf7d0;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                    <span style="font-size: 11px; color: #166534;">Join Date:</span>
+                    <span style="font-size: 11px; font-weight: bold; color: #166534;" id="hr_join_date">-</span>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                    <span style="font-size: 12px; font-weight: bold; color: #166534;">Lama Bekerja:</span>
+                    <span style="font-size: 13px; font-weight: bold; color: #15803d;" id="hr_lama_bekerja">-</span>
+                </div>
+            </div>
+
+            <h4 style="margin-top:0; font-size:14px; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px;">Catatan (Notes)</h4>
+            <div style="margin-bottom: 12px;">
+                <textarea id="hr_notes" rows="4" placeholder="Tuliskan catatan evaluasi atau prestasi karyawan di sini..." style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-family: inherit; font-size: 13px;"></textarea>
+            </div>
+        </div>
+        
+        <!-- Kolom Kanan: Surat Peringatan (SP) -->
+        <div style="flex: 1; min-width: 250px; border-left: 1px solid #e5e7eb; padding-left: 20px;">
+            <h4 style="margin-top:0; font-size:14px; border-bottom: 2px solid #dc2626; padding-bottom: 5px; margin-bottom:10px; color: #dc2626;">Surat Peringatan (SP)</h4>
+            
+            <!-- Form Tambah SP -->
+            <div style="background: #f9fafb; padding: 10px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #e5e7eb;">
+                <div style="display:flex; gap:8px; margin-bottom: 8px;">
+                    <div style="flex:1;">
+                        <label style="display:block; font-size: 11px; font-weight: 600; margin-bottom: 4px;">Tingkat SP</label>
+                        <select id="hr_sp_tingkat" style="width: 100%; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size:12px; background:white;">
+                            <option value="SP 1">SP 1</option>
+                            <option value="SP 2">SP 2</option>
+                            <option value="SP 3">SP 3</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label style="display:block; font-size: 11px; font-weight: 600; margin-bottom: 4px;">Tgl Mulai SP</label>
+                        <input type="date" id="hr_sp_tanggal" style="width: 100%; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size:12px;">
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; margin-bottom: 8px;">
+                    <div style="flex:1;">
+                        <label style="display:block; font-size: 11px; font-weight: 600; margin-bottom: 4px;">Tgl Selesai SP</label>
+                        <input type="date" id="hr_sp_selesai" style="width: 100%; padding: 6px; border: 1px solid #e5e7eb; border-radius: 4px; font-size:12px; background:#f3f4f6; color:#6b7280;" readonly title="Dihitung otomatis dari pengaturan">
+                    </div>
+                    <div style="flex:1;">
+                        <label style="display:block; font-size: 11px; font-weight: 600; margin-bottom: 4px;">Upload Surat SP</label>
+                        <input type="file" id="hr_sp_doc" accept="image/*,application/pdf" style="width: 100%; font-size:10px;">
+                        <input type="hidden" id="hr_sp_doc_base64">
+                    </div>
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <label style="display:block; font-size: 11px; font-weight: 600; margin-bottom: 4px;">Keterangan / Alasan</label>
+                    <input type="text" id="hr_sp_alasan" placeholder="Contoh: Terlambat 3 hari berturut-turut" style="width: 100%; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size:12px;">
+                </div>
+                <button type="button" onclick="tambahSP()" class="btn btn-secondary" style="width: 100%; font-size: 12px; padding: 6px; background: #dc2626; color: white; border: none;">+ Tambahkan SP</button>
+            </div>
+            
+            <!-- List SP -->
+            <div id="hr_sp_list" style="max-height: 180px; overflow-y: auto; padding-right: 5px;">
+                <p style="font-size:12px; color:#64748b; text-align:center; font-style:italic;">Belum ada riwayat SP.</p>
+            </div>
+        </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+        <button type="button" class="btn btn-secondary" onclick="closeHrModal()">Batal</button>
+        <button type="button" class="btn btn-primary" onclick="simpanHrData()">Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Pengaturan SP -->
+<div id="spSettingsModal" class="modal-overlay" style="display:none; align-items:flex-start; padding-top: 40px; z-index: 10000; overflow-y:auto;" onclick="closeSpSettingsModal()">
+  <div class="modal-content" style="background:white; padding:24px; width:550px; max-width:95%; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.15);" onclick="event.stopPropagation()">
+    <h3 style="margin:0 0 15px 0; font-size:16px; color:#1f2937;">Pengaturan SP & Template Surat</h3>
+    
+    <!-- Section: Durasi & Sanksi -->
+    <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:16px; margin-bottom:20px;">
+        <h4 style="margin:0 0 12px; font-size:14px; color:#1f2937; border-bottom:1px solid #e5e7eb; padding-bottom:8px;">Durasi & Sanksi SP</h4>
+        <div style="display:grid; grid-template-columns: 1fr 2fr; gap:12px 16px; align-items: flex-start;">
+            <!-- SP 1 -->
+            <div>
+                <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Durasi SP 1 (Bulan)</label>
+                <input type="number" id="set_sp1_dur" value="1" min="1" class="form-input" style="padding:8px; border-radius:6px; width:100%;">
+            </div>
+            <div>
+                <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Sanksi Pelanggaran SP 1</label>
+                <input type="text" id="set_sp1_sanksi" placeholder="Contoh: Pemotongan Bonus" class="form-input" style="padding:8px; border-radius:6px; width:100%;">
+            </div>
+            <!-- SP 2 -->
+            <div>
+                <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Durasi SP 2 (Bulan)</label>
+                <input type="number" id="set_sp2_dur" value="3" min="1" class="form-input" style="padding:8px; border-radius:6px; width:100%;">
+            </div>
+            <div>
+                <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Sanksi Pelanggaran SP 2</label>
+                <input type="text" id="set_sp2_sanksi" placeholder="Contoh: Penurunan Jabatan" class="form-input" style="padding:8px; border-radius:6px; width:100%;">
+            </div>
+            <!-- SP 3 -->
+            <div>
+                <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Durasi SP 3 (Bulan)</label>
+                <input type="number" id="set_sp3_dur" value="6" min="1" class="form-input" style="padding:8px; border-radius:6px; width:100%;">
+            </div>
+            <div>
+                <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Sanksi Pelanggaran SP 3</label>
+                <input type="text" id="set_sp3_sanksi" placeholder="Contoh: Pemutusan Hubungan Kerja" class="form-input" style="padding:8px; border-radius:6px; width:100%;">
+            </div>
+        </div>
+    </div>
+
+    <!-- Section: Pesan & Kutipan -->
+    <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:16px; margin-bottom:20px;">
+        <h4 style="margin:0 0 10px 0; font-size:14px; color:#1f2937;">Pesan & Kutipan Karyawan</h4>
+        <div style="margin-bottom: 12px;">
+            <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Kutipan Masa Kerja (Muncul di layar Absensi GPS)</label>
+            <input type="text" id="set_quote_masa_kerja" placeholder="Cth: Terima kasih atas dedikasi dan kontribusinya selama" class="form-input" style="padding:8px; border-radius:6px; width:100%;">
+        </div>
+        <div>
+            <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Kutipan Absensi Rutin (Muncul di layar Absensi GPS)</label>
+            <input type="text" id="set_quote_absensi" placeholder="Cth: Lakukan rutinitas pekerjaanmu dengan senang hati..." class="form-input" style="padding:8px; border-radius:6px; width:100%;">
+        </div>
+    </div>
+
+    <!-- Section: Template Surat -->
+    <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:16px; margin-bottom:20px;">
+        <h4 style="margin:0 0 10px 0; font-size:14px; color:#1f2937;">Template Surat (Baku)</h4>
+        
+        <div style="margin-bottom: 12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <strong style="font-size:13px;">Surat Kontrak Kerja</strong>
+                <div id="link_template_kontrak" style="font-size:12px;">-</div>
+            </div>
+            <div id="wrap_upload_kontrak" style="display:none; margin-top:8px;">
+                <input type="file" id="upload_template_kontrak" accept="image/*,application/pdf" style="font-size:12px; width:100%; padding:6px; border:1px solid #d1d5db; border-radius:6px; background:white;">
+                <input type="hidden" id="base64_template_kontrak">
+            </div>
+        </div>
+
+        <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <strong style="font-size:13px;">Surat Peringatan (SP)</strong>
+                <div id="link_template_sp" style="font-size:12px;">-</div>
+            </div>
+            <div id="wrap_upload_sp" style="display:none; margin-top:8px;">
+                <input type="file" id="upload_template_sp" accept="image/*,application/pdf" style="font-size:12px; width:100%; padding:6px; border:1px solid #d1d5db; border-radius:6px; background:white;">
+                <input type="hidden" id="base64_template_sp">
+            </div>
+        </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+        <button type="button" class="btn btn-secondary" onclick="closeSpSettingsModal()">Batal</button>
+        <button type="button" id="btn-save-settings-sp" class="btn btn-primary" onclick="saveSpSettings()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<span class="watermark">RBM Pro 2.3</span>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="rbm-pro-storage.js"></script>
+<script src="rbm-pro.js"></script>
+
+<script>
+window.RBM_PAGE = 'data-karyawan-view';
+// ================= DATA HR KARYAWAN LOGIC =================
+
+// Inisialisasi Firebase & Konfigurasi
+if (!firebase.apps.length) {
+    const firebaseConfig = {
+        apiKey: "AIzaSyDWQG53tP2zKILTwPSJQpiVzFNyvYLxLqw",
+        authDomain: "ricebowlmonst.firebaseapp.com",
+        databaseURL: "https://ricebowlmonst-default-rtdb.firebaseio.com",
+        projectId: "ricebowlmonst",
+        storageBucket: "ricebowlmonst.firebasestorage.app",
+        messagingSenderId: "723669558962",
+        appId: "1:723669558962:web:c17a1a4683a86cc5a88bab"
+    };
+    firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.database();
+
+let currentEmployees = [];
+let currentHrData = {};
+let tempSpList = []; // Temporary list for SPs inside the modal
+let spSettings = { sp1: 1, sp1_sanksi: '', sp2: 3, sp2_sanksi: '', sp3: 6, sp3_sanksi: '', quoteMasaKerja: '', quoteAbsensi: '', templateKontrak: '', templateSp: '' }; // Default in months & sanksi
+
+async function loadSpSettings() {
+    const outletSel = document.getElementById('rbm-outlet-select');
+    const outlet = outletSel ? outletSel.value : '';
+    if (!outlet) return;
+    try {
+        const snap = await db.ref(`rbm_pro/hr_sp_settings/${outlet}`).once('value');
+        if (snap.exists()) {
+            spSettings = snap.val();
+        } else {
+            spSettings = { sp1: 1, sp1_sanksi: '', sp2: 3, sp2_sanksi: '', sp3: 6, sp3_sanksi: '', quoteMasaKerja: '', quoteAbsensi: '', templateKontrak: '', templateSp: '' };
+        }
+    } catch (e) {
+        console.error("Gagal load SP settings", e);
+    }
+}
+
+function openSpSettingsModal() {
+    document.getElementById('set_sp1_dur').value = spSettings.sp1 || 1;
+    document.getElementById('set_sp1_sanksi').value = spSettings.sp1_sanksi || '';
+    document.getElementById('set_sp2_dur').value = spSettings.sp2 || 3;
+    document.getElementById('set_sp2_sanksi').value = spSettings.sp2_sanksi || '';
+    document.getElementById('set_sp3_dur').value = spSettings.sp3 || 6;
+    document.getElementById('set_sp3_sanksi').value = spSettings.sp3_sanksi || '';
+    
+    document.getElementById('set_quote_masa_kerja').value = spSettings.quoteMasaKerja || '';
+    document.getElementById('set_quote_absensi').value = spSettings.quoteAbsensi || '';
+
+    document.getElementById('base64_template_kontrak').value = spSettings.templateKontrak || '';
+    document.getElementById('base64_template_sp').value = spSettings.templateSp || '';
+    
+    document.getElementById('link_template_kontrak').innerHTML = spSettings.templateKontrak ? `<a href="${spSettings.templateKontrak}" target="_blank" style="color:#2563eb; text-decoration:none; font-weight:bold;">📥 Download Template</a>` : '<span style="color:#9ca3af; font-style:italic;">Belum ada template</span>';
+    document.getElementById('link_template_sp').innerHTML = spSettings.templateSp ? `<a href="${spSettings.templateSp}" target="_blank" style="color:#2563eb; text-decoration:none; font-weight:bold;">📥 Download Template</a>` : '<span style="color:#9ca3af; font-style:italic;">Belum ada template</span>';
+    
+    try {
+        const usr = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+        const isOwnerOrDev = usr.role === 'owner' || (usr.username || '').toLowerCase() === 'burhan';
+        
+        const inputs = document.querySelectorAll('#spSettingsModal .form-input');
+        inputs.forEach(inp => { inp.disabled = !isOwnerOrDev; });
+        
+        document.getElementById('wrap_upload_kontrak').style.display = isOwnerOrDev ? 'block' : 'none';
+        document.getElementById('wrap_upload_sp').style.display = isOwnerOrDev ? 'block' : 'none';
+        document.getElementById('btn-save-settings-sp').style.display = isOwnerOrDev ? 'inline-block' : 'none';
+    } catch(e) {}
+
+    document.getElementById('spSettingsModal').style.display = 'flex';
+}
+
+function closeSpSettingsModal() {
+    document.getElementById('spSettingsModal').style.display = 'none';
+}
+
+async function saveSpSettings() {
+    const outletSel = document.getElementById('rbm-outlet-select');
+    const outlet = outletSel ? outletSel.value : '';
+    if (!outlet) return;
+
+    const sp1 = parseInt(document.getElementById('set_sp1_dur').value) || 1;
+    const sp1_sanksi = document.getElementById('set_sp1_sanksi').value.trim();
+    const sp2 = parseInt(document.getElementById('set_sp2_dur').value) || 3;
+    const sp2_sanksi = document.getElementById('set_sp2_sanksi').value.trim();
+    const sp3 = parseInt(document.getElementById('set_sp3_dur').value) || 6;
+    const sp3_sanksi = document.getElementById('set_sp3_sanksi').value.trim();
+    const quoteMasaKerja = document.getElementById('set_quote_masa_kerja').value.trim();
+    const templateKontrak = document.getElementById('base64_template_kontrak').value;
+    const templateSp = document.getElementById('base64_template_sp').value;
+
+    spSettings = { sp1, sp1_sanksi, sp2, sp2_sanksi, sp3, sp3_sanksi, quoteMasaKerja, templateKontrak, templateSp };
+
+    try {
+        await db.ref(`rbm_pro/hr_sp_settings/${outlet}`).set(spSettings);
+        closeSpSettingsModal();
+        alert("Pengaturan SP & Template berhasil disimpan.");
+    } catch(e) {
+        alert("Gagal menyimpan pengaturan: " + e.message);
+    }
+}
+
+// Auto hitung tanggal selesai SP saat input berubah
+function calculateSpSelesai() {
+    const tk = document.getElementById('hr_sp_tingkat').value;
+    const tgl = document.getElementById('hr_sp_tanggal').value;
+    if(!tgl) return;
+    let durasi = 0;
+    if (tk === 'SP 1') durasi = spSettings.sp1 || 1;
+    else if (tk === 'SP 2') durasi = spSettings.sp2 || 3;
+    else if (tk === 'SP 3') durasi = spSettings.sp3 || 6;
+
+    if (durasi > 0) {
+        let d = new Date(tgl);
+        d.setMonth(d.getMonth() + parseInt(durasi));
+        document.getElementById('hr_sp_selesai').value = d.toISOString().split('T')[0];
+    } else {
+        document.getElementById('hr_sp_selesai').value = '';
+    }
+}
+
+// Fungsi menghitung lama kerja lengkap (Tahun, Bulan, Hari) dari Join Date
+function hitungLamaKerjaDetail(startDateStr) {
+    if (!startDateStr) return '-';
+    const start = new Date(startDateStr);
+    const now = new Date();
+    
+    if (isNaN(start.getTime())) return '-';
+    start.setHours(0,0,0,0);
+    now.setHours(0,0,0,0);
+    
+    if (now < start) return 'Belum mulai';
+    
+    let years = now.getFullYear() - start.getFullYear();
+    let months = now.getMonth() - start.getMonth();
+    let days = now.getDate() - start.getDate();
+    
+    if (days < 0) {
+        months--;
+        const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        days += prevMonth.getDate();
+    }
+    
+    if (months < 0) {
+        years--;
+        months += 12;
+    }
+    
+    let res = [];
+    if (years > 0) res.push(`${years} thn`);
+    if (months > 0) res.push(`${months} bln`);
+    if (days > 0) res.push(`${days} hr`);
+    
+    if (res.length === 0) return 'Hari ini';
+    return res.join(', ');
+}
+
+// Fungsi menghitung total durasi hari berlalu (untuk masa kontrak/SP)
+function hitungHariBerjalan(startDateStr) {
+    if (!startDateStr) return '-';
+    const start = new Date(startDateStr);
+    const now = new Date();
+    if (isNaN(start.getTime())) return '-';
+    start.setHours(0,0,0,0);
+    now.setHours(0,0,0,0);
+    const diffTime = now - start;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
+    if (diffDays < 0) return `Belum mulai (H${diffDays})`;
+    if (diffDays === 0) return 'Hari ini';
+    return `${diffDays} hari`;
+}
+
+// Render tabel list karyawan
+async function loadKaryawanData() {
+    const outletSel = document.getElementById('rbm-outlet-select');
+    const outlet = outletSel ? outletSel.value : '';
+    if (!outlet) return;
+
+    const tbody = document.getElementById('hr_tbody');
+    tbody.innerHTML = '<tr><td colspan="7" class="table-loading" style="text-align:center;">Memuat data karyawan...</td></tr>';
+
+    try {
+        // Ambil Data Karyawan dari Absensi
+        const keyEmp = typeof getRbmStorageKey === 'function' ? getRbmStorageKey('RBM_EMPLOYEES') : 'RBM_EMPLOYEES_' + outlet;
+        let empData = [];
+        if (typeof getCachedParsedStorage === 'function') {
+            empData = getCachedParsedStorage(keyEmp, []);
+        } else {
+            empData = JSON.parse(localStorage.getItem(keyEmp) || '[]');
+        }
+        currentEmployees = Array.isArray(empData) ? empData : (empData ? Object.values(empData) : []);
+
+        // Ambil Data HR
+        const hrSnap = await db.ref(`rbm_pro/hr_karyawan/${outlet}`).once('value');
+        currentHrData = hrSnap.val() || {};
+
+        await loadSpSettings();
+
+        if (currentEmployees.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="table-empty" style="text-align:center;">Belum ada data karyawan. Tambahkan di menu Absensi.</td></tr>';
+            return;
+        }
+
+        let html = '';
+        currentEmployees.forEach((emp, index) => {
+            if (!emp || !emp.name) return;
+            
+            // Gunakan ID yang aman (jika emp.id tidak ada, gunakan nama di-sanitize)
+            const empId = (emp.id != null) ? emp.id : emp.name.replace(/[^a-zA-Z0-9]/g, '_');
+            
+            const hr = currentHrData[empId] || {};
+            const mulaiStr = hr.kontrakMulai ? new Date(hr.kontrakMulai).toLocaleDateString('id-ID') : '-';
+            const selesaiStr = hr.kontrakSelesai ? new Date(hr.kontrakSelesai).toLocaleDateString('id-ID') : '-';
+            
+            const spList = hr.sp || [];
+            const spCount = spList.length;
+            let activeSpCount = 0;
+            const now = new Date();
+            spList.forEach(sp => {
+                if (sp.berlakuHingga) {
+                    const endD = new Date(sp.berlakuHingga);
+                    endD.setHours(23,59,59,999);
+                    if (now <= endD) activeSpCount++;
+                } else {
+                    activeSpCount++;
+                }
+            });
+            let spBadge = '-';
+            if (spCount > 0) {
+                if (activeSpCount > 0) spBadge = `<div style="margin-bottom:4px;"><span style="background:#fee2e2; color:#dc2626; padding:2px 8px; border-radius:12px; font-weight:bold; font-size:12px;">${spCount} SP (${activeSpCount} Aktif)</span></div>`;
+                else spBadge = `<div style="margin-bottom:4px;"><span style="background:#f1f5f9; color:#64748b; padding:2px 8px; border-radius:12px; font-weight:bold; font-size:12px;">${spCount} SP (Expired)</span></div>`;
+                
+                // Cari SP terbaru untuk ditampilkan tanggalnya
+                const sortedSp = [...spList].sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal));
+                const latestSp = sortedSp.find(sp => {
+                    if (!sp.berlakuHingga) return true;
+                    const endD = new Date(sp.berlakuHingga);
+                    endD.setHours(23,59,59,999);
+                    return now <= endD;
+                }) || sortedSp[0];
+                
+                if (latestSp) {
+                    const spMulaiStr = latestSp.tanggal ? new Date(latestSp.tanggal).toLocaleDateString('id-ID') : '-';
+                    const spSelesaiStr = latestSp.berlakuHingga ? new Date(latestSp.berlakuHingga).toLocaleDateString('id-ID') : '-';
+                    const spTingkat = latestSp.tingkat && latestSp.tingkat !== 'Lainnya' ? latestSp.tingkat : 'SP';
+                    const spBerjalan = latestSp.tanggal ? hitungHariBerjalan(latestSp.tanggal) : '-';
+                    
+                    let selesaiStyleSp = latestSp.berlakuHingga && (new Date() > new Date(latestSp.berlakuHingga).setHours(23,59,59,999)) ? 'color: #16a34a; font-weight: bold;' : 'color: #dc2626; font-weight: bold;';
+                    
+                    spBadge += `
+                        <div style="font-size:11px; margin-top:6px; color:#475569;"><strong>${spTingkat}</strong></div>
+                        <div style="font-size:11px;">Mulai: <strong>${spMulaiStr}</strong></div>
+                        <div style="font-size:11px; color:#991b1b; margin-top:2px;">Berjalan: <strong>${spBerjalan}</strong></div>
+                        <div style="font-size:11px; margin-top:2px; ${selesaiStyleSp}">Selesai: <strong>${spSelesaiStr}</strong></div>
+                    `;
+                }
+            }
+            
+            const kontrakBerjalan = hr.kontrakMulai ? hitungHariBerjalan(hr.kontrakMulai) : '-';
+            const joinDateStr = emp.joinDate ? new Date(emp.joinDate).toLocaleDateString('id-ID') : 'Belum di-set';
+            const lamaBekerja = emp.joinDate ? hitungLamaKerjaDetail(emp.joinDate) : '-';
+            
+            // Highlight masa kontrak mau habis / sudah lewat
+            let selesaiStyle = '';
+            if (hr.kontrakSelesai) {
+                const end = new Date(hr.kontrakSelesai);
+                const now = new Date();
+                const daysLeft = (end - now) / (1000 * 60 * 60 * 24);
+                
+                if (daysLeft < 0) {
+                    selesaiStyle = 'color: #dc2626; font-weight: bold;'; // Merah jika expired
+                } else if (daysLeft <= 30) {
+                    selesaiStyle = 'color: #d97706; font-weight: bold;'; // Orange jika < 30 hari
+                }
+            }
+
+            html += `<tr>
+                <td style="text-align:center;">${index + 1}</td>
+                <td style="font-weight: 600; color: #1e40af;">${emp.name}</td>
+                <td>${emp.jabatan || '-'}</td>
+                <td>
+                    <div style="font-size:11px;">Mulai: <strong>${mulaiStr}</strong></div>
+                    ${hr.kontrakMulai ? `<div style="font-size:11px; color:#15803d; margin-top:2px;">Berjalan: <strong>${kontrakBerjalan}</strong></div>` : ''}
+                    <div style="font-size:11px; margin-top:4px; ${selesaiStyle}">Selesai: <strong>${selesaiStr}</strong></div>
+                </td>
+                <td>
+                    <div style="font-size:11px; color:#475569; margin-bottom:2px;">${joinDateStr}</div>
+                    <div style="font-weight: 600; font-size:12px;">${lamaBekerja}</div>
+                </td>
+                <td>
+                    ${spBadge}
+                </td>
+                <td style="text-align: center;">
+                    <button class="btn btn-secondary" style="font-size:11px; padding: 6px 12px; background: #eef2ff; color: #4C2A85; border: 1px solid #c7d2fe;" onclick="openHrModal('${empId}', '${emp.name}', '${emp.jabatan || ''}')">📝 Kelola Data</button>
+                </td>
+            </tr>`;
+        });
+        
+        tbody.innerHTML = html;
+        
+    } catch (e) {
+        console.error("Gagal load HR data", e);
+        tbody.innerHTML = `<tr><td colspan="7" class="table-empty" style="text-align:center; color:red;">Gagal memuat data: ${e.message}</td></tr>`;
+    }
+}
+
+// Modal Logic
+function openHrModal(empId, empName, empJabatan) {
+    document.getElementById('hrModal').style.display = 'flex';
+    document.getElementById('modal_emp_id').value = empId;
+    document.getElementById('modal_emp_name').textContent = empName;
+    document.getElementById('modal_emp_jabatan').textContent = empJabatan || '-';
+    
+    // Reset Form
+    document.getElementById('hr_kontrak_mulai').value = '';
+    document.getElementById('hr_kontrak_selesai').value = '';
+    document.getElementById('hr_notes').value = '';
+    document.getElementById('hr_sp_tanggal').value = '';
+    document.getElementById('hr_sp_alasan').value = '';
+    document.getElementById('hr_join_date').textContent = '-';
+    document.getElementById('hr_lama_bekerja').textContent = '-';
+    document.getElementById('hr_kontrak_berjalan').textContent = '-';
+    document.getElementById('hr_kontrak_doc').value = '';
+    document.getElementById('hr_kontrak_doc_base64').value = '';
+    document.getElementById('hr_kontrak_doc_link').innerHTML = '';
+    
+    // Load existing data
+    const emp = currentEmployees.find(e => ((e.id != null) ? e.id : e.name.replace(/[^a-zA-Z0-9]/g, '_')) === empId);
+    const joinDate = emp ? emp.joinDate : null;
+    
+    document.getElementById('hr_join_date').textContent = joinDate ? new Date(joinDate).toLocaleDateString('id-ID') : 'Belum diset (Di Absensi)';
+    document.getElementById('hr_lama_bekerja').textContent = joinDate ? hitungLamaKerjaDetail(joinDate) : '-';
+
+    const hr = currentHrData[empId] || {};
+    if (hr.kontrakMulai) {
+        document.getElementById('hr_kontrak_mulai').value = hr.kontrakMulai;
+        document.getElementById('hr_kontrak_berjalan').textContent = hitungHariBerjalan(hr.kontrakMulai);
+    }
+    if (hr.kontrakSelesai) document.getElementById('hr_kontrak_selesai').value = hr.kontrakSelesai;
+    if (hr.notes) document.getElementById('hr_notes').value = hr.notes;
+    if (hr.kontrakDoc) {
+        document.getElementById('hr_kontrak_doc_base64').value = hr.kontrakDoc;
+        document.getElementById('hr_kontrak_doc_link').innerHTML = `<a href="${hr.kontrakDoc}" target="_blank" style="color:#2563eb; text-decoration:underline;">📥 Lihat Surat Kontrak Saat Ini</a>`;
+    }
+    
+    tempSpList = hr.sp ? [...hr.sp] : [];
+    renderSpList();
+    
+    // Auto calculate lama kontrak on date change
+    document.getElementById('hr_kontrak_mulai').addEventListener('input', function() {
+        document.getElementById('hr_kontrak_berjalan').textContent = hitungHariBerjalan(this.value);
+    });
+}
+
+function closeHrModal() {
+    document.getElementById('hrModal').style.display = 'none';
+}
+
+// SP Logic
+function tambahSP() {
+    const tingkat = document.getElementById('hr_sp_tingkat').value;
+    const tanggal = document.getElementById('hr_sp_tanggal').value;
+    const selesai = document.getElementById('hr_sp_selesai').value;
+    const alasan = document.getElementById('hr_sp_alasan').value.trim();
+    const dokumen = document.getElementById('hr_sp_doc_base64').value;
+    
+    if (!tanggal || !alasan) {
+        alert("Tanggal dan Keterangan SP wajib diisi.");
+        return;
+    }
+    
+    let durasiBulan = 0;
+    let sanksiText = '';
+    if (tingkat === 'SP 1') { durasiBulan = spSettings.sp1 || 1; sanksiText = spSettings.sp1_sanksi || ''; }
+    else if (tingkat === 'SP 2') { durasiBulan = spSettings.sp2 || 3; sanksiText = spSettings.sp2_sanksi || ''; }
+    else if (tingkat === 'SP 3') { durasiBulan = spSettings.sp3 || 6; sanksiText = spSettings.sp3_sanksi || ''; }
+
+    let berlakuHingga = selesai; // Gunakan yang sudah dihitung di UI
+    
+    tempSpList.push({
+        id: 'SP_' + Date.now(),
+        tingkat: tingkat,
+        tanggal: tanggal,
+        keterangan: alasan,
+        berlakuHingga: berlakuHingga,
+        sanksi: sanksiText,
+        dokumen: dokumen
+    });
+    
+    // Urutkan dari yang terbaru
+    tempSpList.sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal));
+    
+    document.getElementById('hr_sp_tanggal').value = '';
+    document.getElementById('hr_sp_selesai').value = '';
+    document.getElementById('hr_sp_alasan').value = '';
+    document.getElementById('hr_sp_tingkat').value = 'SP 1';
+    document.getElementById('hr_sp_doc').value = '';
+    document.getElementById('hr_sp_doc_base64').value = '';
+    renderSpList();
+}
+
+function hapusSP(spId) {
+    if(confirm("Yakin ingin menghapus SP ini?")) {
+        tempSpList = tempSpList.filter(sp => sp.id !== spId);
+        renderSpList();
+    }
+}
+
+function renderSpList() {
+    const listEl = document.getElementById('hr_sp_list');
+    if (tempSpList.length === 0) {
+        listEl.innerHTML = '<p style="font-size:12px; color:#64748b; text-align:center; font-style:italic;">Belum ada riwayat SP.</p>';
+        return;
+    }
+    
+    let html = '';
+    tempSpList.forEach(sp => {
+        const tglStr = new Date(sp.tanggal).toLocaleDateString('id-ID');
+        const berjalan = hitungHariBerjalan(sp.tanggal);
+        const tingkatStr = sp.tingkat && sp.tingkat !== 'Lainnya' ? `<strong style="color:#b91c1c;">[${sp.tingkat}]</strong> ` : '';
+        
+        let validStatus = '';
+        let tglEndStr = '';
+        let sisaTeks = '';
+        if (sp.berlakuHingga) {
+            tglEndStr = new Date(sp.berlakuHingga).toLocaleDateString('id-ID');
+            const endD = new Date(sp.berlakuHingga);
+            endD.setHours(23, 59, 59, 999);
+            
+            const diffTime = endD - new Date();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays < 0) {
+                validStatus = '<span style="color:#16a34a; font-weight:bold; font-size:10px; margin-left:4px;">(Expired)</span>';
+            } else {
+                validStatus = '<span style="color:#dc2626; font-weight:bold; font-size:10px; margin-left:4px;">(Aktif)</span>';
+                sisaTeks = `<span style="font-size:10px; color:#d97706; margin-left:4px;">Sisa: ${diffDays} Hari</span>`;
+            }
+        }
+        
+        let docLink = sp.dokumen ? `<a href="${sp.dokumen}" target="_blank" style="font-size:10px; color:#2563eb; text-decoration:underline; float:right;">Lihat Surat SP</a>` : '';
+
+        html += `<div class="sp-item" style="display:block;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <strong style="margin-bottom:2px; display:block;">${tingkatStr}${tglStr} <span style="font-size:10px; color:#991b1b; font-weight:normal;">(${berjalan})</span>${validStatus}</strong>
+                <button type="button" onclick="hapusSP('${sp.id}')" title="Hapus SP">×</button>
+            </div>
+            <div style="color:#475569; margin-bottom:4px; font-size:12px;">${sp.keterangan}</div>
+            ${sp.sanksi ? `<div style="font-size:11px; color:#991b1b; margin-bottom:4px;"><strong>Sanksi:</strong> ${sp.sanksi}</div>` : ''}
+            ${sp.berlakuHingga ? `<div style="font-size:10px; color:#64748b; margin-top:4px; border-top:1px dashed #fecaca; padding-top:4px;">Berlaku s/d: <strong>${tglEndStr}</strong> ${sisaTeks} ${docLink}</div>` : ''}
+        </div>`;
+    });
+    listEl.innerHTML = html;
+}
+
+// Save Logic
+async function simpanHrData() {
+    const outlet = document.getElementById('rbm-outlet-select').value;
+    const empId = document.getElementById('modal_emp_id').value;
+    
+    const payload = {
+        kontrakMulai: document.getElementById('hr_kontrak_mulai').value,
+        kontrakSelesai: document.getElementById('hr_kontrak_selesai').value,
+        notes: document.getElementById('hr_notes').value.trim(),
+        kontrakDoc: document.getElementById('hr_kontrak_doc_base64').value,
+        sp: tempSpList,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+    };
+    
+    try {
+        await db.ref(`rbm_pro/hr_karyawan/${outlet}/${empId}`).set(payload);
+        alert("Data berhasil disimpan.");
+        closeHrModal();
+        loadKaryawanData(); // Refresh table
+    } catch (e) {
+        console.error(e);
+        alert("Gagal menyimpan data: " + e.message);
+    }
+}
+
+// Initialize
+window.addEventListener('load', function() {
+    // Otomatisasi Hak Akses Settings
+    try {
+        const usr = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+        const isOwnerOrDev = usr.role === 'owner' || (usr.username || '').toLowerCase() === 'burhan';
+        const isManager = usr.role === 'manager';
+        if (isOwnerOrDev || isManager) {
+            document.getElementById('btn-setting-sp').style.display = 'inline-block';
+        }
+    } catch(e) {}
+    
+    // Listener kalkulasi SP
+    document.getElementById('hr_sp_tanggal').addEventListener('input', calculateSpSelesai);
+    document.getElementById('hr_sp_tingkat').addEventListener('change', calculateSpSelesai);
+    
+    // Base64 converters untuk upload dokumen
+    const setupBase64 = (fileId, base64Id) => {
+        document.getElementById(fileId).addEventListener('change', function() {
+            if (!this.files[0]) return;
+            const reader = new FileReader();
+            reader.onload = e => { document.getElementById(base64Id).value = e.target.result; };
+            reader.readAsDataURL(this.files[0]);
+        });
+    };
+    setupBase64('hr_kontrak_doc', 'hr_kontrak_doc_base64');
+    setupBase64('hr_sp_doc', 'hr_sp_doc_base64');
+    setupBase64('upload_template_kontrak', 'base64_template_kontrak');
+    setupBase64('upload_template_sp', 'base64_template_sp');
+
+    if (window.RBMStorage && typeof window.RBMStorage.ready === 'function') {
+        window.RBMStorage.ready().then(loadKaryawanData).catch(loadKaryawanData);
+    } else {
+        setTimeout(loadKaryawanData, 1000);
+    }
+});
+</script>
+</body>
+</html>

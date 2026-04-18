@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pengaturan Akun - RBM</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e7eb; }
+    .setting-item:last-child { border-bottom: none; }
+    .toggle-switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 28px; }
+    .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: #4C2A85; }
+    input:checked + .slider:before { transform: translateX(22px); }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <a href="customer-settings.html" class="back-btn">‹</a>
+      <h1 class="page-title">Pengaturan Halaman Akun</h1>
+    </header>
+    <main class="content">
+      <!-- Menu Navigasi Halaman (Top) -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 20px;">
+        <a href="customer-settings.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">📱</span>
+            <span style="font-size: 11px; font-weight: 600;">Pengaturan Web</span>
+        </a>
+        <a href="customer-account-settings.html" style="background: #eef2ff; border-color: #4C2A85; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #4C2A85; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #4C2A85; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">⚙️</span>
+            <span style="font-size: 11px; font-weight: 600;">Halaman Akun</span>
+        </a>
+        <a href="ai-settings.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">🤖</span>
+            <span style="font-size: 11px; font-weight: 600;">AI Chatbot</span>
+        </a>
+        <a href="global-chat-manager.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">💬</span>
+            <span style="font-size: 11px; font-weight: 600;">Community Chat</span>
+        </a>
+        <a href="storage-viewer.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">💾</span>
+            <span style="font-size: 11px; font-weight: 600;">Data & Storage</span>
+        </a>
+      </div>
+
+      <section class="card">
+        <h3 class="card-title">Konten Halaman Akun</h3>
+        <p class="card-subtitle">Atur informasi dan menu yang tampil di halaman Akun pelanggan.</p>
+        
+        <div class="form-group" style="border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 16px;">
+            <div class="form-label">Branding & Teks</div>
+            
+            <div style="margin-bottom: 12px;">
+                <label style="font-size: 12px; font-weight: 600;" for="acc-logo-file">Logo Akun</label>
+                <div style="display: flex; gap: 10px; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <input type="file" id="acc-logo-file" class="form-input" accept="image/*" style="font-size: 12px;">
+                        <input type="hidden" id="acc-logo-base64">
+                    </div>
+                    <div style="position: relative;">
+                        <img id="acc-logo-preview" src="" style="width: 56px; height: 56px; object-fit: contain; border: 1px solid #e5e7eb; border-radius: 8px; display: none;">
+                        <button id="btn-clear-acc-logo" type="button" style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 10px; display: none; align-items: center; justify-content: center;">✕</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label style="font-size: 12px;" for="acc-title">Judul Aplikasi</label>
+                <input type="text" id="acc-title" class="form-input" placeholder="Rice Bowl Monsters">
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label style="font-size: 12px;" for="acc-greeting">Sapaan</label>
+                    <input type="text" id="acc-greeting" class="form-input" placeholder="Hallo, ">
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-size: 12px;" for="acc-guest-name">Nama Tamu Default</label>
+                    <input type="text" id="acc-guest-name" class="form-input" placeholder="Monsters Lovers">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="acc-wa-number">Nomor WhatsApp Support</label>
+            <input type="text" id="acc-wa-number" class="form-input" placeholder="628...">
+            <p style="font-size: 11px; color: #6b7280; margin-top: 4px;">Nomor tujuan untuk tombol 'Chat WhatsApp'.</p>
+        </div>
+
+        <div class="form-group" style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px;">
+            <div class="form-label">Visibilitas Menu</div>
+            
+            <div class="setting-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>Menu FAQ</strong>
+                        <p style="font-size: 12px; color: #6b7280;">Tampilkan menu Pertanyaan Umum</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="show-faq">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <input type="text" id="faq-label" class="form-input" placeholder="Label Menu (Default: Pertanyaan Umum)" style="font-size: 13px;">
+            </div>
+
+            <div class="setting-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>Menu Ketentuan</strong>
+                        <p style="font-size: 12px; color: #6b7280;">Tampilkan menu Ketentuan Layanan</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="show-terms">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <input type="text" id="terms-label" class="form-input" placeholder="Label Menu (Default: Ketentuan Layanan)" style="font-size: 13px;">
+            </div>
+        </div>
+
+        <div class="form-group" style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px;">
+            <div class="form-label">Konten Ketentuan Layanan</div>
+            <p style="font-size: 11px; color: #6b7280; margin-bottom: 8px;">Gunakan HTML untuk format (h3, p, ul, li).</p>
+            <textarea id="terms-content" class="form-input" rows="6" style="font-family: monospace; font-size: 12px;"></textarea>
+        </div>
+
+        <div class="form-group" style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px;">
+            <div class="form-label">Konten FAQ</div>
+            <div id="faq-list-editor"></div>
+            <button id="btn-add-faq" class="btn btn-secondary" style="width: 100%; margin-top: 8px;">+ Tambah Pertanyaan</button>
+        </div>
+
+        <div style="margin-top: 16px; text-align: right;">
+          <button id="save-acc-settings-btn" class="btn btn-primary">Simpan Pengaturan</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="custom-ui.js"></script>
+  <script>
+    function getActiveConfig() {
+        try {
+            const storedConns = localStorage.getItem('rbm_db_connections');
+            const activeIdx = parseInt(localStorage.getItem('rbm_active_connection_index') || '0');
+            if (storedConns) {
+                const conns = JSON.parse(storedConns);
+                if (conns.length > 0) return conns[activeIdx >= 0 && activeIdx < conns.length ? activeIdx : 0].config;
+            }
+        } catch(e) { console.error("Config Error", e); }
+        return null;
+    }
+
+    const config = getActiveConfig();
+    if (config && !firebase.apps.length) firebase.initializeApp(config);
+    else if (!config) { alert("Database belum disetting!"); window.location.href = "storage-viewer.html"; }
+
+    const db = firebase.apps.length ? firebase.database() : { ref: () => ({ on: () => {}, once: () => Promise.resolve({val:()=>null}), update: () => Promise.reject("No DB") }) };
+
+    // [BARU] Proteksi Halaman (Hanya akun Burhan)
+    const currentUser = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+    // if (currentUser.username !== 'Burhan') {
+    //     alert('Akses Ditolak. Halaman ini hanya dapat diakses oleh akun Developer (Burhan).');
+    //     window.location.href = 'index.html';
+    //     throw new Error('Access Denied'); // Hentikan eksekusi script
+    // }
+
+    const logoFile = document.getElementById('acc-logo-file');
+    const logoBase64 = document.getElementById('acc-logo-base64');
+    const logoPreview = document.getElementById('acc-logo-preview');
+    const titleInput = document.getElementById('acc-title');
+    const greetingInput = document.getElementById('acc-greeting');
+    const guestNameInput = document.getElementById('acc-guest-name');
+    const waInput = document.getElementById('acc-wa-number');
+    const showFaqInput = document.getElementById('show-faq');
+    const faqLabelInput = document.getElementById('faq-label');
+    const showTermsInput = document.getElementById('show-terms');
+    const termsLabelInput = document.getElementById('terms-label');
+    const termsContentInput = document.getElementById('terms-content');
+    const faqListEditor = document.getElementById('faq-list-editor');
+    const btnAddFaq = document.getElementById('btn-add-faq');
+    const saveBtn = document.getElementById('save-acc-settings-btn');
+
+    let faqData = [];
+
+    function renderFaqEditor() {
+        faqListEditor.innerHTML = '';
+        faqData.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.style.cssText = 'background: #f9fafb; padding: 10px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #e5e7eb;';
+            div.innerHTML = `
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                    <span style="font-size:12px; font-weight:600;">Pertanyaan #${index+1}</span>
+                    <button class="btn-remove-faq" data-index="${index}" style="color:red; background:none; border:none; cursor:pointer; font-size:11px;">Hapus</button>
+                </div>
+                <input type="text" class="form-input faq-q" data-index="${index}" value="${item.q}" placeholder="Pertanyaan" style="margin-bottom:4px; font-size:13px;">
+                <textarea class="form-input faq-a" data-index="${index}" rows="2" placeholder="Jawaban" style="font-size:13px;">${item.a}</textarea>
+            `;
+            faqListEditor.appendChild(div);
+        });
+
+        document.querySelectorAll('.faq-q').forEach(el => el.addEventListener('input', (e) => faqData[e.target.dataset.index].q = e.target.value));
+        document.querySelectorAll('.faq-a').forEach(el => el.addEventListener('input', (e) => faqData[e.target.dataset.index].a = e.target.value));
+        document.querySelectorAll('.btn-remove-faq').forEach(el => el.addEventListener('click', (e) => {
+            faqData.splice(e.target.dataset.index, 1);
+            renderFaqEditor();
+        }));
+    }
+
+    btnAddFaq.addEventListener('click', () => {
+        faqData.push({ q: '', a: '' });
+        renderFaqEditor();
+    });
+
+    // Image Upload Logic
+    logoFile.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const maxWidth = 200;
+                    const scale = maxWidth / img.width;
+                    const width = (img.width > maxWidth) ? maxWidth : img.width;
+                    const height = (img.width > maxWidth) ? img.height * scale : img.height;
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.clearRect(0, 0, width, height);
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL('image/png');
+                    logoPreview.src = dataUrl;
+                    logoPreview.style.display = 'block';
+                    logoBase64.value = dataUrl;
+                    document.getElementById('btn-clear-acc-logo').style.display = 'flex';
+                }
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+
+    document.getElementById('btn-clear-acc-logo').addEventListener('click', () => {
+        logoFile.value = '';
+        logoBase64.value = '';
+        logoPreview.src = '';
+        logoPreview.style.display = 'none';
+        document.getElementById('btn-clear-acc-logo').style.display = 'none';
+    });
+
+    // Load Settings
+    db.ref('customer_app_settings/account_page').once('value').then(snapshot => {
+        const data = snapshot.val() || {};
+        
+        if (data.logo) {
+            logoBase64.value = data.logo;
+            logoPreview.src = data.logo;
+            logoPreview.style.display = 'block';
+            document.getElementById('btn-clear-acc-logo').style.display = 'flex';
+        }
+        titleInput.value = data.title || '';
+        greetingInput.value = data.greeting || '';
+        guestNameInput.value = data.guest_name || '';
+
+        waInput.value = data.whatsapp || '';
+        showFaqInput.checked = data.show_faq !== false; // Default true
+        faqLabelInput.value = data.faq_label || '';
+        showTermsInput.checked = data.show_terms !== false; // Default true
+        termsLabelInput.value = data.terms_label || '';
+        
+        termsContentInput.value = data.terms_content || '';
+        faqData = data.faq_content || [];
+        renderFaqEditor();
+    });
+
+    // Save Settings
+    saveBtn.addEventListener('click', () => {
+        const settings = {
+            logo: logoBase64.value,
+            title: titleInput.value.trim(),
+            greeting: greetingInput.value.trim(),
+            guest_name: guestNameInput.value.trim(),
+            whatsapp: waInput.value.trim(),
+            show_faq: showFaqInput.checked,
+            faq_label: faqLabelInput.value.trim(),
+            show_terms: showTermsInput.checked,
+            terms_label: termsLabelInput.value.trim(),
+            terms_content: termsContentInput.value,
+            faq_content: faqData
+        };
+
+        db.ref('customer_app_settings/account_page').update(settings)
+            .then(() => {
+                if(window.CustomUI) {
+                    CustomUI.success('Pengaturan Akun berhasil disimpan!');
+                } else {
+                    alert('Pengaturan Akun berhasil disimpan!');
+                }
+            })
+            .catch(err => {
+                if(window.CustomUI) {
+                    CustomUI.error('Gagal menyimpan: ' + err.message);
+                } else {
+                    alert('Gagal menyimpan: ' + err.message);
+                }
+            });
+    });
+  </script>
+</body>
+</html>

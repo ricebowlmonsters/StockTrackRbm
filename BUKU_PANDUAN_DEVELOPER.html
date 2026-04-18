@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buku Panduan Developer — Web App Kasir (RBM)</title>
+  <style>
+    :root { --ink: #1a1a1a; --muted: #444; --border: #ddd; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.5; color: var(--ink); max-width: 900px; margin: 0 auto; padding: 2rem; }
+    h1 { font-size: 1.75rem; border-bottom: 2px solid var(--ink); padding-bottom: 0.5rem; }
+    h2 { font-size: 1.35rem; margin-top: 2rem; }
+    h3 { font-size: 1.1rem; margin-top: 1.25rem; }
+    p, li { color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; }
+    th { background: #f5f5f5; font-weight: 600; }
+    ul, ol { padding-left: 1.5rem; }
+    .meta { color: var(--muted); font-size: 0.95rem; margin-bottom: 1.5rem; }
+    .toc { background: #f8f8f8; padding: 1rem 1.5rem; border-radius: 8px; margin: 1rem 0; }
+    .toc ol { margin: 0; padding-left: 1.5rem; }
+    .toc a { color: #4C2A85; text-decoration: none; }
+    code, .key { font-family: Consolas, monospace; background: #f0f0f0; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.9em; }
+    pre { background: #f5f5f5; padding: 1rem; overflow-x: auto; border-radius: 6px; font-size: 0.85rem; }
+    hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+    .no-print { margin: 1rem 0; }
+    @media print {
+      body { padding: 1rem; max-width: 100%; }
+      .no-print { display: none !important; }
+      h2 { page-break-after: avoid; }
+      table { page-break-inside: avoid; }
+      pre { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="margin-bottom: 1rem;">
+    <strong>Cara cetak ke PDF:</strong> Tekan <kbd>Ctrl+P</kbd> (atau Cmd+P di Mac) → pilih "Save as PDF" / "Simpan sebagai PDF" sebagai tujuan cetak.
+  </div>
+
+  <h1>Buku Panduan Developer — Web App Kasir (Rice Bowl Monster)</h1>
+  <p class="meta"><strong>Versi:</strong> 1.0 &nbsp;|&nbsp; <strong>Tanggal:</strong> Maret 2025 &nbsp;|&nbsp; <strong>Tujuan:</strong> Pegangan developer untuk memahami struktur, penyimpanan, dan logika aplikasi secara detail (jika lupa).</p>
+
+  <nav class="toc">
+    <h2 id="daftar-isi">Daftar Isi</h2>
+    <ol>
+      <li><a href="#ringkasan">Ringkasan Aplikasi</a></li>
+      <li><a href="#struktur">Struktur Proyek & File Penting</a></li>
+      <li><a href="#penyimpanan">Penyimpanan (Storage) — Detail</a></li>
+      <li><a href="#logika">Logika Bisnis Utama</a></li>
+      <li><a href="#per-halaman">Per Halaman / Fitur (Satu per Satu)</a></li>
+      <li><a href="#server">Server & Backend</a></li>
+      <li><a href="#konfigurasi">Konfigurasi & Environment</a></li>
+      <li><a href="#menjalankan">Cara Menjalankan & Build</a></li>
+      <li><a href="#lampiran">Lampiran: Quick Reference Key localStorage</a></li>
+    </ol>
+  </nav>
+
+  <hr>
+
+  <h2 id="ringkasan">1. Ringkasan Aplikasi</h2>
+  <ul>
+    <li><strong>Nama:</strong> Web App Kasir (Rice Bowl Monster / RBM)</li>
+    <li><strong>Jenis:</strong> Aplikasi kasir (POS), input poin, klaim voucher, laporan, dan modul RBM Pro (absensi, petty cash, inventaris, pembukuan, dll.).</li>
+    <li><strong>Entry point:</strong> <code>login.html</code> → setelah login redirect ke <code>index.html</code>.</li>
+    <li><strong>Navigasi:</strong> Bukan SPA; setiap menu adalah link langsung ke file HTML. Dashboard (<code>index.html</code>) memakai iframe untuk konten (default: <code>orders.html</code>).</li>
+    <li><strong>Data:</strong> Firebase Realtime Database (utama), localStorage (sesi & pengaturan), file JSON via server Node (opsional), Google Sheets via Google Apps Script.</li>
+  </ul>
+
+  <h2 id="struktur">2. Struktur Proyek & File Penting</h2>
+  <h3>2.1 Folder</h3>
+  <ul>
+    <li><strong>Root:</strong> Semua HTML, JS, CSS, dan konfigurasi di satu folder.</li>
+    <li><strong>node_modules/:</strong> Dependency Node (Express, body-parser, cors) untuk server.</li>
+  </ul>
+  <h3>2.2 File menurut peran</h3>
+  <table>
+    <thead><tr><th>Peran</th><th>File</th><th>Keterangan</th></tr></thead>
+    <tbody>
+      <tr><td>Entry / Auth</td><td>login.html</td><td>Halaman login; simpan rbm_user ke localStorage, redirect ke index.html.</td></tr>
+      <tr><td>Dashboard</td><td>index.html</td><td>Sidebar + iframe; link ke semua halaman; logout hapus rbm_user.</td></tr>
+      <tr><td>Konfigurasi</td><td>package.json</td><td>Script start → node print-bridge.js (port 3000). Server DB: server.js (port 3001) terpisah.</td></tr>
+      <tr><td>Konfigurasi</td><td>server-config.json</td><td>Dibuat server.js untuk path file database.</td></tr>
+      <tr><td>Core JS</td><td>app.js</td><td>CONFIG (SCRIPT_URL GAS), AUTH, AppState, APIService (poin & voucher).</td></tr>
+      <tr><td>Core JS</td><td>custom-ui.js</td><td>Modal/alert, LocalDB & ServerDB (adapter mirip Firebase), Firebase init.</td></tr>
+      <tr><td>Core JS</td><td>menu.js</td><td>Data menu statis RBM_MENU_DATA (referensi); kasir & kelola menu pakai Firebase.</td></tr>
+      <tr><td>Server Node</td><td>server.js</td><td>Express port 3001: GET/POST /db baca/tulis file JSON.</td></tr>
+      <tr><td>Server Node</td><td>print-bridge.js</td><td>Express port 3000: endpoint /print untuk cetak printer thermal via LAN.</td></tr>
+      <tr><td>Backend GAS</td><td>Code.gs</td><td>Google Apps Script: Petty Cash / Inventaris / Pembukuan / Pengajuan ke Google Sheet.</td></tr>
+      <tr><td>Backend GAS</td><td>google-apps-script-enhanced.js</td><td>Referensi API Web App GAS: addPoints, claimVoucher, getMenu, dll.</td></tr>
+      <tr><td>RBM Pro</td><td>rbm-pro.js, rbm-pro-storage.js, temp.js</td><td>Logika & storage RBM Pro; pending sync ke GAS.</td></tr>
+    </tbody>
+  </table>
+  <h3>2.3 File HTML utama</h3>
+  <p><strong>Utama:</strong> index.html, login.html, kasir.html, orders.html, manage-menu.html, input-point.html, claim-vcr.html, revenue-report.html, report-transactions.html, manage-rewards.html, customer-settings.html, settings.html, storage-viewer.html, promo-settings.html, qr_generator.html, admin-menu.html, report-category.html, report-menu.html.</p>
+  <p><strong>RBM Pro:</strong> rbm-absensi.html, rbm-absensi-gps.html, rbm-stok-barang.html, rbm-input-petty-cash.html, rbm-lihat-petty-cash.html, rbm-input-keuangan.html, rbm-lihat-pembukuan.html, rbm-input-inventaris.html, rbm-lihat-inventaris.html, rbm-pengajuan.html, dll.</p>
+  <p><strong>Lain:</strong> global-chat-manager.html, ai-settings.html, print-bridge-simple.html.</p>
+
+  <hr>
+
+  <h2 id="penyimpanan">3. Penyimpanan (Storage) — Detail</h2>
+  <h3>3.1 Di mana data disimpan</h3>
+  <table>
+    <thead><tr><th>Sumber</th><th>Kegunaan</th></tr></thead>
+    <tbody>
+      <tr><td>Firebase Realtime Database</td><td>Orders, products, categories, promos, rewards, users, customer_app_settings, counters, pos_promos, global_chat, ai_responses, games, rbm_pro.</td></tr>
+      <tr><td>localStorage (browser)</td><td>Sesi user, koneksi DB, outlet, pengaturan, pending sync, cache.</td></tr>
+      <tr><td>File JSON (server.js)</td><td>Satu file (path dari server-config.json atau database.json) untuk mode "Server PC" via GET/POST /db.</td></tr>
+      <tr><td>Google Sheets (Code.gs)</td><td>Petty Cash, Database barang, Inventaris, Pembukuan, Pengajuan, Bank.</td></tr>
+      <tr><td>Google Apps Script Web App</td><td>Sheet terpisah: users, poin, voucher, claim, menu; URL di app.js → CONFIG.SCRIPT_URL.</td></tr>
+    </tbody>
+  </table>
+  <h3>3.2 Key localStorage (penting)</h3>
+  <table>
+    <thead><tr><th>Key</th><th>Isi</th><th>Dipakai di</th></tr></thead>
+    <tbody>
+      <tr><td>rbm_user</td><td>Objek user login (username, nama, role, outlet, phone, points)</td><td>login, index, kasir, orders, input-point, claim-vcr, settings</td></tr>
+      <tr><td>rbm_users</td><td>Array user untuk login (selain owner)</td><td>login.html</td></tr>
+      <tr><td>rbm_outlets</td><td>Array ID outlet</td><td>index, kasir, orders, manage-menu, laporan</td></tr>
+      <tr><td>rbm_outlet_names</td><td>Objek { [outletId]: nama }</td><td>index, kasir, orders, laporan</td></tr>
+      <tr><td>rbm_last_selected_outlet</td><td>ID outlet terakhir</td><td>kasir, orders</td></tr>
+      <tr><td>rbm_db_connections</td><td>Array koneksi DB (Firebase/Server)</td><td>custom-ui, storage-viewer</td></tr>
+      <tr><td>rbm_active_connection_index</td><td>Index koneksi aktif</td><td>custom-ui, storage-viewer</td></tr>
+      <tr><td>rbm_settings</td><td>Pengaturan umum toko</td><td>settings, kasir</td></tr>
+      <tr><td>rbm_menu_categories</td><td>Cache kategori menu</td><td>manage-menu</td></tr>
+      <tr><td>rbm_printer_groups, rbm_printer_config</td><td>Printer & konfigurasi</td><td>kasir, print-bridge</td></tr>
+      <tr><td>rbm_payment_methods</td><td>Metode pembayaran</td><td>kasir, report-transactions</td></tr>
+      <tr><td>rbm_points_history, rbm_vouchers</td><td>Riwayat poin & voucher (lokal)</td><td>app.js</td></tr>
+      <tr><td>RBM_PENDING_*</td><td>Data pending sync RBM Pro</td><td>temp.js, rbm-pro</td></tr>
+      <tr><td>RBM_EMPLOYEES, RBM_STOK_ITEMS, dll.</td><td>Data RBM Pro (fallback)</td><td>rbm-pro-storage.js</td></tr>
+    </tbody>
+  </table>
+  <h3>3.3 Path Firebase (utama)</h3>
+  <table>
+    <thead><tr><th>Path</th><th>Isi</th></tr></thead>
+    <tbody>
+      <tr><td>orders/{outletId}/{orderId}</td><td>Pesanan: items, payment, status, date, details, promo</td></tr>
+      <tr><td>products/{outletId}/{productId}</td><td>Produk per outlet</td></tr>
+      <tr><td>categories</td><td>Kategori menu</td></tr>
+      <tr><td>counters/{outletId}</td><td>Counter nomor order</td></tr>
+      <tr><td>promos, pos_promos</td><td>Promo dan penggunaan promo POS</td></tr>
+      <tr><td>rewards</td><td>Daftar hadiah tukar poin</td></tr>
+      <tr><td>users, customer_app_settings</td><td>User & pengaturan customer</td></tr>
+      <tr><td>rbm_pro/...</td><td>Data RBM Pro di Firebase</td></tr>
+    </tbody>
+  </table>
+  <h3>3.4 File yang mengelola baca/tulis</h3>
+  <ul>
+    <li><strong>Firebase:</strong> custom-ui.js, kasir.html, orders.html, manage-menu.html, manage-rewards.html, promo-settings.html, revenue-report.html, report-transactions.html, report-category.html, rbm-pro-storage.js, rbm-*.html.</li>
+    <li><strong>localStorage:</strong> app.js, custom-ui.js, temp.js, rbm-pro.js, rbm-pro-storage.js, login.html, index.html, settings.html.</li>
+    <li><strong>File JSON (server):</strong> Hanya server.js (GET/POST /db).</li>
+    <li><strong>Google Sheet (tulis):</strong> Backend GAS Code.gs.</li>
+    <li><strong>Poin & voucher:</strong> app.js + input-point.html, claim-vcr.html → CONFIG.SCRIPT_URL; backend google-apps-script-enhanced.js.</li>
+  </ul>
+  <h3>3.5 Adapter database (custom-ui.js)</h3>
+  <ul>
+    <li><strong>LocalDB:</strong> Key <code>rbm_off_&lt;dbName&gt;</code>. API: ref(path).once(), set(), push(), update(), remove().</li>
+    <li><strong>ServerDB:</strong> GET/POST /db; path jadi key di objek JSON.</li>
+    <li><strong>Firebase:</strong> Saat koneksi aktif Firebase; init lewat ensureDefaultFirebaseConnection().</li>
+  </ul>
+
+  <hr>
+
+  <h2 id="logika">4. Logika Bisnis Utama</h2>
+  <h3>4.1 Login</h3>
+  <ol>
+    <li>User buka login.html, input username & password.</li>
+    <li>Owner (hardcoded): burhan / 160502 → simpan rbm_user (role owner, outlet all); ensureDefaultFirebaseConnection(); redirect ke index.html.</li>
+    <li>User lain: Baca rbm_users dari localStorage; cocokkan username (case-insensitive) dan password; simpan rbm_user; ensureDefaultFirebaseConnection(); redirect.</li>
+    <li>app.js (DOMContentLoaded): jika tidak ada rbm_user dan bukan login.html, redirect ke login.html.</li>
+  </ol>
+  <h3>4.2 Kasir (POS)</h3>
+  <ol>
+    <li>kasir.html: Init Firebase/adapter, muat categories dan products/{outletId}.</li>
+    <li>Cart di memori; tambah/kurang item, ubah qty.</li>
+    <li>Bayar: hitung subtotal, diskon, pajak, total; pilih metode bayar; generate order ID lewat counters/{outletId}; simpan ke orders/{outletId}/{orderId} status "Sudah Dibayar"; update pos_promos; cetak struk (print-bridge); kosongkan cart; modal kembalian jika tunai.</li>
+    <li>Order ID: format {prefix}-{nomor}, mis. ORD-0001.</li>
+  </ol>
+  <h3>4.3 Menu</h3>
+  <p>manage-menu.html: Kategori dari Firebase categories (cache rbm_menu_categories). Produk dari products/{outletId}. CRUD ke Firebase; listener realtime. menu.js: Hanya RBM_MENU_DATA statis (referensi).</p>
+  <h3>4.4 Rewards / poin</h3>
+  <ul>
+    <li><strong>Input poin:</strong> Cari customer via GAS ?phone=...; nominal → <strong>poin = nominal ÷ 100</strong>; APIService.addPoints() → POST GAS addPoints.</li>
+    <li><strong>Klaim voucher:</strong> POST GAS validateClaimVoucher / validateClaimCode / generateClaimCode.</li>
+    <li><strong>Hadiah:</strong> Firebase rewards; tambah = push; debet poin & kode klaim di backend GAS.</li>
+  </ul>
+  <h3>4.5 Laporan</h3>
+  <p>revenue-report.html: Query orders/{outlet} filter date/status; hitung total, per metode bayar, chart; link ke report-transactions. report-transactions.html: List transaksi dari Firebase; filter tanggal/outlet/kasir; rbm_payment_methods dari localStorage.</p>
+  <h3>4.6 Integrasi GAS</h3>
+  <p>Code.gs: doGet + fungsi ke Sheet (Petty Cash, Database, Inventaris, Pembukuan, Pengajuan, Bank). google-apps-script-enhanced.js: doGet/doPost untuk users, poin, voucher, claim, menu (action: register, getUserData, addPoints, validateClaimCode, generateClaimCode, getMenuData, dll.).</p>
+
+  <hr>
+
+  <h2 id="per-halaman">5. Per Halaman / Fitur (Satu per Satu)</h2>
+  <table>
+    <thead><tr><th>Halaman</th><th>Tujuan</th><th>Data dipakai</th><th>Alur singkat</th></tr></thead>
+    <tbody>
+      <tr><td>login.html</td><td>Autentikasi</td><td>rbm_users, owner hardcoded</td><td>Cek credential → set rbm_user, ensure Firebase → redirect.</td></tr>
+      <tr><td>index.html</td><td>Dashboard & navigasi</td><td>rbm_user, rbm_outlets, rbm_outlet_names</td><td>Sidebar + iframe; logout hapus rbm_user.</td></tr>
+      <tr><td>kasir.html</td><td>POS</td><td>Firebase: categories, products, counters, orders, pos_promos; localStorage: outlet, user, printer</td><td>Pilih outlet, cart, bayar → simpan order, cetak.</td></tr>
+      <tr><td>orders.html</td><td>Daftar pesanan</td><td>Firebase orders/{outlet}; localStorage outlet, user, printer</td><td>Listener orders; ubah status, cetak ulang.</td></tr>
+      <tr><td>manage-menu.html</td><td>Kelola menu & kategori</td><td>Firebase categories, products; localStorage rbm_menu_categories, outlet</td><td>CRUD kategori & produk; listener.</td></tr>
+      <tr><td>input-point.html</td><td>Input poin customer</td><td>GAS cari user, addPoints; rbm_user</td><td>Cari telepon → nominal → poin=nominal/100 → POST addPoints.</td></tr>
+      <tr><td>claim-vcr.html</td><td>Validasi/klaim voucher</td><td>GAS validate/generate; rbm_user</td><td>Input klaim/kode → POST GAS → hasil.</td></tr>
+      <tr><td>manage-rewards.html</td><td>Kelola hadiah</td><td>Firebase rewards</td><td>Push hadiah ke rewards; list listener.</td></tr>
+      <tr><td>revenue-report.html</td><td>Laporan pendapatan</td><td>Firebase orders (filter date, status)</td><td>Query → total, chart → link report-transactions.</td></tr>
+      <tr><td>report-transactions.html</td><td>Detail transaksi</td><td>Firebase orders; rbm_payment_methods</td><td>Filter, tabel, export/print.</td></tr>
+      <tr><td>customer-settings.html</td><td>Pengaturan customer & outlet</td><td>Firebase customer_app_settings, outlets; localStorage</td><td>Nama, logo, lokasi, radius.</td></tr>
+      <tr><td>settings.html</td><td>Pengaturan umum</td><td>localStorage rbm_settings, outlets, printer, dll.</td><td>Simpan toko, outlet, printer, metode bayar.</td></tr>
+      <tr><td>storage-viewer.html</td><td>Lihat/backup/restore/hapus</td><td>Firebase atau ServerDB; rbm_db_connections</td><td>Pilih koneksi, analisis node, backup/restore.</td></tr>
+      <tr><td>promo-settings.html</td><td>Promo & diskon</td><td>Firebase promos (per outlet)</td><td>CRUD promo, listener.</td></tr>
+      <tr><td>RBM Pro (rbm-*.html)</td><td>Absensi, stok, petty cash, pembukuan, inventaris</td><td>Firebase rbm_pro, localStorage RBM_*, GAS Code.gs</td><td>Input/sync Firebase; pending localStorage; sinkron Sheet.</td></tr>
+      <tr><td>print-bridge.js</td><td>Cetak struk</td><td>Konfigurasi IP printer</td><td>POST /print → socket printer port 9100.</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2 id="server">6. Server & Backend</h2>
+  <h3>6.1 server.js (port 3001)</h3>
+  <ul>
+    <li>GET /db: Baca seluruh file database JSON.</li>
+    <li>POST /db: Terima body JSON; tulis ke file database.</li>
+    <li>GET /info: { status, port, dbFile }.</li>
+    <li>Path DB: server-config.json, atau argumen, atau database.json.</li>
+  </ul>
+  <h3>6.2 print-bridge.js (port 3000)</h3>
+  <p>POST /print: Terima konten struk; kirim ke printer thermal via LAN (socket port 9100).</p>
+  <h3>6.3 Google Apps Script</h3>
+  <p>Code.gs: Satu Spreadsheet untuk Petty Cash, Database, Inventaris, Pembukuan, Pengajuan, Bank. Web App (SCRIPT_URL): Sheet terpisah users, poin, voucher, claim, menu.</p>
+
+  <hr>
+
+  <h2 id="konfigurasi">7. Konfigurasi & Environment</h2>
+  <ul>
+    <li>app.js: CONFIG.SCRIPT_URL = URL deploy GAS Web App (input poin & claim voucher).</li>
+    <li>AUTH.USERS (app.js): User hardcoded modul input point (RBMPONTI, RBMDARMO); login → rbm_user.</li>
+    <li>login.html: Owner hardcoded burhan / 160502 (tidak di rbm_users).</li>
+    <li>server.js: CUSTOM_DB_PATH = null atau path penuh; server-config.json simpan path.</li>
+    <li>Firebase: Konfigurasi di custom-ui.js; ensureDefaultFirebaseConnection().</li>
+  </ul>
+
+  <hr>
+
+  <h2 id="menjalankan">8. Cara Menjalankan & Build</h2>
+  <ul>
+    <li><strong>Print Bridge:</strong> npm start → node print-bridge.js (port 3000).</li>
+    <li><strong>Server database:</strong> node server.js (port 3001); optional: node server.js "D:\Path\database.json".</li>
+    <li><strong>Front-end:</strong> Buka HTML langsung atau server statis; pastikan Firebase dan GAS URL benar.</li>
+    <li>Tidak ada build step; plain HTML/JS; npm install untuk server.</li>
+  </ul>
+
+  <hr>
+
+  <h2 id="lampiran">Lampiran: Quick Reference Key localStorage</h2>
+  <pre>rbm_user              → Sesi login
+rbm_users             → Daftar user (login)
+rbm_outlets           → Daftar ID outlet
+rbm_outlet_names      → Nama per outlet
+rbm_last_selected_outlet
+rbm_db_connections    → Koneksi DB (Firebase/Server)
+rbm_active_connection_index
+rbm_settings          → Pengaturan umum
+rbm_menu_categories   → Cache kategori menu
+rbm_printer_groups, rbm_printer_config
+rbm_payment_methods
+rbm_points_history, rbm_vouchers
+RBM_PENDING_*         → Pending sync RBM Pro
+RBM_EMPLOYEES, RBM_STOK_ITEMS, dll.</pre>
+
+  <p style="margin-top: 2rem; font-size: 0.9rem; color: var(--muted);"><em>Dokumentasi ini dibuat dari penelusuran codebase untuk pegangan developer. Jika ada perubahan di struktur atau key, perbarui dokumen ini.</em></p>
+</body>
+</html>

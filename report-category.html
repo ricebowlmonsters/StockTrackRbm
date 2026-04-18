@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Per Kategori - RBM</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .table th, .table td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+    .table th { background: #f9fafb; font-weight: 600; color: #374151; }
+    .muted { color: #6b7280; }
+    .filter-info { background: #eef2ff; padding: 10px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; color: #4C2A85; border: 1px solid #e6e0ff; }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <a href="javascript:history.back()" class="back-btn">‹</a>
+      <h1 class="page-title">Laporan Penjualan per Kategori</h1>
+    </header>
+    <main class="content">
+      <div id="filter-info" class="filter-info">Memuat filter...</div>
+
+      <section class="card">
+        <table class="table" id="category-sales-table">
+          <thead>
+            <tr>
+              <th>Kategori</th>
+              <th style="text-align:center;">Terjual (Qty)</th>
+              <th>Total (Sebelum PPN)</th>
+              <th>Total (Sesudah PPN)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="4" class="muted">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <!-- <script src="menu.js"></script> --> <!-- [DIHAPUS] Tidak lagi menggunakan data statis -->
+  <script>
+    function formatRupiah(n) { return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+    function toStartOfDay(date) { const d = new Date(date); d.setHours(0,0,0,0); return d.getTime(); }
+    function toEndOfDay(date) { const d = new Date(date); d.setHours(23,59,59,999); return d.getTime(); }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(window.location.search);
+      const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+      const todayStr = iso(new Date());
+      const outlet = params.get('outlet') || 'sidoarjo';
+      const dateFrom = params.get('dateFrom') || todayStr;
+      const dateTo = params.get('dateTo') || todayStr;
+
+      document.getElementById('filter-info').innerHTML = `\n        <strong>Outlet:</strong> ${outlet.toUpperCase()} &nbsp;|&nbsp; \n        <strong>Tanggal:</strong> ${dateFrom} s/d ${dateTo}\n      `;
+
+      const tbody = document.querySelector('#category-sales-table tbody');
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyDWQG53tP2zKILTwPSJQpiVzFNyvYLxLqw",
+        authDomain: "ricebowlmonst.firebaseapp.com",
+        databaseURL: "https://ricebowlmonst-default-rtdb.firebaseio.com",
+        projectId: "ricebowlmonst",
+        storageBucket: "ricebowlmonst.firebasestorage.app",
+        messagingSenderId: "723669558962",
+        appId: "1:723669558962:web:c17a1a4683a86cc5a88bab",
+        measurementId: "G-1G3JF6ZFRP"
+      };
+      if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+
+      // [DIUBAH] Fungsi untuk membangun lookup menu->kategori dari Firebase
+      async function buildCategoryLookup(outletId) {
+        const nameToCategory = {};
+        try {
+            const productsSnap = await db.ref(`products/${outletId}`).once('value');
+            const products = productsSnap.val() || {};
+            Object.values(products).forEach(item => {
+                if (item && item.name && item.category) {
+                    nameToCategory[String(item.name).trim().toLowerCase()] = item.category;
+                }
+            });
+        } catch (e) { console.error("Gagal memuat data produk untuk kategori:", e); }
+        return nameToCategory;
+      }
+      const parseNumber = (v) => {
+        if (typeof v === 'number') return v;
+        if (!v) return 0;
+        let str = String(v).replace(/[^0-9,-]/g, '');
+        str = str.replace(',', '.');
+        return parseFloat(str) || 0;
+      };
+
+      async function loadData() {
+        const start = toStartOfDay(dateFrom);
+        const end = toEndOfDay(dateTo);
+
+        tbody.innerHTML = '<tr><td colspan="4" class="muted">Memuat data...</td></tr>';
+
+        try {
+          // [BARU] Bangun lookup kategori dari data produk live di Firebase
+          const nameToCategory = await buildCategoryLookup(outlet);
+
+          const snap = await db.ref('orders/' + outlet).orderByChild('date').startAt(start).endAt(end).once('value');
+          const val = snap.val() || {};
+          const validStatuses = ['Sudah Dibayar', 'Diproses', 'Siap Diambil', 'Selesai'];
+          const orders = Object.values(val).filter(o => validStatuses.includes(o.status));
+
+          const categories = {};
+
+          orders.forEach(o => {
+            const items = o.items ? (Array.isArray(o.items) ? o.items : Object.values(o.items)) : [];
+            const grandTotal = parseNumber(o.payment?.total);
+
+            // Calculate gross item total for distribution
+            let orderItemGross = 0;
+            items.forEach(i => { orderItemGross += parseNumber(i.price) * parseNumber(i.quantity); });
+
+            const distributionRatio = orderItemGross > 0 ? (grandTotal / orderItemGross) : 0;
+
+            items.forEach(i => {
+              const name = (i.name || 'Unknown').trim();
+              const keyName = name.toLowerCase();
+              const qty = parseNumber(i.quantity);
+              const gross = parseNumber(i.price) * qty;
+              const after = distributionRatio ? (gross * distributionRatio) : gross;
+
+              const cat = nameToCategory[keyName] || 'Lainnya'; // [DIUBAH] Fallback ke 'Lainnya'
+              if (!categories[cat]) categories[cat] = { qty: 0, totalBefore: 0, totalAfter: 0 };
+
+              categories[cat].qty += qty;
+              categories[cat].totalBefore += gross;
+              categories[cat].totalAfter += after;
+            });
+          });
+
+          // [BARU] Ambil daftar kategori dari Firebase untuk nama yang lebih baik
+          const categoriesSnap = await db.ref(`categories/${outlet}`).once('value');
+          const categoryData = categoriesSnap.val() || [];
+          const categoryMap = {};
+          if(Array.isArray(categoryData)) {
+            categoryData.forEach(c => { categoryMap[c.value] = c.name; });
+          }
+
+          tbody.innerHTML = '';
+          const sorted = Object.keys(categories).sort((a,b) => categories[b].qty - categories[a].qty);
+
+          if (sorted.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="muted" style="text-align:center;">Tidak ada data penjualan pada rentang tanggal ini.</td></tr>';
+            return;
+          }
+
+          let totalQty = 0, totalBefore = 0, totalAfter = 0;
+          sorted.forEach(cat => {
+            const d = categories[cat];
+            totalQty += d.qty;
+            totalBefore += d.totalBefore;
+            totalAfter += d.totalAfter;
+
+            const categoryDisplayName = categoryMap[cat] || cat;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${categoryDisplayName}</td>
+              <td style="text-align:center;">${d.qty}</td>
+              <td>${formatRupiah(d.totalBefore)}</td>
+              <td>${formatRupiah(d.totalAfter)}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+
+          const trTotal = document.createElement('tr');
+          trTotal.style.cssText = 'font-weight:bold; background-color:#f3f4f6; border-top:2px solid #e5e7eb;';
+          trTotal.innerHTML = `
+            <td>TOTAL KESELURUHAN</td>
+            <td style="text-align:center;">${totalQty}</td>
+            <td>${formatRupiah(totalBefore)}</td>
+            <td>${formatRupiah(totalAfter)}</td>
+          `;
+          tbody.appendChild(trTotal);
+
+        } catch (err) {
+          console.error(err);
+          tbody.innerHTML = `<tr><td colspan="4" style="color:red;">Error: ${err.message}</td></tr>`;
+        }
+      }
+
+      loadData();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!-- c:\Users\RUFINA\Documents\Koding\Projek Kasir\wep app kasir\ai-settings.html -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengaturan AI Chatbot - Rice Bowl Monster</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px; color: #374151; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .header h1 { margin: 0; color: #4C2A85; }
+        .btn { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; text-decoration: none; display: inline-block; }
+        .btn-primary { background-color: #4C2A85; color: white; }
+        .btn-primary:hover { background-color: #3c216b; }
+        .btn-danger { background-color: #ef4444; color: white; padding: 6px 12px; font-size: 12px; }
+        
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 20px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-family: inherit; box-sizing: border-box; }
+        textarea.form-control { resize: vertical; min-height: 80px; }
+        
+        .response-list { display: grid; gap: 16px; }
+        .response-item { background: white; border-radius: 12px; padding: 16px; border: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: flex-start; }
+        .response-content h4 { margin: 0 0 4px 0; font-size: 16px; color: #4C2A85; }
+        .response-content p { margin: 0; font-size: 14px; color: #6b7280; white-space: pre-wrap; }
+        .keywords-tag { display: inline-block; background: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-top: 8px; }
+        
+        .empty-state { text-align: center; padding: 40px; color: #9ca3af; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>🤖 Pengaturan AI Chatbot</h1>
+        <a href="customer-settings.html" class="btn" style="background: #e5e7eb; color: #374151;">Kembali</a>
+    </div>
+
+    <!-- Menu Navigasi Halaman (Top) -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 20px;">
+        <a href="customer-settings.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">📱</span>
+            <span style="font-size: 11px; font-weight: 600;">Pengaturan Web</span>
+        </a>
+        <a href="customer-account-settings.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">⚙️</span>
+            <span style="font-size: 11px; font-weight: 600;">Halaman Akun</span>
+        </a>
+        <a href="ai-settings.html" style="background: #eef2ff; border-color: #4C2A85; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #4C2A85; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #4C2A85; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">🤖</span>
+            <span style="font-size: 11px; font-weight: 600;">AI Chatbot</span>
+        </a>
+        <a href="global-chat-manager.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">💬</span>
+            <span style="font-size: 11px; font-weight: 600;">Community Chat</span>
+        </a>
+        <a href="storage-viewer.html" style="background: white; padding: 12px; border-radius: 12px; text-align: center; text-decoration: none; color: #374151; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.2s;">
+            <span style="font-size: 24px;">💾</span>
+            <span style="font-size: 11px; font-weight: 600;">Data & Storage</span>
+        </a>
+    </div>
+
+    <!-- Form Tambah -->
+    <div class="card">
+        <h3 style="margin-top: 0;">Tambah Respon Baru</h3>
+        <div class="form-group">
+            <label>Kata Kunci (Pisahkan dengan koma)</label>
+            <input type="text" id="inputKeywords" class="form-control" placeholder="Contoh: wifi, internet, password">
+        </div>
+        <div class="form-group">
+            <label>Jawaban AI</label>
+            <textarea id="inputResponse" class="form-control" placeholder="Tulis jawaban di sini... Gunakan {name} untuk menyebut nama user."></textarea>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button id="btnSave" onclick="addResponse()" class="btn btn-primary">Simpan Respon</button>
+            <button id="btnCancel" onclick="cancelEdit()" class="btn btn-secondary" style="display: none; background-color: #6b7280; color: white;">Batal</button>
+        </div>
+    </div>
+
+    <!-- Daftar Respon -->
+    <h3 style="margin-bottom: 12px;">Daftar Respon Aktif</h3>
+    <div id="responseList" class="response-list">
+        <div class="empty-state">Memuat data...</div>
+    </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyDWQG53tP2zKILTwPSJQpiVzFNyvYLxLqw",
+        authDomain: "ricebowlmonst.firebaseapp.com",
+        databaseURL: "https://ricebowlmonst-default-rtdb.firebaseio.com",
+        projectId: "ricebowlmonst",
+        storageBucket: "ricebowlmonst.firebasestorage.app",
+        messagingSenderId: "723669558962",
+        appId: "1:723669558962:web:c17a1a4683a86cc5a88bab"
+    };
+    
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const aiRef = db.ref('ai_responses');
+
+    let editingKey = null;
+    let allResponses = {};
+
+    // Load Data
+    aiRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        allResponses = data || {};
+        const list = document.getElementById('responseList');
+        list.innerHTML = '';
+
+        if (data) {
+            Object.entries(data).forEach(([key, item]) => {
+                const el = document.createElement('div');
+                el.className = 'response-item';
+                el.innerHTML = `
+                    <div class="response-content">
+                        <h4>Jawaban:</h4>
+                        <p>${item.response}</p>
+                        <div class="keywords-tag">🔑 ${item.keywords}</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <button onclick="startEdit('${key}')" class="btn" style="background-color: #f59e0b; color: white; padding: 6px 12px; font-size: 12px;">Edit</button>
+                        <button onclick="deleteResponse('${key}')" class="btn btn-danger">Hapus</button>
+                    </div>
+                `;
+                list.appendChild(el);
+            });
+        } else {
+            list.innerHTML = '<div class="empty-state">Belum ada respon kustom. AI menggunakan respon bawaan.</div>';
+        }
+    });
+
+    function addResponse() {
+        const keywords = document.getElementById('inputKeywords').value.trim();
+        const response = document.getElementById('inputResponse').value.trim();
+
+        if (!keywords || !response) return alert('Mohon isi semua kolom');
+
+        const payload = {
+            keywords: keywords.toLowerCase(),
+            response: response,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        if (editingKey) {
+            aiRef.child(editingKey).update(payload).then(() => {
+                alert('Respon berhasil diperbarui!');
+                cancelEdit();
+            });
+        } else {
+            payload.createdAt = firebase.database.ServerValue.TIMESTAMP;
+            aiRef.push(payload).then(() => {
+                document.getElementById('inputKeywords').value = '';
+                document.getElementById('inputResponse').value = '';
+                alert('Respon berhasil ditambahkan!');
+            });
+        }
+    }
+
+    function startEdit(key) {
+        const item = allResponses[key];
+        if (!item) return;
+
+        editingKey = key;
+        document.getElementById('inputKeywords').value = item.keywords;
+        document.getElementById('inputResponse').value = item.response;
+        
+        document.getElementById('btnSave').textContent = 'Update Respon';
+        document.getElementById('btnCancel').style.display = 'inline-block';
+        document.querySelector('.card h3').textContent = 'Edit Respon';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelEdit() {
+        editingKey = null;
+        document.getElementById('inputKeywords').value = '';
+        document.getElementById('inputResponse').value = '';
+        
+        document.getElementById('btnSave').textContent = 'Simpan Respon';
+        document.getElementById('btnCancel').style.display = 'none';
+        document.querySelector('.card h3').textContent = 'Tambah Respon Baru';
+    }
+
+    function deleteResponse(key) {
+        if(confirm('Hapus respon ini?')) {
+            aiRef.child(key).remove();
+        }
+    }
+</script>
+
+</body>
+</html>

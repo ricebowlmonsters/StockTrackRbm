@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Keuangan - RBM</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .filters .form-input, .filters select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      padding: 20px;
+      border-top: 4px solid var(--primary);
+    }
+    .stat-card.revenue { border-top-color: #059669; }
+    .stat-card.expense { border-top-color: #ef4444; }
+    .stat-card.balance-book { border-top-color: #3b82f6; }
+    .stat-card.balance-pc { border-top-color: #8b5cf6; }
+    
+    .stat-label {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 8px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: 800;
+      color: #111827;
+    }
+    .chart-container {
+      position: relative;
+      height: 350px;
+      width: 100%;
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 16px;
+      margin-top: 0;
+      margin-bottom: 16px;
+      color: #374151;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <a href="index.html" class="back-btn">‹</a>
+      <h1 class="page-title">Dashboard Keuangan & Arus Kas</h1>
+    </header>
+    <main class="content">
+      
+      <!-- Area Filter -->
+      <section class="card" style="margin-bottom: 20px;">
+        <div class="filters">
+          <div>
+            <label style="font-size: 12px; font-weight: 600; color: #4b5563; margin-bottom: 4px; display: block;">Dari Tanggal</label>
+            <input type="date" id="filter-start" class="form-input">
+          </div>
+          <div>
+            <label style="font-size: 12px; font-weight: 600; color: #4b5563; margin-bottom: 4px; display: block;">Sampai Tanggal</label>
+            <input type="date" id="filter-end" class="form-input">
+          </div>
+          <div>
+            <label style="font-size: 12px; font-weight: 600; color: #4b5563; margin-bottom: 4px; display: block;">Tampilan Grafik</label>
+            <select id="filter-granularity" class="form-input">
+              <option value="daily">Harian</option>
+              <option value="monthly">Bulanan</option>
+              <option value="yearly">Tahunan</option>
+            </select>
+          </div>
+          <div style="display: flex; align-items: flex-end;">
+            <button id="btn-refresh" class="btn btn-primary" style="width: 100%; margin-top: 0; height: 42px;">Terapkan & Muat</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Ringkasan Kartu -->
+      <section class="stats-grid">
+        <div class="stat-card revenue">
+          <div class="stat-label">Total Pendapatan (Periode)</div>
+          <div class="stat-value" id="val-pendapatan" style="color: #059669;">Rp 0</div>
+          <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">Dari total "Catatan" Pembukuan</div>
+        </div>
+        <div class="stat-card expense">
+          <div class="stat-label">Total Pengeluaran (Periode)</div>
+          <div class="stat-value" id="val-pengeluaran" style="color: #ef4444;">Rp 0</div>
+          <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">Dari "Pengeluaran" Petty Cash</div>
+        </div>
+        <div class="stat-card balance-book">
+          <div class="stat-label">Sisa Saldo Pembukuan (Total)</div>
+          <div class="stat-value" id="val-saldo-pembukuan">Rp 0</div>
+          <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">Fisik Cash - Total Setor Kas Keluar</div>
+        </div>
+        <div class="stat-card balance-pc">
+          <div class="stat-label">Sisa Saldo Petty Cash (Total)</div>
+          <div class="stat-value" id="val-saldo-pc">Rp 0</div>
+          <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">Pemasukan - Pengeluaran Petty Cash</div>
+        </div>
+      </section>
+
+      <!-- Grafik Tren (Line Chart) -->
+      <section class="card" style="margin-bottom: 24px;">
+        <h3 class="card-title">Tren Pendapatan vs Pengeluaran</h3>
+        <div class="chart-container">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </section>
+
+      <!-- Grafik Perbandingan & Breakdown -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 40px;">
+        <section class="card">
+          <h3 class="card-title">Pendapatan per Outlet (Bar Chart)</h3>
+          <div class="chart-container" style="height: 300px;">
+            <canvas id="outletTrendChart"></canvas>
+          </div>
+        </section>
+        
+        <section class="card">
+          <h3 class="card-title" id="pie-chart-title">Perbandingan Pendapatan Antar Outlet (Bulanan)</h3>
+          <div class="chart-container" style="height: 300px;">
+            <canvas id="outletComparisonChart"></canvas>
+          </div>
+        </section>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="custom-ui.js"></script>
+  <script src="firebase-storage.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Cek Akses
+      const user = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+      const usernameLower = (user.username || '').toLowerCase();
+      if (user.role !== 'owner' && usernameLower !== 'burhan') {
+          alert('Akses Ditolak. Halaman ini hanya untuk Developer dan Owner.');
+          window.location.href = 'index.html';
+          return;
+      }
+
+      // Init DB
+      const db = initRbmDB();
+      
+      // Init Filter Dates
+      const today = new Date();
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      document.getElementById('filter-start').value = firstDay.toISOString().split('T')[0];
+      document.getElementById('filter-end').value = today.toISOString().split('T')[0];
+
+      // Chart Instances
+      let trendChartInstance = null;
+      let outletComparisonChartInstance = null;
+      let outletTrendChartInstance = null;
+
+      const formatRupiah = (angka) => {
+          return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka || 0);
+      };
+
+      const parseNum = (v) => {
+          if (typeof v === 'number') return v;
+          if (!v) return 0;
+          let str = String(v).replace(/[^0-9,-]/g, '');
+          str = str.replace(',', '.');
+          return parseFloat(str) || 0;
+      };
+
+      const getGroupKey = (dateStr, granularity) => {
+          if (!dateStr) return 'Unknown';
+          if (granularity === 'monthly') {
+              const [y, m] = dateStr.split('-');
+              const d = new Date(y, parseInt(m)-1, 1);
+              return d.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+          }
+          if (granularity === 'yearly') {
+              return dateStr.split('-')[0];
+          }
+          // daily format
+          const [y, m, d] = dateStr.split('-');
+          return `${d}/${m}`;
+      };
+
+      let globalDataAdded = { PEMBUKUAN: false, PETTY_CASH: false };
+
+      function getOfflineData(keyType, outlet) {
+          let data = [];
+          try {
+              // Coba format per outlet (terbaru)
+              const local1 = localStorage.getItem(`RBM_PENDING_${keyType}_${outlet}`);
+              if (local1) {
+                  const parsed1 = JSON.parse(local1);
+                  if (Array.isArray(parsed1)) data = data.concat(parsed1);
+              }
+              
+              // Coba format global (lama)
+              if (!globalDataAdded[keyType]) {
+                  const local2 = localStorage.getItem(`RBM_PENDING_${keyType}`);
+                  if (local2) {
+                      const parsed2 = JSON.parse(local2);
+                      if (Array.isArray(parsed2)) data = data.concat(parsed2);
+                  }
+                  globalDataAdded[keyType] = true; // Tandai agar tidak diulang di outlet berikutnya
+              }
+          } catch(e){}
+          return data.map(item => item.payload || item).filter(item => item);
+      }
+
+      async function loadDashboardData() {
+          const btn = document.getElementById('btn-refresh');
+          btn.textContent = 'Memuat...';
+          btn.disabled = true;
+
+          try {
+              const startDate = document.getElementById('filter-start').value;
+              const endDate = document.getElementById('filter-end').value;
+              const granularity = document.getElementById('filter-granularity').value;
+
+              // Ubah ke format timestamp untuk komparasi tanggal yang akurat
+              const startDateMs = new Date(startDate).getTime();
+              const endDateMs = new Date(endDate + 'T23:59:59').getTime();
+
+              globalDataAdded = { PEMBUKUAN: false, PETTY_CASH: false }; // Reset status setiap kali muat
+
+              // Get available outlets to aggregate
+              let outlets = JSON.parse(localStorage.getItem('rbm_outlets') || '["sidoarjo", "surabaya"]');
+              const outletNames = JSON.parse(localStorage.getItem('rbm_outlet_names') || '{}');
+              
+              if (!outlets || outlets.length === 0) {
+                  outlets = ['sidoarjo', 'surabaya']; // Fallback jika setting outlet kosong
+              }
+
+              let totalPendapatan = 0;
+              let totalPengeluaran = 0;
+              let saldoPembukuan = 0;
+              let saldoPettyCash = 0;
+
+              let trendData = {}; // { groupKey: { pendapatan: 0, pengeluaran: 0, outlets: { out1: 0, out2: 0 } } }
+              let outletComparisonMonthly = {}; // { outletId: totalPendapatanBulanIni }
+              let chronologicalKeys = new Set(); // To keep dates sorted
+
+              const endDtObj = new Date(endDate);
+              const targetMonth = endDtObj.getMonth();
+              const targetYear = endDtObj.getFullYear();
+              const pieTitle = document.getElementById('pie-chart-title');
+              if (pieTitle) pieTitle.textContent = `Perbandingan Pendapatan Antar Outlet (${endDtObj.toLocaleDateString('id-ID', {month: 'long', year: 'numeric'})})`;
+
+              for (const outlet of outlets) {
+                  outletComparisonMonthly[outlet] = 0;
+                  const displayOutletName = outletNames[outlet] || outlet.toUpperCase();
+
+                  // === 1. FETCH & PROCESS PEMBUKUAN ===
+                  let pembukuanList = [];
+                  try {
+                      if (typeof FirebaseStorage !== 'undefined' && FirebaseStorage.getPembukuan) {
+                          const result = await FirebaseStorage.getPembukuan('', '', outlet);
+                          pembukuanList = result.map(r => r.payload || r);
+                      } else {
+                          const snap = await db.ref(`rbm_pro/pembukuan/${outlet}`).once('value');
+                          if (snap.exists()) pembukuanList = Object.values(snap.val());
+                      }
+                  } catch(e) { console.warn('Gagal memuat pembukuan server:', e); }
+                  
+                  // Selalu gabungkan dengan data lokal (pending/offline)
+                  pembukuanList = pembukuanList.concat(getOfflineData('PEMBUKUAN', outlet));
+
+                  pembukuanList.forEach(p => {
+                      if (!p || !p.tanggal) return;
+                      const pDateMs = new Date(p.tanggal).getTime();
+                      if (isNaN(pDateMs) || pDateMs > endDateMs) return;
+
+                      let pendapatanHarian = 0;
+                      let fisikMasukHarian = 0;
+                      let setorKeluarHarian = 0;
+
+                      const kasMasukArray = Array.isArray(p.kasMasuk) ? p.kasMasuk : (p.kasMasuk ? Object.values(p.kasMasuk) : []);
+                      kasMasukArray.forEach(km => {
+                          pendapatanHarian += parseNum(km.catatan);
+                          const ket = (km.keterangan || '').trim().toUpperCase();
+                          if (ket === 'CASH') {
+                              fisikMasukHarian += parseNum(km.fisik);
+                          } else if (ket === 'VCR') {
+                              fisikMasukHarian += parseNum(km.vcr) * 20000;
+                          }
+                      });
+                      
+                      const kasKeluarArray = Array.isArray(p.kasKeluar) ? p.kasKeluar : (p.kasKeluar ? Object.values(p.kasKeluar) : []);
+                      kasKeluarArray.forEach(kk => {
+                          setorKeluarHarian += parseNum(kk.setor);
+                      });
+
+                      saldoPembukuan += (fisikMasukHarian - setorKeluarHarian);
+
+                      if (pDateMs >= startDateMs) {
+                          totalPendapatan += pendapatanHarian;
+
+                          const gKey = getGroupKey(p.tanggal, granularity);
+                          chronologicalKeys.add(p.tanggal); // keep raw date for sorting
+                          if (!trendData[gKey]) trendData[gKey] = { pendapatan: 0, pengeluaran: 0, outlets: {}, rawDate: p.tanggal };
+                          trendData[gKey].pendapatan += pendapatanHarian;
+                          trendData[gKey].outlets[displayOutletName] = (trendData[gKey].outlets[displayOutletName] || 0) + pendapatanHarian;
+                      }
+
+                      // Hitung omset spesifik perbulanan untuk Grafik Lingkaran
+                      const pDateObj = new Date(p.tanggal);
+                      if (pDateObj.getMonth() === targetMonth && pDateObj.getFullYear() === targetYear) {
+                          outletComparisonMonthly[outlet] += pendapatanHarian;
+                      }
+                  });
+
+                  // === 2. FETCH & PROCESS PETTY CASH ===
+                  let pcList = [];
+                  try {
+                      const snap = await db.ref(`rbm_pro/petty_cash/${outlet}`).once('value');
+                      if (snap.exists()) pcList = Object.values(snap.val());
+                  } catch(e) { console.warn('Gagal memuat petty cash server:', e); }
+                  
+                  // Selalu gabungkan dengan data lokal (pending/offline)
+                  pcList = pcList.concat(getOfflineData('PETTY_CASH', outlet));
+
+                  pcList.forEach(p => {
+                      if (!p) return;
+                      let dateStr = p.tanggal || p.date;
+                      if (!dateStr && p.transactions && p.transactions.length > 0) {
+                          dateStr = p.transactions[0].tanggal || p.transactions[0].date;
+                      }
+                      if (!dateStr) return;
+
+                      const pDateMs = new Date(dateStr).getTime();
+                      if (isNaN(pDateMs) || pDateMs > endDateMs) return;
+
+                      let pengeluaranHarian = 0;
+                      let pemasukanHarian = 0;
+
+                      const trxArray = Array.isArray(p.transactions) ? p.transactions : (p.transactions ? Object.values(p.transactions) : []);
+                      trxArray.forEach(trx => {
+                          // Penyesuaian membaca format Offline (payload.jenis) dan Online Firebase (debit/kredit)
+                          if (p.jenis) {
+                              const amt = parseNum(trx.total);
+                              if (p.jenis === 'pengeluaran') pengeluaranHarian += amt;
+                              if (p.jenis === 'pemasukan') pemasukanHarian += amt;
+                          } else {
+                              const debit = parseNum(trx.debit) || parseNum(trx.keluar);
+                              const kredit = parseNum(trx.kredit) || parseNum(trx.masuk);
+                              if (debit > 0) pengeluaranHarian += debit;
+                              if (kredit > 0) pemasukanHarian += kredit;
+                          }
+                      });
+
+                      saldoPettyCash += (pemasukanHarian - pengeluaranHarian);
+
+                      if (pDateMs >= startDateMs) {
+                          totalPengeluaran += pengeluaranHarian;
+                          const gKey = getGroupKey(dateStr, granularity);
+                          chronologicalKeys.add(dateStr);
+                          if (!trendData[gKey]) trendData[gKey] = { pendapatan: 0, pengeluaran: 0, outlets: {}, rawDate: dateStr };
+                          trendData[gKey].pengeluaran += pengeluaranHarian;
+                      }
+                  });
+              }
+
+              // --- UPDATE UI ---
+              document.getElementById('val-pendapatan').textContent = formatRupiah(totalPendapatan);
+              document.getElementById('val-pengeluaran').textContent = formatRupiah(totalPengeluaran);
+              document.getElementById('val-saldo-pembukuan').textContent = formatRupiah(saldoPembukuan);
+              document.getElementById('val-saldo-pc').textContent = formatRupiah(saldoPettyCash);
+
+              // Sort Trend Keys
+              const sortedGroupKeys = Object.values(trendData)
+                  .sort((a, b) => a.rawDate.localeCompare(b.rawDate))
+                  .map(val => getGroupKey(val.rawDate, granularity));
+              const uniqueSortedGroupKeys = [...new Set(sortedGroupKeys)];
+
+              // Chart Arrays
+              const chartLabels = uniqueSortedGroupKeys;
+              const chartPendapatan = chartLabels.map(k => trendData[k].pendapatan);
+              const chartPengeluaran = chartLabels.map(k => trendData[k].pengeluaran);
+
+              // Outlet colors
+              const colors = ['#4C2A85', '#059669', '#2563EB', '#D97706', '#DB2777', '#0891B2'];
+
+              // 1. Trend Chart
+              if (trendChartInstance) trendChartInstance.destroy();
+              trendChartInstance = new Chart(document.getElementById('trendChart'), {
+                  type: 'line',
+                  data: {
+                      labels: chartLabels,
+                      datasets: [
+                          { label: 'Pendapatan', data: chartPendapatan, borderColor: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.1)', fill: true, tension: 0.3 },
+                          { label: 'Pengeluaran', data: chartPengeluaran, borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true, tension: 0.3 }
+                      ]
+                  },
+                  options: { responsive: true, maintainAspectRatio: false }
+              });
+
+              // 2. Outlet Trend Chart (Bar Stacked or Grouped)
+              const outletDatasets = outlets.map((outlet, i) => {
+                  const name = outletNames[outlet] || outlet.toUpperCase();
+                  return {
+                      label: name,
+                      data: chartLabels.map(k => (trendData[k].outlets[name] || 0)),
+                      backgroundColor: colors[i % colors.length]
+                  };
+              });
+
+              if (outletTrendChartInstance) outletTrendChartInstance.destroy();
+              outletTrendChartInstance = new Chart(document.getElementById('outletTrendChart'), {
+                  type: 'bar',
+                  data: { labels: chartLabels, datasets: outletDatasets },
+                  options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false }, y: { stacked: false } } }
+              });
+
+              // 3. Outlet Comparison Chart (Doughnut/Pie)
+              const compLabels = outlets.map(o => outletNames[o] || o.toUpperCase());
+              const compData = outlets.map(o => outletComparisonMonthly[o]);
+              
+              if (outletComparisonChartInstance) outletComparisonChartInstance.destroy();
+              outletComparisonChartInstance = new Chart(document.getElementById('outletComparisonChart'), {
+                  type: 'doughnut',
+                  data: {
+                      labels: compLabels,
+                      datasets: [{ data: compData, backgroundColor: colors.slice(0, outlets.length) }]
+                  },
+                  options: { responsive: true, maintainAspectRatio: false }
+              });
+
+          } catch (error) {
+              console.error(error);
+              CustomUI.error("Terjadi kesalahan saat memuat data: " + error.message);
+          } finally {
+              btn.textContent = 'Terapkan & Muat';
+              btn.disabled = false;
+          }
+      }
+
+      document.getElementById('btn-refresh').addEventListener('click', loadDashboardData);
+      loadDashboardData(); // Load first time
+    });
+  </script>
+</body>
+</html>

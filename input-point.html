@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Input Point - Rice Bowl Monster</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <a href="index.html" class="back-btn" aria-label="Kembali">❮</a>
+      <h1 class="page-title">Input Point</h1>
+    </header>
+
+    <!-- Content -->
+    <main class="content">
+      <!-- Customer Lookup -->
+      <section class="card">
+        <h3 class="card-title">Cari Customer</h3>
+        <p class="card-subtitle">Masukkan No. Telepon customer yang sudah terdaftar</p>
+
+        <div class="form-group">
+          <label for="customer-phone" class="form-label">No. Telepon</label>
+          <div>
+            <div style="position: relative;">
+              <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 20px; font-weight: 600; color: #374151; pointer-events: none;">+62</span>
+              <input type="tel" id="customer-phone" class="form-input" placeholder="81234567890" style="width:100%; font-size:20px; height:56px; padding:14px 18px 14px 65px;">
+            </div>
+            <button id="btn-lookup-customer" class="btn btn-primary" style="width:100%; height:56px; margin-top:8px;">🔎 Cari</button>
+          </div>
+        </div>
+
+        <div id="customer-info" class="status-info" style="display:none;"></div>
+      </section>
+
+      <!-- Nominal to Point Form -->
+      <section class="card" id="nominal-form-card" style="display:none;">
+        <h3 class="card-title">Input Nominal → Point</h3>
+        <p class="card-subtitle">Kolom point otomatis dihitung dari nominal ÷ 100</p>
+
+        <div class="form-group">
+          <label class="form-label">Customer</label>
+          <div id="selected-customer" class="status-info" style="margin:0;">
+            <strong id="sel-cust-name">-</strong>
+            <span style="margin:0 6px;">•</span>
+            <span id="sel-cust-phone">-</span>
+            <div style="margin-top:6px;">Poin Saat Ini: <strong id="sel-cust-points">0</strong></div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="input-cust-name" class="form-label">Nama Customer</label>
+          <input type="text" id="input-cust-name" class="form-input" placeholder="Nama Customer" readonly style="background-color: #f3f4f6; cursor: default;">
+        </div>
+
+        <div class="form-group">
+          <label for="input-nominal" class="form-label">Nominal (Rp)</label>
+          <input type="number" id="input-nominal" class="form-input" placeholder="Masukkan nominal transaksi" min="0">
+        </div>
+
+        <div class="form-group">
+          <label for="input-points" class="form-label">Point (otomatis)</label>
+          <input type="number" id="input-points" class="form-input" placeholder="0" min="0" readonly>
+        </div>
+
+        <button id="btn-submit-points" class="btn btn-primary">➕ Tambahkan Point</button>
+      </section>
+      
+
+      <!-- QR features removed as requested -->
+
+      
+
+      <!-- Instructions -->
+      <section class="card">
+        <h3 class="card-title">Cara Menggunakan</h3>
+        <div class="instructions">
+          <div class="instruction-item">
+            <span class="instruction-number">1</span>
+            <span>Cari customer dengan no. telepon</span>
+          </div>
+          <div class="instruction-item">
+            <span class="instruction-number">2</span>
+            <span>Masukkan nominal transaksi</span>
+          </div>
+          <div class="instruction-item">
+            <span class="instruction-number">3</span>
+            <span>Point otomatis dihitung (nominal ÷ 100)</span>
+          </div>
+          <div class="instruction-item">
+            <span class="instruction-number">4</span>
+            <span>Tekan "Tambahkan Point" untuk simpan ke Sheets</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+  
+  <style>
+    
+    .instruction-number {
+      background: #4C2A85;
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    
+    .text-center {
+      text-align: center;
+    }
+    
+    .text-muted {
+      color: #6b7280;
+    }
+    
+    .d-flex {
+      display: flex;
+    }
+    
+    .justify-content-between {
+      justify-content: space-between;
+    }
+    
+    .align-items-center {
+      align-items: center;
+    }
+    
+    .badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .badge-success {
+      background: #dcfce7;
+      color: #166534;
+    }
+    
+    .points-history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .points-history-item:last-child {
+      border-bottom: none;
+    }
+    
+    .points-amount {
+      font-weight: 600;
+      color: #16a34a;
+    }
+    
+    .points-source {
+      font-size: 12px;
+      color: #6b7280;
+    }
+  </style>
+</body>
+</html>

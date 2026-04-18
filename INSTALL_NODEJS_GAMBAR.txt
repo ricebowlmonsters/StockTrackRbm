@@ -1,0 +1,110 @@
+================================================================================
+  INSTALL NODE.JS - PENJELASAN DENGAN GAMBAR
+================================================================================
+
+BAGIAN 1: DOWNLOAD
+------------------
+
+[1] Buka: nodejs.org
+
+[2] Anda akan lihat seperti ini:
+
+    ┌─────────────────────────────────────────┐
+    │  Node.js                                │
+    │                                         │
+    │  ┌─────────────┐  ┌─────────────┐     │
+    │  │    LTS      │  │   Current   │     │
+    │  │ Recommended │  │             │     │
+    │  │             │  │             │     │
+    │  │ v18.17.0    │  │  v20.x.x    │     │
+    │  └─────────────┘  └─────────────┘     │
+    │     KLIK INI!                          │
+    └─────────────────────────────────────────┘
+
+    PILIH YANG "LTS" (yang di kiri)
+
+[3] File akan download otomatis
+
+================================================================================
+
+BAGIAN 2: INSTALL
+-----------------
+
+[1] Buka folder Downloads
+   (Klik ikon folder di taskbar, atau tekan Windows + E)
+
+[2] Cari file: node-v18.17.0-x64.msi
+   (Double klik file ini)
+
+[3] Window instalasi muncul:
+
+    ┌────────────────────────────────────┐
+    │   Node.js Setup                    │
+    │                                    │
+    │   Welcome to Node.js Setup        │
+    │                                    │
+    │   [Next >]                         │
+    └────────────────────────────────────┘
+
+    Klik "Next"
+
+[4] Centang "I accept..." → Klik "Next"
+
+[5] Pilih folder (biarkan default) → Klik "Next"
+
+[6] Biarkan semua centang → Klik "Next"
+
+[7] Klik "Install"
+   (Mungkin diminta password admin - ketik password Windows)
+
+[8] Tunggu sampai muncul:
+
+    ┌────────────────────────────────────┐
+    │   Node.js Setup                    │
+    │                                    │
+    │   ✓ Completed successfully        │
+    │                                    │
+    │   [Finish]                         │
+    └────────────────────────────────────┘
+
+    Klik "Finish"
+
+[9] RESTART KOMPUTER (PENTING!)
+
+================================================================================
+
+BAGIAN 3: CEK BERHASIL
+-----------------------
+
+[1] Setelah restart, tekan: Windows + R
+
+[2] Ketik: cmd
+
+[3] Tekan Enter
+
+[4] Window hitam muncul:
+
+    C:\Users\RUFINA>_
+
+[5] Ketik: node --version
+
+[6] Tekan Enter
+
+[7] Harus muncul:
+
+    C:\Users\RUFINA>node --version
+    v18.17.0
+
+    ✅ JIKA MUNCUL ANGKA SEPERTI INI = BERHASIL!
+
+================================================================================
+
+TIP PENTING:
+------------
+
+⚠️ HARUS RESTART KOMPUTER setelah install Node.js!
+
+Jika tidak restart, Command Prompt tidak akan mengenali Node.js.
+
+================================================================================
+

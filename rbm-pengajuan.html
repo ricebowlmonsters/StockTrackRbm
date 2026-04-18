@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script>
+  (function(){
+    var b = document.createElement('base');
+    b.target = (location.protocol === 'file:') ? '_self' : '_top';
+    document.head.appendChild(b);
+  })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RBM Pro</title>
+  <link rel="stylesheet" href="rbm-pro.css">
+  <style>
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #ownerPengajuanModal, #ownerPengajuanModal * {
+        visibility: visible;
+      }
+      #ownerPengajuanModal {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        display: block !important;
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .modal-content {
+        position: static !important;
+        display: block !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+          border: none !important;
+      }
+      #print-area, #ownerPengajuanModalBody, .scrollable-table-container {
+        position: static !important;
+        display: block !important;
+        overflow: visible !important;
+        max-height: none !important;
+        height: auto !important;
+          width: 100% !important;
+          max-width: 100% !important;
+      }
+      .modal-footer, .modal-close {
+        display: none !important;
+      }
+      table {
+        page-break-inside: auto;
+        width: 100% !important;
+          max-width: 100% !important;
+          table-layout: auto !important;
+      }
+      tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+      }
+        th, td {
+          white-space: normal !important;
+          word-break: break-word !important;
+        }
+      thead {
+        display: table-header-group;
+      }
+      img {
+          max-width: 100% !important;
+          height: auto !important;
+        max-height: 400px !important;
+        page-break-inside: avoid;
+        display: block;
+        margin-top: 10px;
+      }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+  </style>
+</head>
+<body>
+<header class="rbm-page-header">
+  <a href="index.html" class="rbm-back-btn">&#8249;</a>
+  <h1 class="rbm-page-title">Pengajuan</h1>
+</header>
+<div class="rbm-content-wrap">
+<section class="rbm-outlet-card">
+  <label for="rbm-outlet-select" class="rbm-outlet-label">Pilih Outlet:</label>
+  <select id="rbm-outlet-select" class="rbm-outlet-select"></select>
+</section>
+
+<!-- OWNER: Container for incoming submissions -->
+<div id="owner-view-container" style="display:none; padding-top:0;">
+  <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 15px;">
+    <button id="tab-pending" class="btn btn-primary" onclick="switchOwnerTab('pending')" style="width: auto;">Pengajuan Baru</button>
+    <button id="tab-history" class="btn btn-secondary" onclick="switchOwnerTab('history')" style="width: auto; background: white; color: #374151; border: 1px solid #e5e7eb;">Riwayat Persetujuan</button>
+    <button id="tab-create" class="btn btn-secondary" onclick="switchOwnerTab('create')" style="width: auto; background: white; color: #374151; border: 1px solid #e5e7eb;">Buat Pengajuan</button>
+    <button id="btn-refresh-owner" class="btn btn-secondary" onclick="fetchSubmissionsForOwner()" style="width: auto; margin-left: auto;">🔄 Refresh</button>
+  </div>
+
+  <div id="pengajuan-pending-list">
+    <p>Memuat pengajuan baru...</p>
+  </div>
+
+  <div id="pengajuan-history-list" style="display: none;">
+    <p>Memuat riwayat...</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var u = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+  var outlets = JSON.parse(localStorage.getItem('rbm_outlets') || '[]');
+  var names = JSON.parse(localStorage.getItem('rbm_outlet_names') || '{}');
+  var sel = document.getElementById('rbm-outlet-select');
+
+  window.switchOwnerTab = function(tab) {
+      const pendingBtn = document.getElementById('tab-pending');
+      const historyBtn = document.getElementById('tab-history');
+      const createBtn = document.getElementById('tab-create');
+      const pendingList = document.getElementById('pengajuan-pending-list');
+      const historyList = document.getElementById('pengajuan-history-list');
+      const createView = document.getElementById('pengajuan-view');
+  
+      if (pendingBtn) { pendingBtn.className = 'btn btn-secondary'; pendingBtn.style.cssText = 'width: auto; background: white; color: #374151; border: 1px solid #e5e7eb;'; }
+      if (historyBtn) { historyBtn.className = 'btn btn-secondary'; historyBtn.style.cssText = 'width: auto; background: white; color: #374151; border: 1px solid #e5e7eb;'; }
+      if (createBtn) { createBtn.className = 'btn btn-secondary'; createBtn.style.cssText = 'width: auto; background: white; color: #374151; border: 1px solid #e5e7eb;'; }
+
+      if (pendingList) pendingList.style.display = 'none';
+      if (historyList) historyList.style.display = 'none';
+      if (createView) createView.style.display = 'none';
+
+      if (tab === 'pending') {
+          if (pendingBtn) { pendingBtn.className = 'btn btn-primary'; pendingBtn.style.cssText = 'width: auto;'; }
+          if (pendingList) pendingList.style.display = 'block';
+      } else if (tab === 'history') {
+          if (historyBtn) { historyBtn.className = 'btn btn-primary'; historyBtn.style.cssText = 'width: auto;'; }
+          if (historyList) historyList.style.display = 'block';
+      } else if (tab === 'create') {
+          if (createBtn) { createBtn.className = 'btn btn-primary'; createBtn.style.cssText = 'width: auto;'; }
+          if (createView) createView.style.display = 'block';
+      }
+  };
+
+  var isOwnerOrDev = String(u.role || '').toLowerCase() === 'owner' || (u.username || '').toLowerCase() === 'burhan';
+  
+  if (sel) {
+      sel.innerHTML = '';
+      if (isOwnerOrDev) {
+          var optAll = document.createElement('option');
+          optAll.value = 'semua';
+          optAll.textContent = 'Semua Outlet';
+          sel.appendChild(optAll);
+      }
+      outlets.forEach(function(id) {
+          var opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = names[id] || (id.charAt(0).toUpperCase() + id.slice(1));
+          sel.appendChild(opt);
+      });
+      
+      if (String(u.role || '').toLowerCase() === 'manager' && u.outlet) {
+          sel.value = u.outlet;
+          sel.disabled = true;
+      } else {
+          var last = localStorage.getItem('rbm_last_selected_outlet');
+          if (last && (outlets.indexOf(last) >= 0 || (isOwnerOrDev && last === 'semua'))) {
+              sel.value = last;
+          } else if (isOwnerOrDev) {
+              sel.value = 'semua';
+          } else if (outlets.length) {
+              sel.value = outlets[0];
+          }
+          sel.addEventListener('change', function() { 
+              localStorage.setItem('rbm_last_selected_outlet', sel.value); 
+              if (isOwnerOrDev && typeof fetchSubmissionsForOwner === 'function') {
+                  fetchSubmissionsForOwner();
+              } else if (!isOwnerOrDev && typeof fetchSubmissionsForManager === 'function') {
+                  fetchSubmissionsForManager();
+              }
+          });
+      }
+  }
+
+  // --- OWNER WORKFLOW ---
+  if (isOwnerOrDev) {
+    document.querySelector('.rbm-page-title').textContent = 'Persetujuan Pengajuan';
+    
+    // Sembunyikan form manager secara permanen dengan CSS
+    var style = document.createElement('style');
+    style.innerHTML = '#pengajuan-view { display: none !important; }';
+    document.head.appendChild(style);
+
+    
+    document.getElementById('owner-view-container').style.display = 'block';
+
+    function fetchSubmissionsForOwner() {
+      const pendingListContainer = document.getElementById('pengajuan-pending-list');
+      const historyListContainer = document.getElementById('pengajuan-history-list');
+      
+      if (typeof firebase === 'undefined' || !firebase.apps.length) {
+          setTimeout(fetchSubmissionsForOwner, 1000);
+          return;
+      }
+      
+      const db = firebase.database();
+      
+      const btnRefresh = document.getElementById('btn-refresh-owner');
+      if (btnRefresh) { btnRefresh.textContent = 'Memuat...'; btnRefresh.disabled = true; }
+
+      let tfData = null;
+      let pcData = null;
+      let gajiDataFlat = null;
+      let tfLoaded = false;
+      let pcLoaded = false;
+      let gajiLoaded = false;
+      
+      const selectedOutlet = document.getElementById('rbm-outlet-select') ? document.getElementById('rbm-outlet-select').value : 'semua';
+
+      const renderList = () => {
+          if (!tfLoaded || !pcLoaded || !gajiLoaded) return;
+          
+          let pendingSubmissions = [];
+          let historySubmissions = [];
+
+          const processData = (dataMap, type) => {
+              if (dataMap) {
+                  Object.keys(dataMap).forEach(k => {
+                      const item = { id: k, type: type, data: dataMap[k] };
+                      
+                      const itemOutlet = item.data.outlet || item.data.outletId || item.data._outlet || '';
+                      if (selectedOutlet !== 'semua' && itemOutlet && itemOutlet !== selectedOutlet) return;
+                      
+                      let itemStatus = item.data.status || 'pending';
+                      if (type === 'gaji') itemStatus = item.data.statusOwner || 'pending';
+                      
+                      if (!itemStatus || itemStatus === 'pending') {
+                          pendingSubmissions.push(item);
+                      } else {
+                          historySubmissions.push(item);
+                      }
+                  });
+              }
+          };
+
+          processData(tfData, 'tf');
+          processData(pcData, 'pc');
+          processData(gajiDataFlat, 'gaji');
+          
+          pendingSubmissions.sort((a,b) => (b.data.createdAt || 0) - (a.data.createdAt || 0));
+          historySubmissions.sort((a,b) => (b.data.updatedAt || b.data.createdAt || 0) - (a.data.updatedAt || a.data.createdAt || 0));
+          
+          const buildHtml = (list, emptyMsg) => {
+              if (list.length === 0) return `<p style="text-align:center; color:#888; padding: 20px;">${emptyMsg}</p>`;
+              let html = '';
+              list.forEach(sub => {
+              const d = sub.data;
+              const isTf = sub.type === 'tf';
+              const isGaji = sub.type === 'gaji';
+              const outletName = d.outlet ? (names[d.outlet] || d.outlet.toUpperCase()) : (d._outlet ? (names[d._outlet] || d._outlet.toUpperCase()) : 'Semua Outlet');
+              const submittedBy = d.requester ? d.requester : (d.userName ? `${d.userName} (${d.userRole})` : 'Anonim');
+              const isBonus = (d.note || '').toLowerCase().includes('bonus');
+              const title = isTf ? `TF: ${d.suplier || 'Suplier'} - ${d.keterangan || ''}` : (isGaji ? (isBonus ? `Pengajuan Bonus (${d.periodStart || ''} s/d ${d.periodEnd || ''})` : `Pengajuan Gaji (${d.periodStart || ''} s/d ${d.periodEnd || ''})`) : `Petty Cash`);
+              const total = isTf ? (d.total || d.nominal || 0) : (isGaji ? (d.totalGrand || 0) : (d.nominal || 0));
+              const dateObj = d.createdAt ? new Date(d.createdAt) : null;
+              const timeStr = dateObj ? dateObj.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}) : '';
+              const dateStr = dateObj ? dateObj.toLocaleDateString('id-ID') + ' ' + timeStr : (d.tanggal || d.tanggalPengajuan || d.periodStart || '-');
+              const status = isGaji ? (d.statusOwner || 'pending') : (d.status || 'pending');
+              const statusColor = status === 'approved' ? '#059669' : (status === 'rejected' ? '#dc2626' : '#d97706');
+              const statusText = status === 'approved' ? 'Disetujui' : (status === 'rejected' ? 'Ditolak' : 'Menunggu');
+              
+              window._pengajuanDataMap = window._pengajuanDataMap || {};
+              window._pengajuanDataMap[sub.id] = sub;
+              
+          html += `
+                  <div class="rbm-outlet-card" onclick="openOwnerPengajuanModal('${sub.id}')" style="cursor:pointer; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; border-left: 4px solid ${statusColor};">
+                    <div>
+                      <div style="font-size:11px; font-weight:bold; color:#4C2A85; text-transform:uppercase; margin-bottom:4px; letter-spacing: 0.5px;">📍 ${outletName} | 👤 ${submittedBy}</div>
+                      <strong style="display:block; margin-bottom:4px; font-size:15px; color:#1f2937;">${title}</strong>
+                      <span style="font-size:12px; color:#64748b;">${dateStr}</span>
+                      <span style="font-size:11px; padding:2px 8px; border-radius:12px; margin-left:8px; background-color:${statusColor}20; color:${statusColor}; font-weight:bold;">${statusText}</span>
+                    </div>
+                    <strong style="font-size:1.2em; color:#111827;">Rp ${parseInt(total).toLocaleString('id-ID')}</strong>
+                  </div>
+          `;
+          });
+              return html;
+          };
+
+          pendingListContainer.innerHTML = buildHtml(pendingSubmissions, 'Tidak ada pengajuan baru.');
+          historyListContainer.innerHTML = buildHtml(historySubmissions, 'Belum ada riwayat persetujuan.');
+          if (btnRefresh) { btnRefresh.textContent = '🔄 Refresh'; btnRefresh.disabled = false; }
+      };
+
+      // [OPTIMASI] Gunakan once() alih-alih on() agar browser tidak hang karena ukuran payload yang raksasa
+      Promise.all([
+          db.ref('rbm_pro/pengajuan_tf').orderByKey().limitToLast(10).once('value'),
+          db.ref('rbm_pro/petty_cash/pengajuan').orderByKey().limitToLast(10).once('value'),
+          db.ref('rbm_pro/gaji_pengajuan').once('value') // Fetch gaji submission tree
+      ]).then(snaps => {
+          tfData = snaps[0].val();
+          pcData = snaps[1].val();
+          
+          let rawGaji = snaps[2].val();
+          if (rawGaji) {
+              gajiDataFlat = {};
+              // Flatten the nested Gaji data structure (outlet/month/requestId)
+              const traverse = (node, path) => {
+                  if (node && typeof node === 'object') {
+                      if (node.periodStart || node.totalGrand !== undefined || node.items) {
+                          const reqId = path[path.length - 1];
+                          gajiDataFlat[reqId] = node;
+                          gajiDataFlat[reqId]._outlet = path[0] || 'default';
+                          if (path.length > 2) gajiDataFlat[reqId]._month = path[path.length - 2];
+                      } else {
+                          Object.keys(node).forEach(k => traverse(node[k], path.concat(k)));
+                      }
+                  }
+              };
+              traverse(rawGaji, []);
+          }
+          
+          tfLoaded = true;
+          pcLoaded = true;
+          gajiLoaded = true;
+          renderList();
+      }).catch(err => {
+          console.error(err);
+          if (btnRefresh) { btnRefresh.textContent = '🔄 Refresh'; btnRefresh.disabled = false; }
+          pendingListContainer.innerHTML = '<p style="color:red; text-align:center;">Gagal memuat data.</p>';
+      });
+    }
+    // Agar tombol inline `onclick="fetchSubmissionsForOwner()"` bisa menemukan fungsi dari window global.
+    window.fetchSubmissionsForOwner = fetchSubmissionsForOwner;
+    fetchSubmissionsForOwner();
+
+  // --- MANAGER/DEFAULT WORKFLOW ---
+  } else {
+    // Tampilkan riwayat pengajuan khusus untuk manager
+    setTimeout(function() {
+      var historySection = document.getElementById('manager-history-section');
+      if (historySection) historySection.style.display = 'block';
+    }, 100);
+
+    function fetchSubmissionsForManager() {
+      const listContainer = document.getElementById('manager-pengajuan-list');
+      if (!listContainer) return;
+      
+      if (typeof firebase === 'undefined' || !firebase.apps.length) {
+          setTimeout(fetchSubmissionsForManager, 1000);
+          return;
+      }
+      const db = firebase.database();
+      
+      let tfData = null; let pcData = null;
+      let gajiDataFlat = null;
+      let tfLoaded = false; let pcLoaded = false;
+      let gajiLoaded = false;
+      
+      const renderList = () => {
+          if (!tfLoaded || !pcLoaded || !gajiLoaded) return;
+          let allSubmissions = [];
+          if (tfData) Object.keys(tfData).forEach(k => allSubmissions.push({ id: k, type: 'tf', data: tfData[k] }));
+          if (pcData) Object.keys(pcData).forEach(k => allSubmissions.push({ id: k, type: 'pc', data: pcData[k] }));
+          if (gajiDataFlat) Object.keys(gajiDataFlat).forEach(k => allSubmissions.push({ id: k, type: 'gaji', data: gajiDataFlat[k] }));
+          
+          const btnRefresh = document.getElementById('btn-refresh-manager');
+          if (btnRefresh) { btnRefresh.textContent = '🔄 Refresh'; btnRefresh.disabled = false; }
+
+          if (allSubmissions.length === 0) {
+             listContainer.innerHTML = '<p style="text-align:center; color:#888;">Belum ada riwayat pengajuan.</p>';
+             return;
+          }
+          
+          allSubmissions.sort((a,b) => (b.data.createdAt || 0) - (a.data.createdAt || 0));
+          let pendingHtml = '';
+          let historyHtml = '';
+          allSubmissions.forEach(sub => {
+              const d = sub.data;
+              const isTf = sub.type === 'tf';
+              const isGaji = sub.type === 'gaji';
+              const isBonus = (d.note || '').toLowerCase().includes('bonus');
+              const title = isTf ? `TF: ${d.suplier || 'Suplier'}` : (isGaji ? (isBonus ? `Pengajuan Bonus` : `Pengajuan Gaji`) : `Petty Cash`);
+              const total = isTf ? (d.total || d.nominal || 0) : (isGaji ? (d.totalGrand || 0) : (d.nominal || 0));
+              const dateObj = d.createdAt ? new Date(d.createdAt) : null;
+              const timeStr = dateObj ? dateObj.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}) : '';
+              const dateStr = dateObj ? dateObj.toLocaleDateString('id-ID') + ' ' + timeStr : (d.tanggal || d.tanggalPengajuan || d.periodStart || '-');
+              const status = isGaji ? (d.statusOwner || 'pending') : (d.status || 'pending');
+              const isAlreadyDone = status === 'approved' || status === 'rejected';
+              const statusColor = status === 'approved' ? '#059669' : (status === 'rejected' ? '#dc2626' : '#d97706');
+              const statusText = status === 'approved' ? 'Disetujui' : (status === 'rejected' ? 'Ditolak' : 'Menunggu');
+              
+              const cardHtml = `<div onclick="openOwnerPengajuanModal('${sub.id}')" style="cursor:pointer; background:#f9fafb; padding:12px; border-radius:8px; border:1px solid #e5e7eb; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;"><div><strong style="display:block; margin-bottom:4px; font-size:14px;">${title}</strong><span style="font-size:12px; color:#64748b;">${dateStr}</span></div><div style="text-align:right;"><strong style="font-size:14px; display:block; margin-bottom:4px;">Rp ${parseInt(total).toLocaleString('id-ID')}</strong><span style="font-size:11px; padding:2px 8px; border-radius:12px; background-color:${statusColor}20; color:${statusColor}; font-weight:bold;">${statusText}</span></div></div>`;
+              if (isAlreadyDone) historyHtml += cardHtml;
+              else pendingHtml += cardHtml;
+          });
+
+          listContainer.innerHTML = `
+            <div style="margin-bottom:16px;">
+              <div style="font-weight:700; margin-bottom:10px; color:#1e40af;">Belum disetujui</div>
+              ${pendingHtml ? pendingHtml : '<p style="text-align:center; color:#888;">Tidak ada pengajuan yang menunggu.</p>'}
+            </div>
+            <div>
+              <div style="font-weight:700; margin-bottom:10px; color:#1e40af;">Sudah disetujui / ditolak</div>
+              ${historyHtml ? historyHtml : '<p style="text-align:center; color:#888;">Belum ada pengajuan yang sudah diproses.</p>'}
+            </div>
+          `;
+
+          // [BARU] Tandai bahwa Manager sudah melihat update notifikasi
+          let updates = {};
+          allSubmissions.forEach(sub => {
+              const d = sub.data;
+              const status = sub.type === 'gaji' ? d.statusOwner : d.status;
+              if ((status === 'approved' || status === 'rejected') && !d.viewedByManager) {
+                  let dbPath = '';
+                  if (sub.type === 'tf') dbPath = `rbm_pro/pengajuan_tf/${sub.id}/viewedByManager`;
+                  else if (sub.type === 'gaji') dbPath = `rbm_pro/gaji_pengajuan/${d._outlet}/${d._month}/${sub.id}/viewedByManager`;
+                  else dbPath = `rbm_pro/petty_cash/pengajuan/${sub.id}/viewedByManager`;
+                  updates[dbPath] = true;
+              }
+          });
+          if (Object.keys(updates).length > 0) {
+              db.ref().update(updates);
+          }
+      };
+      
+      const btnRefresh = document.getElementById('btn-refresh-manager');
+      if (btnRefresh) { btnRefresh.textContent = 'Memuat...'; btnRefresh.disabled = true; }
+
+      // [OPTIMASI] Gunakan once() agar tidak berat.
+      Promise.all([
+          db.ref('rbm_pro/pengajuan_tf').orderByKey().limitToLast(10).once('value'),
+          db.ref('rbm_pro/petty_cash/pengajuan').orderByKey().limitToLast(10).once('value'),
+          db.ref('rbm_pro/gaji_pengajuan').once('value')
+      ]).then(snaps => {
+          tfData = snaps[0].val();
+          pcData = snaps[1].val();
+          let rawGaji = snaps[2].val();
+          
+          if (rawGaji) {
+              gajiDataFlat = {};
+              const traverse = (node, path) => {
+                  if (node && typeof node === 'object') {
+                      if (node.periodStart || node.totalGrand !== undefined || node.items) {
+                          const reqId = path[path.length - 1];
+                          gajiDataFlat[reqId] = node;
+                      } else {
+                          Object.keys(node).forEach(k => traverse(node[k], path.concat(k)));
+                      }
+                  }
+              };
+              traverse(rawGaji, []);
+          }
+          tfLoaded = true;
+          pcLoaded = true;
+          gajiLoaded = true;
+          renderList();
+      });
+    }
+    // Agar tombol inline `onclick="fetchSubmissionsForManager()"` bisa menemukan fungsi dari window global.
+    window.fetchSubmissionsForManager = fetchSubmissionsForManager;
+    fetchSubmissionsForManager();
+  }
+})();
+
+function openOwnerPengajuanModal(id) {
+  const sub = window._pengajuanDataMap[id];
+  const d = sub.data;
+  const isTf = sub.type === 'tf';
+  const isGaji = sub.type === 'gaji';
+  
+  const names = JSON.parse(localStorage.getItem('rbm_outlet_names') || '{}');
+  const outletName = d.outlet ? (names[d.outlet] || d.outlet.toUpperCase()) : (d._outlet ? (names[d._outlet] || d._outlet.toUpperCase()) : 'Semua Outlet');
+  const submittedBy = d.requester ? d.requester : (d.userName ? `${d.userName} (${d.userRole})` : 'Anonim');
+  
+  // [BARU] Tandai bahwa Owner sudah membaca pengajuan ini agar notifikasi hilang
+  var u = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+  var isOwnerOrDev = String(u.role || '').toLowerCase() === 'owner' || (u.username || '').toLowerCase() === 'burhan';
+  var isManagerRole = String(u.role || '').toLowerCase() === 'manager';
+  if (isOwnerOrDev && !d.viewedByOwner) {
+      let dbPath = '';
+      if (isTf) dbPath = `rbm_pro/pengajuan_tf/${sub.id}`;
+      else if (isGaji) dbPath = `rbm_pro/gaji_pengajuan/${d._outlet}/${d._month}/${sub.id}`;
+      else dbPath = `rbm_pro/petty_cash/pengajuan/${sub.id}`;
+      firebase.database().ref(dbPath).update({ viewedByOwner: true });
+  } else if (isManagerRole && !d.viewedByManager) {
+      let dbPath = '';
+      if (isTf) dbPath = `rbm_pro/pengajuan_tf/${sub.id}`;
+      else if (isGaji) dbPath = `rbm_pro/gaji_pengajuan/${d._outlet}/${d._month}/${sub.id}`;
+      else dbPath = `rbm_pro/petty_cash/pengajuan/${sub.id}`;
+      firebase.database().ref(dbPath).update({ viewedByManager: true });
+  }
+
+  const modal = document.getElementById('ownerPengajuanModal');
+  const body = document.getElementById('ownerPengajuanModalBody');
+  const title = document.getElementById('ownerPengajuanModalTitle');
+  
+  const dateObj = d.createdAt ? new Date(d.createdAt) : null;
+  const timeStr = dateObj ? dateObj.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}) : '';
+  const dateStr = dateObj ? dateObj.toLocaleDateString('id-ID') + ' ' + timeStr : (d.tanggal || d.tanggalPengajuan || d.periodStart || '-');
+  const isBonusData = (d.note || '').toLowerCase().includes('bonus');
+  title.innerHTML = (isTf ? 'Rincian Pengajuan Transfer' : (isGaji ? (isBonusData ? 'Rincian Pengajuan Bonus' : 'Rincian Pengajuan Gaji') : 'Rincian Pengajuan Petty Cash')) + 
+    `<div style="font-size:13px; color:#6b7280; font-weight:normal; margin-top:4px;">📍 Outlet: <strong>${outletName}</strong> | 👤 <strong>${submittedBy}</strong></div>`;
+  
+  let html = '<table style="width:100%; border-collapse:collapse; margin-bottom:15px; font-size:13px;">';
+  if (isTf) {
+      html += `
+        <tr><td style="padding:8px; border-bottom:1px solid #eee; width:120px;"><strong>Suplier</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${d.suplier || '-'}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Tgl Nota</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${d.tglNota || '-'}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Tgl J/T</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${d.tglJt || '-'}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Nominal</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">Rp ${parseInt(d.nominal||0).toLocaleString('id-ID')}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Total</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">Rp ${parseInt(d.total||0).toLocaleString('id-ID')}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Bank Acc</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${d.bankAcc || '-'}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>A/N</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${d.atasNama || '-'}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Keterangan</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${d.keterangan || '-'}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Dikirim</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${dateStr}</td></tr>
+      </table>
+      `;
+  } else if (isGaji) {
+      html += `
+        <tr><td style="padding:8px; border-bottom:1px solid #eee; width:120px;"><strong>Periode</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${d.periodStart || '-'} s/d ${d.periodEnd || '-'}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Total ${isBonusData ? 'Bonus' : 'Gaji'}</strong></td><td style="padding:8px; border-bottom:1px solid #eee; font-weight:bold; color:#1e40af;">Rp ${parseInt(d.totalGrand||0).toLocaleString('id-ID')}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Catatan</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${d.note || '-'}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Bank Tujuan</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${d.bank || '-'}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>No. Rekening</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${d.rekening || '-'}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Atas Nama</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${d.atasnama || '-'}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Dikirim</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${dateStr}</td></tr>
+      </table>
+      `;
+      
+      if (d.items && d.items.length > 0) {
+          html += `<div class="scrollable-table-container" style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+            <thead style="position: sticky; top: 0; z-index: 1;"><tr style="background:#1e40af; color:white;">
+                <th style="padding:8px; border:1px solid #e2e8f0; text-align:left;">Nama Karyawan</th>
+                <th style="padding:8px; border:1px solid #e2e8f0; text-align:left;">Jabatan</th>
+                ${isBonusData ? '<th style="padding:8px; border:1px solid #e2e8f0; text-align:left;">Keterangan</th>' : ''}
+                <th style="padding:8px; border:1px solid #e2e8f0; text-align:center;">Metode Bayar</th>
+                <th style="padding:8px; border:1px solid #e2e8f0; text-align:right;">${isBonusData ? 'Total Bonus' : 'Grand Total'}</th>
+                <th style="padding:8px; border:1px solid #e2e8f0; text-align:center;">Aksi</th>
+            </tr></thead><tbody>`;
+          d.items.forEach((emp, idx) => {
+              html += `<tr>
+                <td style="padding:6px; border:1px solid #e2e8f0;">${emp.nama || '-'}</td>
+                <td style="padding:6px; border:1px solid #e2e8f0;">${emp.jabatan || '-'}</td>
+                ${isBonusData ? `<td style="padding:6px; border:1px solid #e2e8f0;">${emp.keterangan || '-'}</td>` : ''}
+                <td style="padding:6px; border:1px solid #e2e8f0; text-align:center;">${emp.metodeBayar || 'TF'}</td>
+                <td style="padding:6px; border:1px solid #e2e8f0; text-align:right; font-weight:bold; color:#059669;">Rp ${parseInt(emp.grandTotal||0).toLocaleString('id-ID')}</td>
+                <td style="padding:6px; border:1px solid #e2e8f0; text-align:center;">
+                    <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px; background:#0ea5e9; color:white; border:none;" onclick="printSlipSatuanOwner('${id}', ${idx})">🖨️ Cetak Slip</button>
+                </td>
+              </tr>`;
+          });
+          html += `</tbody></table></div>`;
+      }
+  } else {
+      html += `
+        <tr><td style="padding:8px; border-bottom:1px solid #eee; width:120px;"><strong>Nominal</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">Rp ${parseInt(d.nominal||0).toLocaleString('id-ID')}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Bank Tujuan</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${d.bank || '-'}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>No. Rekening</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${d.rekening || '-'}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Atas Nama</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${d.atasnama || '-'}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Tgl Pengajuan</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${d.tanggalPengajuan || '-'}</td></tr>
+        <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Dikirim</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${dateStr}</td></tr>
+      </table>
+      `;
+      
+      if (d.recapData) {
+          // recapData bisa jadi object (baru) atau string JSON (lama) → normalisasi biar Owner tidak crash
+          var recap = d.recapData;
+          if (typeof recap === 'string') {
+            try { recap = JSON.parse(recap); } catch(e) { recap = {}; }
+          }
+          if (!recap || typeof recap !== 'object') recap = {};
+          var detailsSince = [];
+          if (Array.isArray(recap.detailsSince)) {
+            detailsSince = recap.detailsSince;
+          } else if (recap.detailsSince && typeof recap.detailsSince === 'object') {
+            detailsSince = Object.values(recap.detailsSince);
+          }
+          var saldoSebelumnya = (parseFloat(recap.saldoAtLastKredit) || parseFloat(recap.lastKredit) || 0) - (parseFloat(recap.lastKredit) || 0);
+          html += `
+            <div style="display: flex; justify-content: space-around; margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; background: #f8f9fa;">
+              <div style="text-align: center;">
+                <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">Sisa Sebelumnya</div>
+                <div style="font-size: 14px; font-weight: bold; color: #475569; margin-top: 4px;">Rp ${parseInt(saldoSebelumnya).toLocaleString('id-ID')}</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">Saldo Setelah TF Masuk</div>
+                <div style="font-size: 14px; font-weight: bold; color: #1e40af; margin-top: 4px;">Rp ${parseInt(recap.saldoAtLastKredit || recap.lastKredit || 0).toLocaleString('id-ID')}</div>
+                <div style="font-size: 10px; color: #9ca3af; margin-top: 2px;">Dana Masuk: Rp ${parseInt(recap.lastKredit||0).toLocaleString('id-ID')} | Tgl: ${recap.lastKreditDate || '-'}</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">Pengeluaran Blm Diganti</div>
+                <div style="font-size: 14px; font-weight: bold; color: #dc2626; margin-top: 4px;">Rp ${parseInt(recap.totalDebitSince||0).toLocaleString('id-ID')}</div>
+                <div style="font-size: 10px; color: #dc2626; margin-top: 2px;">${recap.unreimbursedDateRange || ''}</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">Sisa Saldo</div>
+                <div style="font-size: 14px; font-weight: bold; color: #059669; margin-top: 4px;">Rp ${parseInt(recap.sisa||0).toLocaleString('id-ID')}</div>
+              </div>
+            </div>`;
+          if (detailsSince.length > 0) {
+              html += `<div class="scrollable-table-container" style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                    <thead style="position: sticky; top: 0; z-index: 1;"><tr style="background:#1e40af; color:white;">
+                        <th style="padding:8px; border:1px solid #e2e8f0; text-align:center; -webkit-print-color-adjust: exact;">No</th>
+                        <th style="padding:8px; border:1px solid #e2e8f0; text-align:center; -webkit-print-color-adjust: exact;">Tanggal</th>
+                        <th style="padding:8px; border:1px solid #e2e8f0; text-align:left; -webkit-print-color-adjust: exact;">Nama Keterangan</th>
+                        <th style="padding:8px; border:1px solid #e2e8f0; text-align:right; -webkit-print-color-adjust: exact;">Qty</th>
+                        <th style="padding:8px; border:1px solid #e2e8f0; text-align:left; -webkit-print-color-adjust: exact;">Satuan</th>
+                        <th style="padding:8px; border:1px solid #e2e8f0; text-align:right; -webkit-print-color-adjust: exact;">Harga</th>
+                        <th style="padding:8px; border:1px solid #e2e8f0; text-align:right; -webkit-print-color-adjust: exact;">Debit</th>
+                        <th style="padding:8px; border:1px solid #e2e8f0; text-align:right; -webkit-print-color-adjust: exact;">Saldo</th>
+                    </tr></thead><tbody>`;
+              let no = 1;
+              let currentSaldo = parseFloat(recap.lastKredit) || 0;
+              detailsSince.forEach(detail => {
+                  const nm = detail.nama || detail.keterangan || '-';
+                  const qty = detail.jumlah || '';
+                  const satuan = detail.satuan || '';
+                  const harga = parseFloat(detail.harga) || 0;
+                  const val = parseFloat(detail.debit || detail.keluar || detail.total) || 0;
+                  const tg = detail.tanggal || detail.date || '-';
+                  currentSaldo -= val;
+                  html += `<tr>
+                      <td style="padding:6px; border:1px solid #e2e8f0; text-align:center;">${no++}</td>
+                      <td style="padding:6px; border:1px solid #e2e8f0; text-align:center;">${tg}</td>
+                      <td style="padding:6px; border:1px solid #e2e8f0; text-align:left;">${nm}</td>
+                      <td style="padding:6px; border:1px solid #e2e8f0; text-align:right;">${qty}</td>
+                      <td style="padding:6px; border:1px solid #e2e8f0; text-align:left;">${satuan}</td>
+                      <td style="padding:6px; border:1px solid #e2e8f0; text-align:right;">${harga ? 'Rp ' + harga.toLocaleString('id-ID') : ''}</td>
+                      <td style="padding:6px; border:1px solid #e2e8f0; text-align:right; font-weight:bold;">Rp ${val.toLocaleString('id-ID')}</td>
+                      <td style="padding:6px; border:1px solid #e2e8f0; text-align:right; font-weight:bold; color:${currentSaldo < 0 ? '#dc2626' : '#059669'};">Rp ${currentSaldo.toLocaleString('id-ID')}</td>
+                  </tr>`;
+              });
+              html += `</tbody></table></div>`;
+          }
+      }
+  }
+  
+  if (d.fotoNotaUrl) html += `<div style="margin-bottom:10px;"><strong>Foto Nota:</strong><br><img src="${d.fotoNotaUrl}" style="max-width:100%; max-height:200px; border-radius:8px; margin-top:5px; cursor:pointer;" onclick="window.open(this.src, '_blank')"></div>`;
+  if (d.fotoTtdUrl) html += `<div style="margin-bottom:10px;"><strong>Foto TTD:</strong><br><img src="${d.fotoTtdUrl}" style="max-width:100%; max-height:200px; border-radius:8px; margin-top:5px; cursor:pointer;" onclick="window.open(this.src, '_blank')"></div>`;
+  if (d.fotoPengajuan) html += `<div style="margin-bottom:10px;"><strong>Foto Bukti:</strong><br><img src="${d.fotoPengajuan}" style="max-width:100%; max-height:200px; border-radius:8px; margin-top:5px; cursor:pointer;" onclick="window.open(this.src, '_blank')"></div>`;
+  
+  body.innerHTML = html;
+  
+  const approveBtn = document.getElementById('approveBtn');
+  const rejectBtn = document.getElementById('rejectBtn');
+  const deleteBtn = document.getElementById('deleteBtn');
+  const btnLaporan = document.getElementById('btnLaporanLengkap');
+  
+  if (isGaji) {
+      btnLaporan.style.display = 'inline-block';
+      btnLaporan.textContent = isBonusData ? '📊 Laporan Lengkap (Bonus)' : '📊 Laporan Lengkap (Gaji)';
+      btnLaporan.onclick = () => isBonusData ? viewBonusDetail(sub.id) : viewPengajuanDetail(sub.id);
+  } else {
+      btnLaporan.style.display = 'none';
+  }
+
+  if (isOwnerOrDev) {
+      deleteBtn.style.display = 'inline-block';
+      deleteBtn.onclick = () => deletePengajuan(sub.type, sub.id);
+  } else {
+      deleteBtn.style.display = 'none';
+  }
+
+  let currentStatus = isGaji ? d.statusOwner : d.status;
+  if (isManagerRole) {
+      // Untuk manager, fokusnya detail. Tombol approve/tolak disembunyikan agar tidak salah update status.
+      approveBtn.style.display = 'none';
+      rejectBtn.style.display = 'none';
+  } else if (currentStatus === 'approved' || currentStatus === 'rejected') {
+      approveBtn.style.display = 'none';
+      rejectBtn.style.display = 'none';
+      const statusColor = currentStatus === 'approved' ? 'green' : 'red';
+      const statusText = currentStatus === 'approved' ? 'DISETUJUI' : 'DITOLAK';
+      body.innerHTML += `<div style="text-align:center; padding:10px; margin-top:15px; font-weight:bold; color:${statusColor}; border:2px solid ${statusColor}; border-radius:8px;">STATUS: ${statusText}</div>`;
+  } else {
+      approveBtn.style.display = 'inline-block';
+      rejectBtn.style.display = 'inline-block';
+  }
+  
+  modal.style.display = 'flex';
+  if (!isManagerRole) {
+    approveBtn.onclick = () => updatePengajuanStatus(sub.type, sub.id, 'approved');
+    rejectBtn.onclick = () => updatePengajuanStatus(sub.type, sub.id, 'rejected');
+  }
+}
+
+window.viewPengajuanDetail = function(id) {
+    const sub = window._pengajuanDataMap[id];
+    if (!sub) return alert('Data tidak ditemukan.');
+    const d = sub.data;
+    const outlet = d._outlet;
+    const tglAwal = d.periodStart;
+    const tglAkhir = d.periodEnd;
+
+    // Info untuk Header dan Tanda Tangan
+    const names = JSON.parse(localStorage.getItem('rbm_outlet_names') || '{}');
+    const outletName = d.outlet ? (names[d.outlet] || d.outlet.toUpperCase()) : (d._outlet ? (names[d._outlet] || d._outlet.toUpperCase()) : 'Semua Outlet');
+    const makerName = d.requester || d.userName || '-';
+    const makerRole = d.userRole ? d.userRole.charAt(0).toUpperCase() + d.userRole.slice(1) : 'Manager';
+    const optionsDate = { day: 'numeric', month: 'long', year: 'numeric' };
+    const dateObj = d.createdAt ? new Date(d.createdAt) : new Date();
+    const signDateStr = `Sidoarjo, ${dateObj.toLocaleDateString('id-ID', optionsDate)}`;
+
+    const btn = document.getElementById('btnLihatDetailLengkap');
+    if (btn) {
+        btn.textContent = 'Memuat Data... ⏳';
+        btn.disabled = true;
+    }
+
+    const renderLaporan = (employees, absensiData, jadwalData, gajiData, gpsLogs) => {
+        const dates = [];
+        let curr = new Date(tglAwal);
+        const end = new Date(tglAkhir);
+        while (curr <= end) {
+            dates.push(new Date(curr));
+            curr.setDate(curr.getDate() + 1);
+        }
+
+        const formatMoney = (n) => {
+            if (isNaN(n) || n === null) return 'Rp 0';
+            return 'Rp ' + (n || 0).toLocaleString('id-ID');
+        };
+
+        var styleBlock = '<style>body{font-family:sans-serif;font-size:12px;padding:20px;background:#f3f4f6;} .page{background:white;padding:20px;margin-bottom:20px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);overflow-x:auto;} h2,h3{text-align:center;margin:5px 0;color:#1e40af;} table{width:100%;border-collapse:collapse;margin-top:15px;white-space:nowrap;} th,td{border:1px solid #cbd5e1;padding:8px;text-align:center;} th{background-color:#1e40af;color:#fff;position:sticky;top:0;} .text-left{text-align:left;} .text-right{text-align:right;} tr:nth-child(even){background-color:#f8fafc;} tr:hover{background-color:#e2e8f0;} @media print { @page { size: landscape; margin: 10mm; } body { padding:0; background:white; -webkit-print-color-adjust: exact; print-color-adjust: exact; zoom: 0.6; } .page { box-shadow:none; margin:0; padding:0; page-break-after:always; overflow:visible; width:100%; max-width:100%; display:block; } table { font-size:10px; width:100%; max-width:100%; } th, td { padding:4px; white-space: nowrap; } button { display:none !important; } }</style>';
+
+        var headerHtml = '<div style="text-align: center; margin-bottom: 25px; font-family: &quot;Times New Roman&quot;, Times, serif; border-bottom: 3px double #1e293b; padding-bottom: 15px;">' +
+            '<h1 style="margin: 0; font-size: 22px; text-transform: uppercase; color:#1e293b;">LAPORAN GAJI & ABSENSI LENGKAP</h1>' +
+            '<h2 style="margin: 5px 0 0; font-size: 16px; color:#475569;">CABANG ' + outletName.toUpperCase() + '</h2>';
+            
+        if (d.bank || d.rekening) {
+            headerHtml += '<div style="display:inline-block; margin-top:10px; padding:6px 15px; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc; font-family:sans-serif; font-size:13px; color:#1e40af;">' +
+                '<strong>Rekening Pencairan:</strong> ' + (d.bank || '-') + ' - ' + (d.rekening || '-') + ' (a.n ' + (d.atasnama || '-') + ')' +
+                '</div>';
+        }
+        headerHtml += '</div>';
+
+        var isApproved = d.statusOwner === 'approved';
+        var approverHtml = isApproved 
+            ? '<div style="color:#059669; font-weight:bold; font-size:11px; margin: 10px auto 10px; border: 2px solid #059669; padding: 4px; border-radius: 4px; display: inline-block; transform: rotate(-5deg);">DISETUJUI DIGITAL</div>' 
+            : '<br><br><br>';
+        var approverName = isApproved ? (d.approvedOwnerBy || 'Puji Shohibul Burhan') : 'Puji Shohibul Burhan';
+        approverName = approverName.replace(' (Auto-ACC)', '').replace('(Auto-ACC)', '');
+        var approverRole = 'Manager Regional';
+
+        var htmlTandaTangan = `
+            <div style="margin-top: 50px; display: flex; justify-content: space-between; font-family: Arial, sans-serif; font-size: 14px; page-break-inside: avoid; padding: 0 50px;">
+                <div style="text-align: center; width: 250px;">
+                    <p style="margin-bottom: 50px; color:#333;">${signDateStr}</p>
+                    <p style="margin-bottom: 5px; color:#333;">Dibuat / Penanggung Jawab:</p>
+                    <br><br><br>
+                    <p style="font-weight: bold; text-decoration: underline; margin-bottom: 2px; color:#000;">${makerName}</p>
+                    <p style="margin: 0; color:#333;">${makerRole}</p>
+                </div>
+                <div style="text-align: center; width: 250px;">
+                    <p style="margin-bottom: 50px;">&nbsp;</p>
+                    <p style="margin-bottom: 5px; color:#333;">Disetujui / Mengetahui:</p>
+                    ${approverHtml}
+                    <p style="font-weight: bold; text-decoration: underline; margin-bottom: 2px; color:#000;">${approverName}</p>
+                    <p style="margin: 0; color:#333;">${approverRole}</p>
+                </div>
+            </div>
+        `;
+
+        // --- 1. ABSENSI ---
+        var htmlAbsensi = `<div class="page">${headerHtml}<h2>LAPORAN ABSENSI HARIAN</h2><h3>Periode: ${tglAwal} s/d ${tglAkhir}</h3><table><thead><tr>
+            <th rowspan="2">No</th><th rowspan="2">Nama</th><th rowspan="2">Jabatan</th>
+            <th colspan="${dates.length}">Tanggal</th><th colspan="9">Rekap</th></tr><tr>`;
+        dates.forEach(d => htmlAbsensi += `<th>${d.getDate()}</th>`);
+        ['H','R','O','S','I','A','DP','PH','AL'].forEach(h => htmlAbsensi += `<th>${h}</th>`);
+        htmlAbsensi += `</tr></thead><tbody>`;
+        employees.forEach((emp, idx) => {
+            let empKey = emp.id != null ? emp.id : idx;
+            let counts = {H:0,R:0,O:0,S:0,I:0,A:0,DP:0,PH:0,AL:0};
+            htmlAbsensi += `<tr><td>${idx+1}</td><td class="text-left">${emp.name}</td><td class="text-left">${emp.jabatan}</td>`;
+            dates.forEach(d => {
+                const key = `${d.toISOString().split('T')[0]}_${empKey}`;
+                const status = absensiData[key] || '';
+                let countKey = status === 'O' ? 'O' : status;
+                if(counts.hasOwnProperty(countKey)) counts[countKey]++;
+                htmlAbsensi += `<td>${status}</td>`;
+            });
+            ['H','R','O','S','I','A','DP','PH','AL'].forEach(h => htmlAbsensi += `<td>${counts[h]}</td>`);
+            htmlAbsensi += `</tr>`;
+        });
+        htmlAbsensi += `</tbody></table>${htmlTandaTangan}</div>`;
+
+        // --- 2. JADWAL ---
+        var htmlJadwal = `<div class="page">${headerHtml}<h2>JADWAL KERJA</h2><h3>Periode: ${tglAwal} s/d ${tglAkhir}</h3><table><thead><tr>
+            <th rowspan="2">No</th><th rowspan="2">Nama</th><th rowspan="2">Jabatan</th>
+            <th colspan="${dates.length}">Tanggal</th><th colspan="7">Rekap</th></tr><tr>`;
+        dates.forEach(d => htmlJadwal += `<th>${d.getDate()}</th>`);
+        ['P','M','S','Off','PH','AL','DP'].forEach(h => htmlJadwal += `<th>${h}</th>`);
+        htmlJadwal += `</tr></thead><tbody>`;
+        employees.forEach((emp, idx) => {
+            let empKey = emp.id != null ? emp.id : idx;
+            let counts = {P:0,M:0,S:0,Off:0,PH:0,AL:0,DP:0};
+            htmlJadwal += `<tr><td>${idx+1}</td><td class="text-left">${emp.name}</td><td class="text-left">${emp.jabatan}</td>`;
+            dates.forEach(d => {
+                const key = `${d.toISOString().split('T')[0]}_${empKey}`;
+                const status = jadwalData[key] || '';
+                if(counts.hasOwnProperty(status)) counts[status]++;
+                htmlJadwal += `<td>${status}</td>`;
+            });
+            ['P','M','S','Off','PH','AL','DP'].forEach(h => htmlJadwal += `<td>${counts[h]}</td>`);
+            htmlJadwal += `</tr>`;
+        });
+        htmlJadwal += `</tbody></table>${htmlTandaTangan}</div>`;
+
+        // --- 3. REKAP ABSEN ---
+        var htmlLaporanAbsen = `<div class="page">${headerHtml}<h2>REKAP ABSENSI</h2><h3>Periode: ${tglAwal} s/d ${tglAkhir}</h3><table><thead><tr>
+            <th rowspan="2">No</th><th rowspan="2">ID</th><th rowspan="2">Nama</th><th rowspan="2">Jabatan</th>
+            <th colspan="${dates.length}">Periode</th><th rowspan="2">Total HK</th><th rowspan="2">Sisa Cuti</th><th colspan="8">Absensi</th></tr><tr>`;
+        dates.forEach(d => htmlLaporanAbsen += `<th>${d.getDate()}</th>`);
+        ['A','I','S','OFF','DP','PH','AL','JML'].forEach(h => htmlLaporanAbsen += `<th>${h}</th>`);
+        htmlLaporanAbsen += `</tr></thead><tbody>`;
+        employees.forEach((emp, idx) => {
+            let empKey = emp.id != null ? emp.id : idx;
+            let counts = { H:0, A:0, I:0, S:0, OFF:0, DP:0, PH:0, AL:0 };
+            dates.forEach(d => {
+                const key = `${d.toISOString().split('T')[0]}_${empKey}`;
+                const status = absensiData[key] || '';
+                let countKey = status === 'O' ? 'OFF' : status;
+                if (status && counts.hasOwnProperty(countKey)) counts[countKey]++;
+            });
+            const totalSisaCuti = (parseInt(emp.sisaAL)||0) + (parseInt(emp.sisaDP)||0) + (parseInt(emp.sisaPH)||0);
+            htmlLaporanAbsen += `<tr><td>${idx+1}</td><td>${emp.id || '-'}</td><td class="text-left">${emp.name}</td><td class="text-left">${emp.jabatan}</td>`;
+            dates.forEach(d => {
+                const key = `${d.toISOString().split('T')[0]}_${empKey}`;
+                htmlLaporanAbsen += `<td>${absensiData[key] || ''}</td>`;
+            });
+            htmlLaporanAbsen += `<td>${counts.H}</td><td>${totalSisaCuti}</td><td>${counts.A}</td><td>${counts.I}</td><td>${counts.S}</td><td>${counts.OFF}</td><td>${counts.DP}</td><td>${counts.PH}</td><td>${counts.AL}</td><td>${dates.length}</td></tr>`;
+        });
+        htmlLaporanAbsen += `</tbody></table>${htmlTandaTangan}</div>`;
+
+        // --- 4. REKAP GAJI ---
+        var totalGrand = 0;
+        var rowsGaji = '';
+        employees.forEach((emp, idx) => {
+            // empKeyAbsensi: key historis untuk lookup `RBM_ABSENSI_DATA` (tanpa prefix).
+            const empKeyAbsensi = emp && emp.id != null ? emp.id : idx;
+            // empKeyGaji: key rekap yang disimpan ke `RBM_GAJI_...` (pakai prefix id_/name_/idx_).
+            const empKeyGaji = (emp && emp.id != null && emp.id !== '') ? ('id_' + String(emp.id))
+                : (emp && emp.name ? ('name_' + String(emp.name).replace(/[.#$\[\]]/g, '_')) : ('idx_' + String(idx)));
+
+            let counts = { H:0, A:0, I:0, S:0, OFF:0, DP:0, PH:0, AL:0 };
+            dates.forEach(d => {
+                const key = `${d.toISOString().split('T')[0]}_${empKeyAbsensi}`;
+                const status = absensiData[key] || '';
+                let countKey = status === 'O' ? 'OFF' : status;
+                if (status && counts.hasOwnProperty(countKey)) counts[countKey]++;
+            });
+
+            const pData = gajiData[empKeyGaji] || gajiData[empKeyAbsensi] || gajiData[idx] || {};
+            const bank = emp.bank || '-';
+            const noRek = emp.noRek || '-';
+            const hkTarget = pData.hkTarget !== undefined ? parseInt(pData.hkTarget) : 26;
+            const hkAktual = counts.H;
+            const gajiPokok = parseInt(emp.gajiPokok) || 0;
+            const potHari = parseFloat(pData.potHari) || 0;
+            const jamTerlambat = parseFloat(pData.jamTerlambat) || 0;
+            const hutang = parseInt(pData.hutang) || 0;
+            const tunjangan = parseInt(pData.tunjangan) || 0;
+            const metodeBayar = pData.metodeBayar || 'TF';
+            const gajiPerHari = Math.round(gajiPokok / 30);
+            const potTerlambatPerJam = Math.round(gajiPokok / 240);
+            const uangMakan = hkAktual * 10000;
+            const totalPotKehadiran = Math.round(potHari * gajiPerHari);
+            const totalPotTerlambat = Math.round(jamTerlambat * potTerlambatPerJam);
+            const grandTotal = gajiPokok - totalPotKehadiran - totalPotTerlambat - hutang + uangMakan + tunjangan;
+            totalGrand += grandTotal;
+            rowsGaji += `<tr>
+                <td>${idx+1}</td><td class="text-left">${emp.name}</td><td class="text-left">${emp.jabatan}</td>
+                <td>${bank}</td><td>${noRek}</td><td>${hkTarget}</td><td>${hkAktual}</td>
+                <td>${counts.A || '-'}</td><td>${counts.I || '-'}</td><td>${counts.S || '-'}</td><td>${counts.OFF || '-'}</td><td>${counts.DP || '-'}</td><td>${counts.PH || '-'}</td><td>${counts.AL || '-'}</td><td>${dates.length}</td>
+                <td class="text-right">${formatMoney(gajiPokok)}</td><td class="text-right">${formatMoney(gajiPerHari)}</td>
+                <td>${potHari}</td><td class="text-right">${formatMoney(totalPotKehadiran)}</td>
+                <td>${jamTerlambat}</td><td class="text-right">${formatMoney(potTerlambatPerJam)}</td><td class="text-right">${formatMoney(totalPotTerlambat)}</td>
+                <td class="text-right">${formatMoney(hutang)}</td><td class="text-right">${formatMoney(uangMakan)}</td><td class="text-right">${formatMoney(tunjangan)}</td>
+                <td class="text-right" style="font-weight:bold; color:#16a34a;">${formatMoney(grandTotal)}</td><td>${metodeBayar}</td>
+            </tr>`;
+        });
+        var htmlGaji = `<div class="page">${headerHtml}<h2>REKAPITULASI GAJI KARYAWAN</h2><h3>Periode: ${tglAwal} s/d ${tglAkhir}</h3><table><thead><tr>
+            <th rowspan="2">No</th><th rowspan="2">Nama</th><th rowspan="2">Jabatan</th>
+            <th rowspan="2">Bank</th><th rowspan="2">No Rek</th><th rowspan="2">HK<br>Target</th><th rowspan="2">HK<br>Aktual</th>
+            <th colspan="8">Absensi</th>
+            <th rowspan="2">Gaji Pokok</th><th rowspan="2">Gaji/Hari</th>
+            <th colspan="2">Potongan Kehadiran</th><th colspan="3">Keterlambatan</th>
+            <th rowspan="2">Hutang</th><th rowspan="2">Makan</th><th rowspan="2">Tunjangan</th>
+            <th rowspan="2">Grand Total</th><th rowspan="2">Pembayaran</th>
+        </tr><tr>
+            <th>A</th><th>I</th><th>S</th><th>OFF</th><th>DP</th><th>PH</th><th>AL</th><th>JML</th>
+            <th>Hari</th><th>Rp</th><th>Jam</th><th>Rate</th><th>Total</th>
+        </tr></thead><tbody>${rowsGaji}</tbody></table>`;
+        htmlGaji += `<div style="text-align:right; font-size:18px; font-weight:bold; margin-top:15px; padding:15px; background:#e2e8f0; border-radius:6px; color:#1e40af;">TOTAL PENGELUARAN GAJI: ${formatMoney(totalGrand)}</div>${htmlTandaTangan}</div>`;
+
+        // --- 5. REKAP ABSENSI GPS ---
+        var groupedGps = {};
+        (gpsLogs || []).forEach(log => {
+            const key = `${log.date}_${log.name}`;
+            if (!groupedGps[key]) groupedGps[key] = { date: log.date, name: log.name, masuk: null, breakOuts: [], breakIns: [], pulang: null };
+            if (log.type === 'Masuk' && !groupedGps[key].masuk) groupedGps[key].masuk = log;
+            else if (log.type === 'Pulang') groupedGps[key].pulang = log;
+            else if (log.type === 'Istirahat Keluar') groupedGps[key].breakOuts.push(log);
+            else if (log.type === 'Istirahat Kembali') groupedGps[key].breakIns.push(log);
+        });
+        
+        var gpsKeys = Object.keys(groupedGps).sort((a, b) => {
+            if (groupedGps[a].date !== groupedGps[b].date) return groupedGps[a].date.localeCompare(groupedGps[b].date);
+            return groupedGps[a].name.localeCompare(groupedGps[b].name);
+        });
+
+        var rowsGps = '';
+        gpsKeys.forEach(k => {
+            const item = groupedGps[k];
+            const formatTime = (log) => log ? log.time : '-';
+            const formatTimes = (arr) => arr && arr.length ? arr.map(l => l.time).join(', ') : '-';
+            
+            rowsGps += `<tr>
+                <td>${item.date}</td>
+                <td class="text-left">${item.name}</td>
+                <td>${formatTime(item.masuk)}</td>
+                <td>${formatTimes(item.breakOuts)}</td>
+                <td>${formatTimes(item.breakIns)}</td>
+                <td>${formatTime(item.pulang)}</td>
+            </tr>`;
+        });
+        
+        if (rowsGps === '') rowsGps = `<tr><td colspan="6" style="text-align:center;">Tidak ada data GPS pada periode ini.</td></tr>`;
+
+        var htmlGps = `<div class="page">${headerHtml}<h2>REKAP ABSENSI GPS (LOGS)</h2><h3>Periode: ${tglAwal} s/d ${tglAkhir}</h3><table><thead><tr>
+            <th>Tanggal</th><th>Nama</th><th>Masuk</th><th>Istirahat Keluar</th><th>Istirahat Kembali</th><th>Pulang</th>
+        </tr></thead><tbody>${rowsGps}</tbody></table>${htmlTandaTangan}</div>`;
+
+        var scriptBlockExt = '<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></scr' + 'ipt>' +
+            '<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></scr' + 'ipt>' +
+            '<script>' +
+            'async function saveToJpg() {' +
+            '  var btnDiv = document.getElementById("action-buttons");' +
+            '  var origDisplay = btnDiv ? btnDiv.style.display : "";' +
+            '  if(btnDiv) btnDiv.style.display = "none";' +
+            '  window.scrollTo(0, 0);' +
+            '  var ths = document.querySelectorAll("th");' +
+            '  for(var k=0; k<ths.length; k++) { ths[k].style.position = "static"; }' +
+            '  var pages = document.querySelectorAll(".page");' +
+            '  try {' +
+            '    if (pages.length > 1) {' +
+            '      var zip = new JSZip();' +
+            '      for (var i = 0; i < pages.length; i++) {' +
+            '        var canvas = await html2canvas(pages[i], { scale: 1.5, backgroundColor: "#ffffff" });' +
+            '        var imgData = canvas.toDataURL("image/jpeg", 0.9).split(",")[1];' +
+            '        var pageName = "";' +
+            '        if (i === 0) pageName = "1_Absensi";' +
+            '        else if (i === 1) pageName = "2_Jadwal";' +
+            '        else if (i === 2) pageName = "3_Rekap_Absensi";' +
+            '        else if (i === 3) pageName = "4_Rekap_Gaji";' +
+            '        else if (i === 4) pageName = "5_Rekap_GPS";' +
+            '        else pageName = "Halaman_" + (i + 1);' +
+            '        zip.file("Laporan_" + pageName + ".jpg", imgData, {base64: true});' +
+            '      }' +
+            '      var content = await zip.generateAsync({type:"blob"});' +
+            '      var a = document.createElement("a");' +
+            '      a.href = URL.createObjectURL(content);' +
+            '      a.download = "Laporan_Lengkap_Gaji.zip";' +
+            '      document.body.appendChild(a);' +
+            '      a.click();' +
+            '      document.body.removeChild(a);' +
+            '    } else {' +
+            '      var target = pages.length ? pages[0] : document.body;' +
+            '      var canvas = await html2canvas(target, { scale: 1.5, backgroundColor: "#ffffff" });' +
+            '      var a = document.createElement("a");' +
+            '      a.href = canvas.toDataURL("image/jpeg", 0.9);' +
+            '      a.download = "Laporan_Lengkap_Gaji.jpg";' +
+            '      document.body.appendChild(a);' +
+            '      a.click();' +
+            '      document.body.removeChild(a);' +
+            '    }' +
+            '  } catch(err) {' +
+            '    alert("Gagal menyimpan JPG: " + err);' +
+            '  } finally {' +
+            '    if(btnDiv) btnDiv.style.display = origDisplay;' +
+            '    for(var m=0; m<ths.length; m++) { ths[m].style.position = ""; }' +
+            '  }' +
+            '}' +
+            '</scr' + 'ipt>';
+
+        var finalHtml = '<html><head><title>Detail Laporan Pengajuan</title>' + styleBlock + scriptBlockExt + '</head><body>' +
+            htmlAbsensi + htmlJadwal + htmlLaporanAbsen + htmlGaji + htmlGps +
+            '<div id="action-buttons" style="text-align:center; margin:30px 0;">' +
+            '<button onclick="window.print()" style="padding:12px 24px; font-size:16px; font-weight:bold; background:#10b981; color:white; border:none; border-radius:8px; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.1); margin-right: 10px;">Print / PDF</button>' +
+            '<button onclick="saveToJpg()" style="padding:12px 24px; font-size:16px; font-weight:bold; background:#0dcaf0; color:white; border:none; border-radius:8px; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.1); margin-right: 10px;">Save JPG</button>' +
+            '<button onclick="window.close()" style="padding:12px 24px; font-size:16px; font-weight:bold; background:#1e40af; color:white; border:none; border-radius:8px; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.1);">Tutup Halaman</button>' +
+            '</div>' +
+            '</body></html>';
+
+        var viewWindow = window.open('', '_blank');
+        viewWindow.document.write(finalHtml);
+        viewWindow.document.close();
+        viewWindow.focus();
+    };
+
+    // Jika ada snapshot di dalam payload (fitur baru), langsung render tanpa perlu konek database lain
+    if (d.snapshot) {
+        if (btn) {
+            btn.textContent = '📊 Lihat Laporan Lengkap (Absensi, Jadwal, Rincian Gaji)';
+            btn.disabled = false;
+        }
+        let snapData = d.snapshot;
+        if (typeof snapData === 'string') {
+            try { snapData = JSON.parse(snapData); } catch(e) { snapData = {}; }
+        }
+        renderLaporan(snapData.employees || [], snapData.absensiData || {}, snapData.jadwalData || {}, snapData.gajiData || {}, snapData.gpsLogs || []);
+        return;
+    }
+
+    // Fallback untuk pengajuan lama: ambil dari storage Firebase
+    const sfx = outlet && outlet !== 'default' ? '_' + outlet : '';
+    const db = firebase.database();
+    
+    const getStorageData = async (key) => {
+        const snap = await db.ref('rbm_pro/storage/' + key).once('value');
+        return snap.val();
+    };
+
+    Promise.all([
+        getStorageData('RBM_EMPLOYEES' + sfx),
+        getStorageData('RBM_ABSENSI_DATA' + sfx),
+        getStorageData('RBM_JADWAL_DATA' + sfx),
+        getStorageData('RBM_GAJI_' + tglAwal + '_' + tglAkhir + sfx),
+        getStorageData('RBM_GPS_LOGS' + sfx)
+    ]).then(snaps => {
+        if (btn) {
+            btn.textContent = '📊 Lihat Laporan Lengkap (Absensi, Jadwal, Rincian Gaji)';
+            btn.disabled = false;
+        }
+
+        const safeParse = (val, def) => {
+            try { return typeof val === 'string' ? JSON.parse(val) : (val || def); }
+            catch(e) { return def; }
+        };
+
+        let employees = safeParse(snaps[0], []);
+        if (typeof employees === 'object' && !Array.isArray(employees)) {
+            employees = Object.keys(employees).map(k => employees[k]).filter(Boolean);
+        }
+        
+        const absensiData = safeParse(snaps[1], {});
+        const jadwalData = safeParse(snaps[2], {});
+        const gajiData = safeParse(snaps[3], {});
+        let gpsLogs = safeParse(snaps[4], []);
+        if (typeof gpsLogs === 'object' && !Array.isArray(gpsLogs)) {
+            gpsLogs = Object.values(gpsLogs).filter(Boolean);
+        }
+
+        renderLaporan(employees, absensiData, jadwalData, gajiData, gpsLogs);
+
+    }).catch(err => {
+        if (btn) {
+            btn.textContent = '📊 Lihat Laporan Lengkap (Absensi, Jadwal, Rincian Gaji)';
+            btn.disabled = false;
+        }
+        alert("Gagal memuat data dari server: " + err.message);
+    });
+};
+
+window.viewBonusDetail = function(id) {
+    const sub = window._pengajuanDataMap[id];
+    if (!sub) return alert('Data tidak ditemukan.');
+    const d = sub.data;
+
+    const names = JSON.parse(localStorage.getItem('rbm_outlet_names') || '{}');
+    const outletName = d.outlet ? (names[d.outlet] || d.outlet.toUpperCase()) : (d._outlet ? (names[d._outlet] || d._outlet.toUpperCase()) : 'Semua Outlet');
+    const makerName = d.requester || d.userName || '-';
+    const makerRole = d.userRole ? d.userRole.charAt(0).toUpperCase() + d.userRole.slice(1) : 'Manager';
+    const optionsDate = { day: 'numeric', month: 'long', year: 'numeric' };
+    const dateObj = d.createdAt ? new Date(d.createdAt) : new Date();
+    const signDateStr = `Sidoarjo, ${dateObj.toLocaleDateString('id-ID', optionsDate)}`;
+
+    const formatMoney = (n) => {
+        if (isNaN(n) || n === null) return 'Rp 0';
+        return 'Rp ' + parseInt(n).toLocaleString('id-ID');
+    };
+
+    var styleBlock = '<style>body{font-family:sans-serif;font-size:12px;padding:20px;background:#f3f4f6;} .page{background:white;padding:20px;margin-bottom:20px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);overflow-x:auto;} h2,h3{text-align:center;margin:5px 0;color:#1e40af;} table{width:100%;border-collapse:collapse;margin-top:15px;white-space:nowrap;} th,td{border:1px solid #cbd5e1;padding:8px;text-align:center;} th{background-color:#1e40af;color:#fff;} .text-left{text-align:left;} .text-right{text-align:right;} tr:nth-child(even){background-color:#f8fafc;} tr:hover{background-color:#e2e8f0;} @media print { @page { size: portrait; margin: 10mm; } body { padding:0; background:white; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .page { box-shadow:none; margin:0; padding:0; overflow:visible; width:100%; max-width:100%; display:block; } table { width:100%; max-width:100%; } button { display:none !important; } }</style>';
+
+    var headerHtml = '<div style="text-align: center; margin-bottom: 25px; font-family: &quot;Times New Roman&quot;, Times, serif; border-bottom: 3px double #1e293b; padding-bottom: 15px;">' +
+        '<h1 style="margin: 0; font-size: 22px; text-transform: uppercase; color:#1e293b;">LAPORAN PENGAJUAN BONUS</h1>' +
+        '<h2 style="margin: 5px 0 0; font-size: 16px; color:#475569;">CABANG ' + outletName.toUpperCase() + '</h2>';
+        
+    if (d.bank || d.rekening) {
+        headerHtml += '<div style="display:inline-block; margin-top:10px; padding:6px 15px; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc; font-family:sans-serif; font-size:13px; color:#1e40af;">' +
+            '<strong>Rekening Pencairan:</strong> ' + (d.bank || '-') + ' - ' + (d.rekening || '-') + ' (a.n ' + (d.atasnama || '-') + ')' +
+            '</div>';
+    }
+    headerHtml += '</div>';
+
+    var isApproved = d.statusOwner === 'approved';
+    var approverHtml = isApproved 
+        ? '<div style="color:#059669; font-weight:bold; font-size:11px; margin: 10px auto 10px; border: 2px solid #059669; padding: 4px; border-radius: 4px; display: inline-block; transform: rotate(-5deg);">DISETUJUI DIGITAL</div>' 
+        : '<br><br><br>';
+    var approverName = isApproved ? (d.approvedOwnerBy || 'Puji Shohibul Burhan') : 'Puji Shohibul Burhan';
+    approverName = approverName.replace(' (Auto-ACC)', '').replace('(Auto-ACC)', '');
+    var approverRole = 'Manager Regional';
+
+    var htmlTandaTangan = `
+        <div style="margin-top: 50px; display: flex; justify-content: space-between; font-family: Arial, sans-serif; font-size: 14px; page-break-inside: avoid; padding: 0 50px;">
+            <div style="text-align: center; width: 250px;">
+                <p style="margin-bottom: 50px; color:#333;">${signDateStr}</p>
+                <p style="margin-bottom: 5px; color:#333;">Dibuat / Penanggung Jawab:</p>
+                <br><br><br>
+                <p style="font-weight: bold; text-decoration: underline; margin-bottom: 2px; color:#000;">${makerName}</p>
+                <p style="margin: 0; color:#333;">${makerRole}</p>
+            </div>
+            <div style="text-align: center; width: 250px;">
+                <p style="margin-bottom: 50px;">&nbsp;</p>
+                <p style="margin-bottom: 5px; color:#333;">Disetujui / Mengetahui:</p>
+                ${approverHtml}
+                <p style="font-weight: bold; text-decoration: underline; margin-bottom: 2px; color:#000;">${approverName}</p>
+                <p style="margin: 0; color:#333;">${approverRole}</p>
+            </div>
+        </div>
+    `;
+
+    let noteHtml = `<div style="margin-bottom: 20px; font-size: 14px; line-height: 1.6; background: #eef2ff; padding: 15px; border-left: 4px solid #4f46e5; border-radius: 4px;">${d.note || '-'}</div>`;
+
+    let rowsBonus = '';
+    let totalBonus = 0;
+    if (d.items && d.items.length > 0) {
+        d.items.forEach((emp, idx) => {
+            totalBonus += parseInt(emp.grandTotal) || 0;
+            rowsBonus += `<tr>
+                <td>${idx + 1}</td>
+                <td class="text-left">${emp.nama || '-'}</td>
+                <td class="text-left">${emp.jabatan || '-'}</td>
+                <td class="text-left">${emp.keterangan || '-'}</td>
+                <td>${emp.metodeBayar || 'TF'}</td>
+                <td class="text-right" style="font-weight:bold; color:#059669;">${formatMoney(emp.grandTotal)}</td>
+            </tr>`;
+        });
+    } else {
+        rowsBonus = `<tr><td colspan="6">Tidak ada data karyawan</td></tr>`;
+    }
+
+    var htmlTable = `<table>
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>Nama Karyawan</th>
+                <th>Jabatan</th>
+                <th>Keterangan</th>
+                <th>Metode Bayar</th>
+                <th>Total Bonus</th>
+            </tr>
+        </thead>
+        <tbody>${rowsBonus}</tbody>
+        <tfoot>
+            <tr>
+                <td colspan="5" class="text-right" style="font-weight:bold; padding: 10px;">TOTAL PENGAJUAN BONUS</td>
+                <td class="text-right" style="font-weight:bold; color:#1e40af; font-size: 14px;">${formatMoney(totalBonus)}</td>
+            </tr>
+        </tfoot>
+    </table>`;
+
+        var scriptBlockExt = '<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></scr' + 'ipt>' +
+            '<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></scr' + 'ipt>' +
+            '<script>' +
+            'async function saveToJpg() {' +
+            '  var btnDiv = document.getElementById("action-buttons");' +
+            '  var origDisplay = btnDiv ? btnDiv.style.display : "";' +
+            '  if(btnDiv) btnDiv.style.display = "none";' +
+            '  window.scrollTo(0, 0);' +
+            '  var ths = document.querySelectorAll("th");' +
+            '  for(var k=0; k<ths.length; k++) { ths[k].style.position = "static"; }' +
+            '  var pages = document.querySelectorAll(".page");' +
+            '  try {' +
+            '    if (pages.length > 1) {' +
+            '      var zip = new JSZip();' +
+            '      for (var i = 0; i < pages.length; i++) {' +
+            '        var canvas = await html2canvas(pages[i], { scale: 1.5, backgroundColor: "#ffffff" });' +
+            '        var imgData = canvas.toDataURL("image/jpeg", 0.9).split(",")[1];' +
+            '        zip.file("Laporan_Halaman_" + (i+1) + ".jpg", imgData, {base64: true});' +
+            '      }' +
+            '      var content = await zip.generateAsync({type:"blob"});' +
+            '      var a = document.createElement("a");' +
+            '      a.href = URL.createObjectURL(content);' +
+            '      a.download = "Laporan_Pengajuan_Bonus.zip";' +
+            '      document.body.appendChild(a);' +
+            '      a.click();' +
+            '      document.body.removeChild(a);' +
+            '    } else {' +
+            '      var target = pages.length ? pages[0] : document.body;' +
+            '      var canvas = await html2canvas(target, { scale: 1.5, backgroundColor: "#ffffff" });' +
+            '      var a = document.createElement("a");' +
+            '      a.href = canvas.toDataURL("image/jpeg", 0.9);' +
+            '      a.download = "Laporan_Pengajuan_Bonus.jpg";' +
+            '      document.body.appendChild(a);' +
+            '      a.click();' +
+            '      document.body.removeChild(a);' +
+            '    }' +
+            '  } catch(err) {' +
+            '    alert("Gagal menyimpan JPG: " + err);' +
+            '  } finally {' +
+            '    if(btnDiv) btnDiv.style.display = origDisplay;' +
+            '    for(var m=0; m<ths.length; m++) { ths[m].style.position = ""; }' +
+            '  }' +
+            '}' +
+            '</scr' + 'ipt>';
+
+        var finalHtml = '<html><head><title>Laporan Pengajuan Bonus</title>' + styleBlock + scriptBlockExt + '</head><body>' +
+            '<div class="page">' + headerHtml + noteHtml + htmlTable + htmlTandaTangan + '</div>' +
+            '<div id="action-buttons" style="text-align:center; margin:30px 0;">' +
+            '<button onclick="window.print()" style="padding:12px 24px; font-size:16px; font-weight:bold; background:#10b981; color:white; border:none; border-radius:8px; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.1); margin-right: 10px;">Print / PDF</button>' +
+            '<button onclick="saveToJpg()" style="padding:12px 24px; font-size:16px; font-weight:bold; background:#0dcaf0; color:white; border:none; border-radius:8px; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.1); margin-right: 10px;">Save JPG</button>' +
+            '<button onclick="window.close()" style="padding:12px 24px; font-size:16px; font-weight:bold; background:#1e40af; color:white; border:none; border-radius:8px; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.1);">Tutup Halaman</button>' +
+            '</div>' +
+            '</body></html>';
+
+    var viewWindow = window.open('', '_blank');
+    viewWindow.document.write(finalHtml);
+    viewWindow.document.close();
+    viewWindow.focus();
+};
+
+window.printSlipSatuanOwner = function(subId, empIdx) {
+    const sub = window._pengajuanDataMap[subId];
+    if (!sub) return alert('Data tidak ditemukan.');
+    const d = sub.data;
+    const emp = d.items[empIdx];
+    if (!emp) return alert('Karyawan tidak ditemukan.');
+
+    const isBonus = (d.note || '').toLowerCase().includes('bonus');
+    const names = JSON.parse(localStorage.getItem('rbm_outlet_names') || '{}');
+    const outletName = d.outlet ? (names[d.outlet] || d.outlet.toUpperCase()) : (d._outlet ? (names[d._outlet] || d._outlet.toUpperCase()) : 'Semua Outlet');
+    
+    const formatMoney = (n) => 'Rp ' + parseInt(n||0).toLocaleString('id-ID');
+    
+    const periodText = isBonus ? 'BONUS' : 'GAJI';
+    const periodStart = d.periodStart || '-';
+    const periodEnd = d.periodEnd || '-';
+    const dateObj = d.createdAt ? new Date(d.createdAt) : new Date();
+    const dateStr = dateObj.toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
+
+    let snap = d.snapshot;
+    if (typeof snap === 'string') {
+        try { snap = JSON.parse(snap); } catch(e) { snap = {}; }
+    }
+    if (!snap) snap = {};
+
+    let detailsHtml = '';
+
+    if (!isBonus) {
+        let gajiPokok = 0; let potHari = 0; let jamTerlambat = 0; let hutang = 0; let tunjangan = 0;
+        let totalPotKehadiran = 0; let totalPotTerlambat = 0; let uangMakan = 0; let totalPendapatan = 0;
+
+        if (snap.employees && snap.gajiData && snap.absensiData) {
+            let snapEmp = snap.employees.find(e => e.name === emp.nama || e.id == emp.empId);
+            // empKeyAbsensi: key historis untuk lookup RBM_ABSENSI_DATA (tanpa prefix).
+            let empKeyAbsensi = snapEmp ? (snapEmp.id != null ? snapEmp.id : snap.employees.indexOf(snapEmp)) : emp.empId;
+            // empKeyGaji: key rekap untuk lookup RBM_GAJI_... (pakai prefix id_/name_/idx_).
+            const empKeyGaji = snapEmp
+                ? (snapEmp.id != null ? ('id_' + String(snapEmp.id))
+                    : (snapEmp.name ? ('name_' + String(snapEmp.name).replace(/[.#$\[\]]/g, '_'))
+                        : ('idx_' + String(snap.employees.indexOf(snapEmp)))))
+                : null;
+            
+            if (snapEmp) {
+                gajiPokok = parseInt(snapEmp.gajiPokok) || 0;
+                const pData = (empKeyGaji && snap.gajiData && snap.gajiData[empKeyGaji]) ? snap.gajiData[empKeyGaji]
+                    : (snap.gajiData && (snap.gajiData[empKeyAbsensi] || snap.gajiData[snap.employees.indexOf(snapEmp)])) || {};
+                potHari = parseFloat(pData.potHari) || 0;
+                jamTerlambat = parseFloat(pData.jamTerlambat) || 0;
+                hutang = parseInt(pData.hutang) || 0;
+                tunjangan = parseInt(pData.tunjangan) || 0;
+
+                let hkAktual = 0;
+                let curr = new Date(d.periodStart);
+                const end = new Date(d.periodEnd);
+                while(curr <= end) {
+                    const dateKey = curr.toISOString().split('T')[0];
+                    const absKey = `${dateKey}_${empKeyAbsensi}`;
+                    if (snap.absensiData[absKey] === 'H') hkAktual++;
+                    curr.setDate(curr.getDate() + 1);
+                }
+                uangMakan = hkAktual * 10000;
+                const gajiPerHari = Math.round(gajiPokok / 30);
+                const potTerlambatPerJam = Math.round(gajiPokok / 240);
+                totalPotKehadiran = Math.round(potHari * gajiPerHari);
+                totalPotTerlambat = Math.round(jamTerlambat * potTerlambatPerJam);
+                totalPendapatan = gajiPokok + tunjangan + uangMakan;
+            }
+        }
+        detailsHtml = `<table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+                <tr><td style="padding: 8px 0; font-weight: bold;" colspan="4">Pendapatan (+):</td></tr>
+                <tr><td style="padding-left: 15px;">Gaji Pokok</td><td>:</td><td style="text-align: right;">${formatMoney(gajiPokok)}</td><td></td></tr>
+                <tr><td style="padding-left: 15px;">Tunjangan</td><td>:</td><td style="text-align: right;">${formatMoney(tunjangan)}</td><td></td></tr>
+                <tr style="border-bottom: 1px solid black;"><td style="padding-left: 15px; padding-bottom: 8px;">Uang Makan</td><td style="padding-bottom: 8px;">:</td><td style="text-align: right; padding-bottom: 8px;">${formatMoney(uangMakan)}</td><td style="text-align: right; font-weight: bold; padding-bottom: 8px;">+</td></tr>
+                <tr><td style="font-weight: bold; padding-top: 8px;">Total</td><td style="font-weight: bold; padding-top: 8px;">:</td><td style="text-align: right; font-weight: bold; padding-top: 8px;">${formatMoney(totalPendapatan)}</td><td></td></tr>
+                <tr><td colspan="4" style="height: 20px;"></td></tr>
+                <tr><td style="padding: 8px 0; font-weight: bold;" colspan="4">Pengurangan (-):</td></tr>
+                <tr><td style="padding-left: 15px;">Potongan Absensi</td><td>:</td><td style="text-align: right;">${formatMoney(totalPotKehadiran)}</td><td></td></tr>
+                <tr><td style="padding-left: 15px;">Potongan Terlambat</td><td>:</td><td style="text-align: right;">${formatMoney(totalPotTerlambat)}</td><td></td></tr>
+                <tr><td style="padding-left: 15px;">Hutang Karyawan</td><td>:</td><td style="text-align: right;">${formatMoney(hutang)}</td><td></td></tr>
+                <tr><td colspan="4" style="height: 20px;"></td></tr>
+                <tr style="background: #f0f0f0; border-top: 2px solid black; border-bottom: 2px solid black;"><td style="font-weight: bold; padding: 10px;">Grand Total Gaji</td><td style="font-weight: bold; padding: 10px;">:</td><td style="text-align: right; font-weight: bold; padding: 10px; color: #059669;">${formatMoney(emp.grandTotal)}</td><td></td></tr>
+            </table>`;
+    } else {
+        detailsHtml = `<table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+                <tr><td style="padding: 8px 0; font-weight: bold;" colspan="4">Rincian Bonus:</td></tr>
+                <tr><td style="padding-left: 15px;">Keterangan</td><td>:</td><td style="text-align: right;">${emp.keterangan || 'Bonus'}</td><td></td></tr>
+                <tr><td colspan="4" style="height: 20px;"></td></tr>
+                <tr style="background: #f0f0f0; border-top: 2px solid black; border-bottom: 2px solid black;"><td style="font-weight: bold; padding: 10px;">Total Bonus</td><td style="font-weight: bold; padding: 10px;">:</td><td style="text-align: right; font-weight: bold; padding: 10px; color: #059669;">${formatMoney(emp.grandTotal)}</td><td></td></tr>
+            </table>`;
+    }
+
+    const htmlContent = `<html><head><title>Slip ${periodText}</title><style>body { font-family: 'Courier New', Courier, monospace; color: #000; padding: 20px; } .slip-container { max-width: 800px; margin: 0 auto; border: 1px solid #ccc; padding: 40px; } @media print { body { padding: 0; } .slip-container { border: none; padding: 0; } }</style></head><body>
+            <div class="slip-container">
+                <div style="text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px;">
+                    <h3 style="margin: 0; font-size: 18px; font-weight: bold;">SLIP ${periodText} KARYAWAN</h3>
+                    <h4 style="margin: 5px 0 0; font-size: 16px; font-weight: bold;">RICE BOWL MONSTERS</h4>
+                    <p style="margin: 5px 0 0; font-size: 14px;">PERIODE: ${periodStart} s/d ${periodEnd}</p>
+                </div>
+                <table style="width: 100%; margin-bottom: 20px; font-size: 14px; border-collapse: collapse;"><tr><td style="width: 120px; padding: 2px 0;">Nama</td><td style="width: 10px;">:</td><td style="font-weight: bold;">${emp.nama || '-'}</td></tr><tr><td style="padding: 2px 0;">Jabatan</td><td>:</td><td>${emp.jabatan || '-'}</td></tr><tr><td style="padding: 2px 0;">Cabang</td><td>:</td><td>${outletName}</td></tr><tr><td style="padding: 2px 0;">Metode Bayar</td><td>:</td><td>${emp.metodeBayar || 'TF'}</td></tr></table>
+                ${detailsHtml}
+                <div style="margin-top: 50px; width: 250px; font-size: 14px; text-align: center; float: right;"><p style="margin-bottom: 70px;">Sidoarjo, ${dateStr}<br>Dikeluarkan Oleh:</p><p style="font-weight: bold; text-decoration: underline; margin: 0;">Management</p></div><div style="clear: both;"></div>
+            </div></body></html>`;
+    const printWin = window.open('', '', 'width=800,height=600'); printWin.document.write(htmlContent); printWin.document.close(); printWin.focus(); setTimeout(() => { printWin.print(); printWin.close(); }, 500);
+};
+
+window.deletePengajuan = function(type, id) {
+    AppPopup.confirm(`Yakin ingin menghapus permanen pengajuan ini?`, 'Konfirmasi Hapus', function() {
+        let dbPath = '';
+        if (type === 'tf') {
+            dbPath = `rbm_pro/pengajuan_tf/${id}`;
+        } else if (type === 'gaji') {
+            const sub = window._pengajuanDataMap[id];
+            dbPath = `rbm_pro/gaji_pengajuan/${sub.data._outlet}/${sub.data._month}/${id}`;
+        } else {
+            dbPath = `rbm_pro/petty_cash/pengajuan/${id}`;
+        }
+        
+        firebase.database().ref(dbPath).remove().then(() => {
+            AppPopup.success('Pengajuan berhasil dihapus.');
+            closeOwnerPengajuanModal();
+            if (window.self !== window.top) window.parent.postMessage({ type: 'REFRESH_NOTIFS' }, '*');
+            if (typeof fetchSubmissionsForOwner === 'function') fetchSubmissionsForOwner();
+        }).catch(err => {
+            AppPopup.error('Gagal menghapus: ' + (err.message || err));
+        });
+    });
+};
+
+function closeOwnerPengajuanModal() { document.getElementById('ownerPengajuanModal').style.display = 'none'; }
+
+function updatePengajuanStatus(type, id, status) {
+    const actionText = status === 'approved' ? 'DISETUJUI' : 'DITOLAK';
+    AppPopup.confirm(`Tandai pengajuan ini sebagai <strong>${actionText}</strong>?`, 'Konfirmasi', function() {
+        let dbPath = '';
+        let payload = {};
+        
+        var u = JSON.parse(localStorage.getItem('rbm_user') || '{}');
+        var approverName = u.nama || u.username || 'Owner';
+
+        if (type === 'tf') {
+            dbPath = `rbm_pro/pengajuan_tf/${id}`;
+            payload = { status: status, viewedByManager: false, updatedAt: firebase.database.ServerValue.TIMESTAMP, approvedBy: approverName };
+        } else if (type === 'gaji') {
+            const sub = window._pengajuanDataMap[id];
+            dbPath = `rbm_pro/gaji_pengajuan/${sub.data._outlet}/${sub.data._month}/${id}`;
+            payload = { statusOwner: status, viewedByManager: false, updatedAt: firebase.database.ServerValue.TIMESTAMP, approvedOwnerBy: approverName };
+        } else {
+            dbPath = `rbm_pro/petty_cash/pengajuan/${id}`;
+            payload = { status: status, viewedByManager: false, updatedAt: firebase.database.ServerValue.TIMESTAMP, approvedBy: approverName };
+        }
+        
+        firebase.database().ref(dbPath).update(payload).then(() => {
+            AppPopup.success('Status berhasil diupdate.');
+            closeOwnerPengajuanModal();
+            if (window.self !== window.top) {
+                window.parent.postMessage({ type: 'REFRESH_NOTIFS' }, '*');
+            }
+        }).catch(err => {
+            console.error(err);
+            var msg = (err && (err.message || err.code)) ? (err.message || err.code) : (err ? String(err) : 'unknown error');
+            AppPopup.error('Gagal update: ' + msg);
+        });
+    });
+}
+</script>
+<div class="app-layout">
+  <main class="app-main" style="margin-left:0;">
+<div id="pengajuan-view" class="view-container">
+  <div class="page-header">
+    <h2>Pengajuan</h2>
+    <p>Pengajuan TF, Petty Cash, dan bukti transfer</p>
+  </div>
+  <div class="form-container">
+    <div class="form-section">
+      <label>Jenis Pengajuan</label>
+      <select id="jenis_pengajuan" onchange="createPengajuanForm()">
+        <option value="">-- Pilih Jenis --</option>
+        <option value="pengajuan-tf">Pengajuan TF</option>
+        <option value="pengajuan-petty-cash">Pengajuan Petty Cash</option>
+        <option value="sudah-tf">Sudah TF</option>
+      </select>
+    </div>
+    <div id="pengajuan-form-container" class="detail-wrapper"></div>
+    <button id="submitButtonPengajuan" class="btn btn-primary" onclick="submitDataPengajuan()">Kirim Pengajuan</button>
+    <p id="outputPengajuan" class="output-msg"></p>
+    
+    <div id="manager-history-section" class="form-section" style="margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 20px; display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0; border: none; padding: 0;">Riwayat Pengajuan & Status</h3>
+        <button id="btn-refresh-manager" class="btn btn-secondary" onclick="fetchSubmissionsForManager()" style="padding: 6px 12px; font-size: 12px;">🔄 Refresh</button>
+      </div>
+      <div id="manager-pengajuan-list"><p style="color:#64748b;">Memuat data...</p></div>
+    </div>
+  </div>
+</div>
+
+  </main>
+</div>
+</div><span class="watermark">RBM Pro 2.3</span>
+<div id="imageModal" class="modal-overlay" onclick="closeImageModal()">
+  <span class="modal-close">&times;</span>
+  <img id="modalImage" class="modal-content">
+</div>
+<div id="ownerPengajuanModal" class="modal-overlay" style="display:none; align-items:center; justify-content:center;">
+  <div class="modal-content" style="background:white; padding:24px; width:750px; max-width:95%; border-radius:12px; height: auto; max-height: 90vh; display: flex; flex-direction: column;" onclick="event.stopPropagation()">
+    <span class="modal-close" onclick="closeOwnerPengajuanModal()" style="color:#333; top:10px; right:14px; cursor:pointer;">&times;</span>
+    <div id="print-area" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+      <h3 id="ownerPengajuanModalTitle" style="margin:0 0 12px; font-size:18px; flex-shrink: 0;">Rincian Pengajuan</h3>
+      <div id="ownerPengajuanModalBody" style="font-size:14px; line-height:1.6; color:#334155; flex: 1; overflow-y: auto; padding-right: 8px;"></div>
+    </div>
+    <div class="modal-footer" style="margin-top:20px; display:flex; gap:10px; justify-content:flex-end; flex-shrink: 0; padding-top: 15px; border-top: 1px solid #e5e7eb; flex-wrap: wrap;">
+      <button id="btnLaporanLengkap" class="btn btn-secondary" style="display:none; background: #8b5cf6; color: white; border: none; flex: 1; min-width: 150px;">📊 Laporan Lengkap</button>
+      <button id="approveBtn" class="btn btn-primary" style="margin-top: 0; flex: 1; min-width: 100px;">Setujui (ACC)</button>
+      <button id="rejectBtn" class="btn btn-small-danger" style="font-size: 14px; padding: 10px 20px; flex: 1; min-width: 80px;">Tolak</button>
+      <button id="deleteBtn" class="btn btn-small-danger" style="font-size: 14px; padding: 10px 20px; flex: 1; min-width: 80px; background-color: #dc2626; color: white; border: none; display: none;">Hapus</button>
+      <button id="printBtn" class="btn btn-secondary" onclick="window.print()" style="background-color: #6c757d; color: white; border: none; flex: 1; min-width: 100px;">Print (A4)</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Popup Modal -->
+<div id="customPopupModal" class="modal-overlay" style="display:none; align-items:center; justify-content:center; z-index: 9999;">
+  <div class="modal-content" style="background:white; padding:24px; width:350px; max-width:90%; border-radius:12px; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);" onclick="event.stopPropagation()">
+    <div id="customPopupIcon" style="font-size: 40px; margin-bottom: 10px;">ℹ️</div>
+    <h3 id="customPopupTitle" style="margin-top:0; font-size:18px; color:#1f2937;">Informasi</h3>
+    <p id="customPopupMessage" style="font-size:14px; color:#4b5563; margin-bottom:20px; line-height: 1.5;"></p>
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <button id="customPopupCancelBtn" class="btn btn-secondary" style="flex:1; display:none; border: 1px solid #e5e7eb;">Batal</button>
+      <button id="customPopupOkBtn" class="btn btn-primary" style="flex:1;">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>window.RBM_PAGE = 'pengajuan-view';</script>
+<script>
+// [BARU] Logika Custom Popup dipindah ke ATAS agar menimpa alert/confirm bawaan sistem sejak awal
+const AppPopup = {
+  show: function(title, message, icon, isConfirm, onConfirm) {
+    const modal = document.getElementById('customPopupModal');
+    if (!modal) return;
+    document.getElementById('customPopupTitle').textContent = title;
+    document.getElementById('customPopupMessage').innerHTML = message;
+    document.getElementById('customPopupIcon').textContent = icon;
+    const okBtn = document.getElementById('customPopupOkBtn');
+    const cancelBtn = document.getElementById('customPopupCancelBtn');
+    const newOkBtn = okBtn.cloneNode(true);
+    okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+    if (isConfirm) {
+      newCancelBtn.style.display = 'inline-block';
+      newCancelBtn.onclick = function() { modal.style.display = 'none'; };
+      newOkBtn.onclick = function() { modal.style.display = 'none'; if (onConfirm) onConfirm(); };
+    } else {
+      newCancelBtn.style.display = 'none';
+      newOkBtn.onclick = function() { modal.style.display = 'none'; if (onConfirm) onConfirm(); };
+    }
+    modal.style.display = 'flex';
+  },
+  alert: function(message, title = 'Informasi', icon = 'ℹ️') {
+    this.show(title, message, icon, false);
+  },
+  success: function(message, title = 'Berhasil') {
+    this.show(title, message, '✅', false);
+  },
+  error: function(message, title = 'Error') {
+    this.show(title, message, '❌', false);
+  },
+  confirm: function(message, title, onConfirm) {
+    this.show(title, message, '❓', true, onConfirm);
+  }
+};
+
+// Override permanent window.alert dan window.confirm agar device popup tidak pernah muncul
+window.alert = function(msg) { 
+    const msgStr = msg ? msg.toString().toLowerCase() : '';
+    const btn = document.getElementById('submitButtonPengajuan');
+    
+    if (msgStr.includes('berhasil')) {
+        AppPopup.success('Pengajuan sudah dikirim, tunggu disetujui.', 'Pengajuan');
+    } else if (msgStr.includes('gagal') || msgStr.includes('error')) {
+        AppPopup.error(msg, 'Gagal');
+    } else {
+        AppPopup.alert(msg, 'Pesan'); 
+    }
+    
+    if (btn && btn.disabled) {
+        btn.disabled = false;
+        btn.textContent = 'Kirim Pengajuan';
+    }
+};
+
+window.confirm = function(msg) {
+    console.log("Device confirm dicegat: " + msg);
+    return true; // Bypass otomatis agar proses jalan tanpa jeda/alert
+};
+</script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="rbm-pro-storage.js"></script>
+<script src="firebase-storage.js"></script>
+<script src="rbm-pro.js"></script>
+<script>
+// Auto-select jenis pengajuan dari URL agar tombol dari halaman lain langsung membuka form yang sesuai.
+(function(){
+  try {
+    var params = new URLSearchParams(window.location.search || '');
+    var jenis = params.get('jenis') || params.get('pengajuanJenis') || params.get('tambah');
+    if (!jenis) return;
+
+    var select = document.getElementById('jenis_pengajuan');
+    if (!select) return;
+    select.value = jenis;
+
+    // Jika owner/dev, otomatis pindah ke tab buat pengajuan
+    if (typeof switchOwnerTab === 'function') {
+        switchOwnerTab('create');
+    }
+
+    // Pastikan fungsi createPengajuanForm sudah ter-load dari rbm-pro.js.
+    var attempts = 0;
+    var t = setInterval(function(){
+      attempts++;
+      try {
+        if (typeof createPengajuanForm === 'function') {
+          createPengajuanForm();
+          clearInterval(t);
+          return;
+        }
+      } catch(e) {}
+      if (attempts > 30) clearInterval(t);
+    }, 100);
+  } catch(e) {}
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+<script>
+// [BARU] Patch untuk mengatasi error "Write too large" saat menyimpan pengajuan Petty Cash
+(function() {
+    function patchFirebaseWriteSize() {
+        if (typeof firebase === 'undefined' || !firebase.database) {
+            setTimeout(patchFirebaseWriteSize, 500);
+            return;
+        }
+        var refProto = firebase.database.Reference.prototype;
+        if (refProto._patchedForWriteSize) return;
+        refProto._patchedForWriteSize = true;
+
+        function deepCleanHugeStrings(obj, depth) {
+            if (!obj || typeof obj !== 'object') return;
+            depth = depth || 0;
+            if (depth > 20) return; // Mencegah max call stack
+            
+            if (Array.isArray(obj.detailsSince)) {
+                obj.detailsSince.forEach(function(d) {
+                    if (d && typeof d === 'object' && d.foto) delete d.foto;
+                });
+            }
+            Object.keys(obj).forEach(function(key) {
+                if (typeof obj[key] === 'string') {
+                    if (obj[key].length > 2000000) { // Jika lebih dari ~2MB
+                        console.warn("Mencegat pengiriman data yang terlalu besar pada key:", key);
+                        obj[key] = ''; 
+                    }
+                } else if (obj[key] && typeof obj[key] === 'object') {
+                    deepCleanHugeStrings(obj[key], depth + 1);
+                }
+            });
+        }
+
+        var origPush = refProto.push;
+        refProto.push = function(data, onComplete) {
+            deepCleanHugeStrings(data);
+            return origPush.call(this, data, onComplete);
+        };
+
+        var origSet = refProto.set;
+        refProto.set = function(data, onComplete) {
+            deepCleanHugeStrings(data);
+            return origSet.call(this, data, onComplete);
+        };
+
+        var origUpdate = refProto.update;
+        refProto.update = function(data, onComplete) {
+            deepCleanHugeStrings(data);
+            return origUpdate.call(this, data, onComplete);
+        };
+    }
+    patchFirebaseWriteSize();
+})();
+
+// [BARU] Bersihkan antrian sinkronisasi offline (localStorage) yang nyangkut dan error berulang
+(function cleanStuckPendingSync() {
+    try {
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.includes('PENDING')) {
+                const val = localStorage.getItem(key);
+                if (val && val.length > 2000000) { // Data pending > 2MB
+                    let parsed = JSON.parse(val);
+                    if (Array.isArray(parsed)) {
+                        let isModified = false;
+                        parsed.forEach(item => {
+                            if (item.payload) {
+                                if (item.payload.recapData && Array.isArray(item.payload.recapData.detailsSince)) {
+                                    item.payload.recapData.detailsSince.forEach(d => {
+                                        if (d.foto) { delete d.foto; isModified = true; }
+                                    });
+                                }
+                                ['foto', 'fotoPengajuan', 'fotoNotaUrl', 'fotoTtdUrl'].forEach(f => {
+                                    if (typeof item.payload[f] === 'string' && item.payload[f].length > 1500000) {
+                                        item.payload[f] = '';
+                                        isModified = true;
+                                    }
+                                });
+                            }
+                        });
+                        if (isModified) {
+                            localStorage.setItem(key, JSON.stringify(parsed));
+                            console.log('✅ Antrian offline berukuran raksasa berhasil dibersihkan di:', key);
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Gagal membersihkan pending sync:", e);
+    }
+})();
+</script>
+</body>
+</html>
