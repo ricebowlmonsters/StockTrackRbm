@@ -11359,9 +11359,6 @@ async function updateGpsJadwalDisplay() {
         return;
     }
 
-    textEl.innerHTML = '<span style="color:#64748b;">Memuat data khusus untuk Anda... ⏳</span>';
-    box.style.display = 'block';
-
     const employees = (window._gpsKioskRosterEmployees && window._gpsKioskRosterEmployees.length)
         ? window._gpsKioskRosterEmployees
         : getCachedParsedStorage(getRbmStorageKey('RBM_EMPLOYEES'), []);
@@ -11374,64 +11371,38 @@ async function updateGpsJadwalDisplay() {
     const today = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2) + '-' + ('0' + now.getDate()).slice(-2);
     const ym = today.substring(0, 7);
     const outlet = typeof getRbmOutlet === 'function' ? getRbmOutlet() : 'default';
+    const empIdSafe = (emp.id != null) ? emp.id : emp.name.replace(/[^a-zA-Z0-9]/g, '_');
     
-    var shift = '';
-    var myLogs = [];
-    let hrData = {};
-    let spSettingsData = {};
+    // [OPTIMASI SUPER KILAT] Ambil data dari cache lokal terlebih dahulu (Instan)
+    const jadwalData = getCachedParsedStorage(getRbmStorageKey('RBM_JADWAL_DATA'), {});
+    const jadwalKey = `${today}_${emp.id || employees.indexOf(emp)}`;
+    let shift = jadwalData[jadwalKey] || '';
     
-    // [OPTIMASI] Fetch data jadwal dan history istirahat dari server HANYA setelah nama dipilih
-    if (typeof FirebaseStorage !== 'undefined' && FirebaseStorage.isReady()) {
-        const db = FirebaseStorage.db();
-        try {
-            const empIdSafe = (emp.id != null) ? emp.id : emp.name.replace(/[^a-zA-Z0-9]/g, '_');
-            // [SUPER CEPAT] Ambil Jadwal dan Histori Absen secara BERSAMAAN (Paralel)
-            const [shiftSnap, logsSnap, hrSnap, spSettingsSnap] = await Promise.all([
-                db.ref(`rbm_pro/jadwal/${outlet}/${ym}/${today}_${emp.id}`).once('value'),
-                db.ref(`rbm_pro/gps_logs_partitioned/${outlet}/${ym}`).limitToLast(100).once('value'),
-                db.ref(`rbm_pro/hr_karyawan/${outlet}/${empIdSafe}`).once('value'),
-                db.ref(`rbm_pro/hr_sp_settings/${outlet}`).once('value')
-            ]);
-            shift = shiftSnap.val() || '';
-            const logsVal = logsSnap.val();
-            if (logsVal) {
-                myLogs = Object.values(logsVal).filter(l => l.name === name && l.date === today);
-            }
-            hrData = hrSnap.val() || {};
-            spSettingsData = spSettingsSnap.val() || {};
-        } catch (e) {
-            console.warn("Gagal fetch data spesifik", e);
-        }
-    } else {
-        const jadwalData = getCachedParsedStorage(getRbmStorageKey('RBM_JADWAL_DATA'), {});
-        const key = `${today}_${emp.id || employees.indexOf(emp)}`;
-        shift = jadwalData[key] || '';
+    const allLogs = getCachedParsedStorage(getRbmStorageKey('RBM_GPS_LOGS'), []);
+    let myLogs = allLogs.filter(l => l.name === name && l.date === today);
+
+    window._cachedHrData = window._cachedHrData || {};
+    let hrData = window._cachedHrData[empIdSafe] || {};
+    let spSettingsData = window._cachedSpSettings || {};
+
+    const renderDataUI = () => {
+        window._cachedGpsMyLogs = myLogs || [];
+        const label = (typeof getJadwalLabelFromConfig === 'function' ? getJadwalLabelFromConfig(shift) : null) || (typeof JADWAL_LABEL !== 'undefined' && JADWAL_LABEL[shift]) || shift || 'Tidak ada jadwal';
         
-        const allLogs = getCachedParsedStorage(getRbmStorageKey('RBM_GPS_LOGS'), []);
-        myLogs = allLogs.filter(l => l.name === name && l.date === today);
-    }
+        // Hitung sisa istirahat dari log spesifik ini
+        const stats = getBreakStats(myLogs, name, today);
+        const batasMenit = typeof getDurasiIstirahatMenitFromConfig === 'function' ? getDurasiIstirahatMenitFromConfig(shift) : 60;
+        
+        let info = '';
+        
+        let isOnLeave = false;
+        let leaveCode = '';
+        if (['PH','AL','DP'].includes(shift)) {
+            isOnLeave = true;
+            leaveCode = shift;
+        }
 
-    // Cache untuk kebutuhan:
-    // - Tombol "Lihat Riwayat Absensi Saya" (loadMyGpsHistory)
-    // - Validasi proses absen (processAbsensiGPS)
-    window._cachedGpsMyLogs = myLogs || [];
-
-    const label = (typeof getJadwalLabelFromConfig === 'function' ? getJadwalLabelFromConfig(shift) : null) || (typeof JADWAL_LABEL !== 'undefined' && JADWAL_LABEL[shift]) || shift || 'Tidak ada jadwal';
-    
-    // Hitung sisa istirahat dari log spesifik ini
-    const stats = getBreakStats(myLogs, name, today);
-    const batasMenit = typeof getDurasiIstirahatMenitFromConfig === 'function' ? getDurasiIstirahatMenitFromConfig(shift) : 60;
-    
-    let info = '';
-    
-    let isOnLeave = false;
-    let leaveCode = '';
-    if (['PH','AL','DP'].includes(shift)) {
-        isOnLeave = true;
-        leaveCode = shift;
-    }
-
-    if (shift && !isOnLeave) {
+        if (shift && !isOnLeave) {
             const batasMasuk = (typeof getBatasMasukFromConfig === 'function' ? getBatasMasukFromConfig(shift, emp.jabatan) : null) || (typeof JADWAL_BATAS_MASUK !== 'undefined' ? JADWAL_BATAS_MASUK[shift] : null);
             if (batasMasuk) {
                 const hasMasuk = myLogs && myLogs.some(l => l.type === 'Masuk');
@@ -11468,122 +11439,191 @@ async function updateGpsJadwalDisplay() {
                 }
             }
 
-        info += `<div style="margin-top:6px; font-size:12px; color:#64748b;">Jatah Istirahat: ${batasMenit} menit.`;
-        if (stats.total > 0) {
-            info += ` | Terpakai: ${stats.total} menit.`;
-        }
-        
-        if (stats.lastOut !== null) {
-            const currentMinutes = now.getHours() * 60 + now.getMinutes();
-            let currentDur = currentMinutes - stats.lastOut;
-            if (currentDur < 0) currentDur += 24 * 60;
-            info += ` <span style="color:#d97706; font-weight:600;">(Sedang Istirahat: ${currentDur} menit)</span>`;
-        } else {
-            const sisa = batasMenit - stats.total;
-            info += sisa >= 0 ? ` <span style="color:#16a34a; font-weight:600;">(Sisa: ${sisa} menit)</span>` : ` <span style="color:#dc2626; font-weight:600;">(Over: ${Math.abs(sisa)} menit)</span>`;
-        }
-        info += `</div>`;
-    }
-
-    let cutiInfo = `<div style="font-size:13px; color:#334155; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0; margin-top:16px;">
-        <strong style="display:block; margin-bottom:8px; color:#475569; font-size:12px;">SISA CUTI KAMU:</strong>
-        <div style="display:flex; justify-content:space-around; text-align:center;">
-            <span><span style="font-size:10px; color:#64748b; display:block;">Tahunan (AL)</span><strong style="font-size:18px; color:#15803d;">${emp.sisaAL || 0}</strong></span>
-            <span><span style="font-size:10px; color:#64748b; display:block;">Pengganti (DP)</span><strong style="font-size:18px; color:#15803d;">${emp.sisaDP || 0}</strong></span>
-            <span><span style="font-size:10px; color:#64748b; display:block;">Tgl Merah (PH)</span><strong style="font-size:18px; color:#15803d;">${emp.sisaPH || 0}</strong></span>
-        </div>
-    </div>`;
-
-    let quoteMasaKerja = spSettingsData.quoteMasaKerja || 'Terima kasih atas dedikasi dan kontribusinya selama';
-    let masaKerjaHtml = '-';
-    if (emp.joinDate) {
-        const start = new Date(emp.joinDate);
-        const now2 = new Date();
-        start.setHours(0,0,0,0); now2.setHours(0,0,0,0);
-        if (now2 >= start && !isNaN(start.getTime())) {
-            let years = now2.getFullYear() - start.getFullYear();
-            let months = now2.getMonth() - start.getMonth();
-            let days = now2.getDate() - start.getDate();
-            if (days < 0) { months--; const prevMonth = new Date(now2.getFullYear(), now2.getMonth(), 0); days += prevMonth.getDate(); }
-            if (months < 0) { years--; months += 12; }
-            let res = [];
-            if (years > 0) res.push(`${years} thn`);
-            if (months > 0) res.push(`${months} bln`);
-            if (days > 0) res.push(`${days} hr`);
-            masaKerjaHtml = res.length > 0 ? `${quoteMasaKerja} <strong>${res.join(', ')}</strong>` : 'Hari ini';
-        }
-    }
-    let spHtml = '';
-    if (hrData.sp && hrData.sp.length > 0) {
-        let activeCount = 0;
-        const n = new Date();
-        let spDetails = [];
-        hrData.sp.forEach(sp => {
-            let isActive = false;
-            let endD = null;
-            if (sp.berlakuHingga) {
-                endD = new Date(sp.berlakuHingga);
-                endD.setHours(23,59,59,999);
-                if (n <= endD) isActive = true;
-            } else { isActive = true; }
-            if (isActive) {
-                activeCount++;
-                let startD = new Date(sp.tanggal);
-                startD.setHours(0,0,0,0);
-                let diffTime = n - startD;
-                let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                let berjalanStr = sp.tanggal ? (diffDays < 0 ? `Belum mulai (H${diffDays})` : (diffDays === 0 ? 'Hari ini' : `${diffDays} hari`)) : '-';
-                
-                spDetails.push(`
-                  <div style="margin-top:8px; padding:10px; background:white; border-radius:6px; font-size:12px; color:#7f1d1d; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-                     <strong style="font-size:13px; color:#b91c1c;">${sp.tingkat || 'SP'}</strong>
-                     <div style="margin-top:6px; display:grid; grid-template-columns:60px 1fr; gap:4px; font-size:11px;">
-                         <span style="color:#9ca3af;">Berlaku:</span> <span><strong>${sp.tanggal ? new Date(sp.tanggal).toLocaleDateString('id-ID') : '-'}</strong> s/d <strong>${sp.berlakuHingga ? new Date(sp.berlakuHingga).toLocaleDateString('id-ID') : '-'}</strong></span>
-                         <span style="color:#9ca3af;">Berjalan:</span> <span><strong>${berjalanStr}</strong></span>
-                         <span style="color:#9ca3af;">Alasan:</span> <span>${sp.keterangan || '-'}</span>
-                     </div>
-                     <div style="margin-top:6px; padding-top:6px; border-top:1px dotted #fecaca; font-weight:600; color:#b91c1c; font-size:11px;">Sanksi: ${sp.sanksi || '-'}</div>
-                  </div>
-                `);
+            info += `<div style="margin-top:6px; font-size:12px; color:#64748b;">Jatah Istirahat: ${batasMenit} menit.`;
+            if (stats.total > 0) {
+                info += ` | Terpakai: ${stats.total} menit.`;
             }
-        });
-        if (activeCount > 0) {
-            spHtml = `<div style="margin-top:12px; background:#fef2f2; border:1px solid #fecaca; padding:12px; border-radius:8px; color:#dc2626;">
-                <div style="font-weight:bold; font-size:13px; display:flex; align-items:center; gap:6px;"><span>⚠️</span> Terdapat ${activeCount} Surat Peringatan Aktif!</div>
-                ${spDetails.join('')}
+            
+            if (stats.lastOut !== null) {
+                const currentMinutes = now.getHours() * 60 + now.getMinutes();
+                let currentDur = currentMinutes - stats.lastOut;
+                if (currentDur < 0) currentDur += 24 * 60;
+                info += ` <span style="color:#d97706; font-weight:600;">(Sedang Istirahat: ${currentDur} menit)</span>`;
+            } else {
+                const sisa = batasMenit - stats.total;
+                info += sisa >= 0 ? ` <span style="color:#16a34a; font-weight:600;">(Sisa: ${sisa} menit)</span>` : ` <span style="color:#dc2626; font-weight:600;">(Over: ${Math.abs(sisa)} menit)</span>`;
+            }
+            info += `</div>`;
+        }
+
+        let cutiInfo = `<div style="font-size:13px; color:#334155; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0; margin-top:16px;">
+            <strong style="display:block; margin-bottom:8px; color:#475569; font-size:12px;">SISA CUTI KAMU:</strong>
+            <div style="display:flex; justify-content:space-around; text-align:center;">
+                <span><span style="font-size:10px; color:#64748b; display:block;">Tahunan (AL)</span><strong style="font-size:18px; color:#15803d;">${emp.sisaAL || 0}</strong></span>
+                <span><span style="font-size:10px; color:#64748b; display:block;">Pengganti (DP)</span><strong style="font-size:18px; color:#15803d;">${emp.sisaDP || 0}</strong></span>
+                <span><span style="font-size:10px; color:#64748b; display:block;">Tgl Merah (PH)</span><strong style="font-size:18px; color:#15803d;">${emp.sisaPH || 0}</strong></span>
+            </div>
+        </div>`;
+
+        let quoteMasaKerja = spSettingsData.quoteMasaKerja || 'Terima kasih atas dedikasi dan kontribusinya selama ini. Terus berikan yang terbaik!';
+        if (quoteMasaKerja.trim() === 'Terima kasih atas dedikasi dan kontribusinya selama') {
+            quoteMasaKerja = 'Terima kasih atas dedikasi dan kontribusinya selama ini. Terus berikan yang terbaik!';
+        }
+        let durasiMasaKerja = 'Hari ini';
+        if (emp.joinDate) {
+            const start = new Date(emp.joinDate);
+            const now2 = new Date();
+            start.setHours(0,0,0,0); now2.setHours(0,0,0,0);
+            if (now2 >= start && !isNaN(start.getTime())) {
+                let years = now2.getFullYear() - start.getFullYear();
+                let months = now2.getMonth() - start.getMonth();
+                let days = now2.getDate() - start.getDate();
+                if (days < 0) { months--; const prevMonth = new Date(now2.getFullYear(), now2.getMonth(), 0); days += prevMonth.getDate(); }
+                if (months < 0) { years--; months += 12; }
+                let res = [];
+                if (years > 0) res.push(`${years} thn`);
+                if (months > 0) res.push(`${months} bln`);
+                if (days > 0) res.push(`${days} hr`);
+                if (res.length > 0) durasiMasaKerja = res.join(', ');
+            }
+        }
+        let spHtml = '';
+        if (hrData.sp && hrData.sp.length > 0) {
+            let activeCount = 0;
+            const n = new Date();
+            let spDetails = [];
+            hrData.sp.forEach(sp => {
+                let isActive = false;
+                let endD = null;
+                if (sp.berlakuHingga) {
+                    endD = new Date(sp.berlakuHingga);
+                    endD.setHours(23,59,59,999);
+                    if (n <= endD) isActive = true;
+                } else { isActive = true; }
+                if (isActive) {
+                    activeCount++;
+                    let startD = new Date(sp.tanggal);
+                    startD.setHours(0,0,0,0);
+                    let diffTime = n - startD;
+                    let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    let berjalanStr = sp.tanggal ? (diffDays < 0 ? `Belum mulai (H${diffDays})` : (diffDays === 0 ? 'Hari ini' : `${diffDays} hari`)) : '-';
+                    
+                    spDetails.push(`
+                      <div style="margin-top:8px; padding:10px; background:white; border-radius:6px; font-size:12px; color:#7f1d1d; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                         <strong style="font-size:13px; color:#b91c1c;">${sp.tingkat || 'SP'}</strong>
+                         <div style="margin-top:6px; display:grid; grid-template-columns:60px 1fr; gap:4px; font-size:11px;">
+                             <span style="color:#9ca3af;">Berlaku:</span> <span><strong>${sp.tanggal ? new Date(sp.tanggal).toLocaleDateString('id-ID') : '-'}</strong> s/d <strong>${sp.berlakuHingga ? new Date(sp.berlakuHingga).toLocaleDateString('id-ID') : '-'}</strong></span>
+                             <span style="color:#9ca3af;">Berjalan:</span> <span><strong>${berjalanStr}</strong></span>
+                             <span style="color:#9ca3af;">Alasan:</span> <span>${sp.keterangan || '-'}</span>
+                         </div>
+                         <div style="margin-top:6px; padding-top:6px; border-top:1px dotted #fecaca; font-weight:600; color:#b91c1c; font-size:11px;">Sanksi: ${sp.sanksi || '-'}</div>
+                      </div>
+                    `);
+                }
+            });
+            if (activeCount > 0) {
+                spHtml = `<div style="margin-top:12px; background:#fef2f2; border:1px solid #fecaca; padding:12px; border-radius:8px; color:#dc2626;">
+                    <div style="font-weight:bold; font-size:13px; display:flex; align-items:center; gap:6px;"><span>⚠️</span> Terdapat ${activeCount} Surat Peringatan Aktif!</div>
+                    ${spDetails.join('')}
+                </div>`;
+            }
+        }
+        let notesHtml = '';
+        if (hrData.notes) {
+            notesHtml = `<div style="margin-top:12px; background:#fef2f2; border:1px solid #ef4444; padding:12px; border-radius:8px; color:#b91c1c; font-size:12px; line-height:1.5;">
+                <div style="font-size:13px; margin-bottom:6px; display:flex; align-items:center; gap:6px;"><span>⚠️</span> <strong>CATATAN HR:</strong></div>
+                ${hrData.notes.replace(/\\n/g, '<br>')}
             </div>`;
         }
-    }
-    let notesHtml = '';
-    if (hrData.notes) {
-        notesHtml = `<div style="margin-top:12px; background:#fef2f2; border:1px solid #ef4444; padding:12px; border-radius:8px; color:#b91c1c; font-size:12px; line-height:1.5;">
-            <div style="font-size:13px; margin-bottom:6px; display:flex; align-items:center; gap:6px;"><span>⚠️</span> <strong>CATATAN HR:</strong></div>
-            ${hrData.notes.replace(/\n/g, '<br>')}
+        let hrSectionHtml = `<div style="font-size:13px; color:#334155; background:#f8fafc; padding:16px; border-radius:8px; border:1px solid #e2e8f0; margin-top:16px;">
+            <div style="text-align:center; margin-bottom:${spHtml || notesHtml ? '16px' : '0'};">
+                <div style="font-size:11px; color:#64748b; font-weight:700; letter-spacing:1px; margin-bottom:8px;">⭐ MASA KERJA ⭐</div>
+                <div style="font-style:italic; color:#475569; font-size:12px; line-height:1.5; margin-bottom:12px;">"${quoteMasaKerja}"</div>
+                <div style="color:#0f766e; font-size:16px; font-weight:900; background:#ccfbf1; border:1px solid #99f6e4; display:inline-block; padding:8px 16px; border-radius:24px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">${durasiMasaKerja}</div>
+            </div>
+            <div style="text-align:left;">
+                ${spHtml}
+                ${notesHtml}
+            </div>
         </div>`;
-    }
-    let hrSectionHtml = `<div style="font-size:13px; color:#334155; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0; margin-top:12px;">
-        <div style="margin-bottom:${spHtml || notesHtml ? '8px' : '0'}; display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:11px; color:#64748b; font-weight:600; letter-spacing:0.5px;">⭐ MASA KERJA</span>
-            <span style="color:#0f766e; font-size:13px; font-weight:bold;">${masaKerjaHtml}</span>
-        </div>
-        ${spHtml}
-        ${notesHtml}
-    </div>`;
 
-    let quote = '';
-    if (isOnLeave) {
-        let leaveName = leaveCode === 'AL' ? 'Cuti Tahunan (AL)' : (leaveCode === 'PH' ? 'Public Holiday (PH)' : 'Day Off Payment (DP)');
-        quote = `<div style="font-style:italic; text-align:center; color:#059669; font-size:13px; font-weight:600; border-top:1px dashed #cbd5e1; padding-top:16px; margin-top:16px; line-height:1.5;">"Selamat menikmati ${leaveName} kamu! Lepaskan penat, nikmati waktumu, dan kembalilah dengan energi baru!" 🌴✨</div>`;
-    } else {
-        const defaultQuote = '"Lakukan rutinitas pekerjaanmu dengan senang hati. Jangan lupa istirahat jika lelah!" 💪😊';
-        const customQuote = spSettingsData.quoteAbsensi || defaultQuote;
-        quote = `<div style="font-style:italic; text-align:center; color:#64748b; font-size:12px; border-top:1px dashed #cbd5e1; padding-top:16px; margin-top:16px; line-height:1.5;">${customQuote}</div>`;
-    }
+        let quote = '';
+        if (isOnLeave) {
+            let leaveName = leaveCode === 'AL' ? 'Cuti Tahunan (AL)' : (leaveCode === 'PH' ? 'Public Holiday (PH)' : 'Day Off Payment (DP)');
+            quote = `<div style="font-style:italic; text-align:center; color:#059669; font-size:13px; font-weight:600; border-top:1px dashed #cbd5e1; padding-top:16px; margin-top:16px; line-height:1.5;">"Selamat menikmati ${leaveName} kamu! Lepaskan penat, nikmati waktumu, dan kembalilah dengan energi baru!" 🌴✨</div>`;
+        } else {
+            const defaultQuote = '"Lakukan rutinitas pekerjaanmu dengan senang hati. Jangan lupa istirahat jika lelah!" 💪😊';
+            const customQuote = spSettingsData.quoteAbsensi || defaultQuote;
+            quote = `<div style="font-style:italic; text-align:center; color:#64748b; font-size:12px; border-top:1px dashed #cbd5e1; padding-top:16px; margin-top:16px; line-height:1.5;">${customQuote}</div>`;
+        }
 
-    textEl.innerHTML = (shift ? `<div style="font-size:16px; color:#1e40af; margin-bottom:12px;"><strong>${shift} (${label})</strong></div>` : `<div style="font-size:16px; color:#1e40af; margin-bottom:12px;"><strong>${label}</strong></div>`) + info + cutiInfo + hrSectionHtml + quote;
-    box.style.display = 'block';
-    
-    if (typeof checkDistance === 'function') checkDistance();
+        textEl.innerHTML = (shift ? `<div style="font-size:16px; color:#1e40af; margin-bottom:12px;"><strong>${shift} (${label})</strong></div>` : `<div style="font-size:16px; color:#1e40af; margin-bottom:12px;"><strong>${label}</strong></div>`) + info + cutiInfo + hrSectionHtml + quote;
+        box.style.display = 'block';
+        
+        if (typeof checkDistance === 'function') checkDistance();
+    };
+
+    // Langsung render dari lokal (Instan!)
+    renderDataUI();
+
+    // Fetch data terbaru dari server di background dan re-render jika ada perbedaan
+    if (typeof FirebaseStorage !== 'undefined' && FirebaseStorage.isReady()) {
+        const db = FirebaseStorage.db();
+        try {
+            const promises = [
+                db.ref(`rbm_pro/jadwal/${outlet}/${ym}/${today}_${emp.id}`).once('value')
+            ];
+            
+            promises.push(db.ref(`rbm_pro/gps_logs_partitioned/${outlet}/${ym}`).limitToLast(50).once('value'));
+            
+            if (!window._cachedHrData[empIdSafe]) {
+                promises.push(db.ref(`rbm_pro/hr_karyawan/${outlet}/${empIdSafe}`).once('value'));
+            } else {
+                promises.push(Promise.resolve({ val: () => window._cachedHrData[empIdSafe] }));
+            }
+            
+            if (!window._cachedSpSettings) {
+                promises.push(db.ref(`rbm_pro/hr_sp_settings/${outlet}`).once('value'));
+            } else {
+                promises.push(Promise.resolve({ val: () => window._cachedSpSettings }));
+            }
+
+            Promise.all(promises).then(([shiftSnap, logsSnap, hrSnap, spSettingsSnap]) => {
+                let hasChanges = false;
+                
+                const newShift = shiftSnap.val() || '';
+                if (shift !== newShift) { shift = newShift; hasChanges = true; }
+                
+                const logsVal = logsSnap.val();
+                if (logsVal) {
+                    const newMyLogs = Object.values(logsVal).filter(l => l.name === name && l.date === today);
+                    // Untuk sederhana, kita replace dan render ulang jika ada hasil
+                    myLogs = newMyLogs;
+                    hasChanges = true;
+                }
+                
+                const newHrData = hrSnap.val() || {};
+                if (!window._cachedHrData[empIdSafe] && Object.keys(newHrData).length > 0) {
+                    window._cachedHrData[empIdSafe] = newHrData;
+                    hrData = newHrData;
+                    hasChanges = true;
+                }
+                
+                const newSpSettings = spSettingsSnap.val() || {};
+                if (!window._cachedSpSettings && Object.keys(newSpSettings).length > 0) {
+                    window._cachedSpSettings = newSpSettings;
+                    spSettingsData = newSpSettings;
+                    hasChanges = true;
+                }
+                
+                if (hasChanges) {
+                    renderDataUI();
+                }
+            });
+        } catch (e) {
+            console.warn("Gagal fetch data spesifik di background", e);
+        }
+    }
 }
 
 function processAbsensiGPS(type) {
