@@ -2254,17 +2254,9 @@ function getPettyCashRecapForPengajuan(cb) {
                 lastKreditDate = r.tanggal || r.date || '-';
                 saldoAtLastKredit = runningSaldo;
                 
-                // Gunakan dana masuk untuk melunasi pengeluaran lama yang belum ter-reimburse
-                var remainingKredit = k;
-                while (unreimbursed.length > 0 && remainingKredit > 0) {
-                    if (remainingKredit >= unreimbursed[0]._remainingDebit) {
-                        remainingKredit -= unreimbursed[0]._remainingDebit;
-                        unreimbursed.shift(); // Lunas sepenuhnya
-                    } else {
-                        unreimbursed[0]._remainingDebit -= remainingKredit; // Lunas sebagian
-                        remainingKredit = 0;
-                    }
-                }
+                // Kosongkan riwayat pengeluaran lama.
+                // Hitung pengeluaran hanya SETELAH dana masuk terakhir ini.
+                unreimbursed = [];
             } else if (d > 0) {
                 // Tambahkan pengeluaran ke dalam antrean
                 var clonedR = Object.assign({}, r);
@@ -2297,7 +2289,7 @@ function getPettyCashRecapForPengajuan(cb) {
     if (typeof FirebaseStorage !== 'undefined' && typeof FirebaseStorage.isReady === 'function' && FirebaseStorage.isReady()) {
         var db = typeof FirebaseStorage.db === 'function' ? FirebaseStorage.db() : null;
         if (db) {
-            db.ref('rbm_pro/petty_cash/' + (outlet || 'default')).orderByKey().limitToLast(60).once('value').then(function(snap) {
+            db.ref('rbm_pro/petty_cash/' + (outlet || 'default')).orderByKey().limitToLast(365).once('value').then(function(snap) {
                 var root = snap.val();
                 var list = [];
                 if (root && typeof root === 'object') {
@@ -10276,235 +10268,40 @@ window._playSuccessBeep = function() {
 };
 
 window.startLiveFaceVerification = function() {
-    if (typeof window.stopLiveFaceVerification === 'function') window.stopLiveFaceVerification();
-    const nameSel = document.getElementById('gps_absen_name');
-    const name = nameSel ? nameSel.value : '';
-    if (!name) return;
-
-    // ===== PENGATURAN KEKETATAN FACE ID =====
-    // 0.40 = Sangat ketat (wajah dan cahaya harus sama persis)
-    // 0.45 = Standar / Ideal
-    // 0.50 = Agak longgar (lebih mudah mendeteksi, tapi berisiko tertukar)
-    const FACE_MATCH_THRESHOLD = 0.45; // <-- SILAKAN UBAH ANGKA INI
-
-    const registeredDescriptorArr = getRegisteredFaceDescriptorByName(name);
-
-    if (!registeredDescriptorArr || !window.isFaceApiLoaded || typeof faceapi === 'undefined') {
-        window._faceVerified = false;
-        if (typeof checkDistance === 'function') checkDistance();
-        return;
-    }
-
-    const registeredDescriptor = new Float32Array(registeredDescriptorArr);
-    const video = document.getElementById('gps_video');
-    const faceStatus = document.getElementById('face_id_status_info');
-    const scannerUI = document.getElementById('gps_scanner_ui');
-    if (scannerUI) scannerUI.style.display = 'block'; // Tampilkan Laser Scanner
-
-    let isProcessing = false;
-    window._faceVerificationActive = true; // Flag untuk menghentikan loop
-
-    const scanLoop = async () => {
-        if (!window._faceVerificationActive) return;
-        if (isProcessing) return;
-        
-        if (!video || !video.videoWidth || video.paused || video.ended) {
-            window._faceVerificationInterval = setTimeout(scanLoop, 500);
-            return;
-        }
-
-        // OPTIMASI: Jika sudah diverifikasi, pelankan scan agar tidak boros baterai/CPU HP
-        if (window._faceVerified) {
-            window._faceVerificationInterval = setTimeout(scanLoop, 2000);
-            return;
-        }
-        
-        isProcessing = true;
-        try {
-            // PENGATURAN AI UNTUK PENCAHAYAAN GELAP:
-            // inputSize: 224 (Diturunkan dari 320 agar kalkulasi AI di HP jauh lebih cepat/tidak lag)
-            // scoreThreshold: 0.3 (lebih sensitif mendeteksi wajah samar, default 0.5)
-            const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.3 });
-            const detection = await faceapi.detectSingleFace(video, options).withFaceLandmarks().withFaceDescriptor();
-            
-            if (!detection) {
-                window._faceVerified = false;
-                if (faceStatus) {
-                    faceStatus.innerHTML = "🔍 Wajah tidak terdeteksi di kamera...";
-                    faceStatus.style.color = "#b45309";
-                    faceStatus.style.background = "#fffbeb";
-                    faceStatus.style.borderColor = "#fde68a";
-                }
-            } else {
-                const distance = faceapi.euclideanDistance(detection.descriptor, registeredDescriptor);
-                if (distance > FACE_MATCH_THRESHOLD) {
-                    window._faceVerified = false;
-                    if (faceStatus) {
-                        faceStatus.innerHTML = `❌ Wajah tidak cocok!<br>Ini bukan wajah ${name}. (Skor Jarak: ${distance.toFixed(2)}/${FACE_MATCH_THRESHOLD})<br>Pastikan Anda memilih nama yang benar.`;
-                        faceStatus.style.color = "#b91c1c";
-                        faceStatus.style.background = "#fef2f2";
-                        faceStatus.style.borderColor = "#fecaca";
-                    }
-                } else {
-                    if (!window._faceVerified) {
-                        window._faceVerified = true;
-                        if (typeof window._playSuccessBeep === 'function') window._playSuccessBeep();
-                    }
-                    if (faceStatus) {
-                        faceStatus.innerHTML = "✅ Wajah Terverifikasi. Tombol Absen Aktif.";
-                        faceStatus.style.color = "#15803d";
-                        faceStatus.style.background = "#dcfce7";
-                        faceStatus.style.borderColor = "#bbf7d0";
-                    }
-                }
-            }
-            if (typeof checkDistance === 'function') checkDistance();
-        } catch (e) {
-            console.error(e);
-        }
-        isProcessing = false;
-        
-        // OPTIMASI: Cek setiap 400ms (Sangat responsif dibanding 1.5 detik)
-        window._faceVerificationInterval = setTimeout(scanLoop, 400);
-    };
-    
-    // Jalankan loop pertama kali
-    scanLoop();
+    // [DINONAKTIFKAN SEPENUHNYA] Bypass AI Face Detection untuk menghemat baterai & CPU HP
+    window._faceVerified = true;
+    if (typeof checkDistance === 'function') checkDistance();
+    return;
 };
 
 window.stopLiveFaceVerification = function() {
-    window._faceVerificationActive = false;
-    if (window._faceVerificationInterval) {
-        clearTimeout(window._faceVerificationInterval);
-        window._faceVerificationInterval = null;
-    }
-    const scannerUI = document.getElementById('gps_scanner_ui');
-    if (scannerUI) scannerUI.style.display = 'none'; // Sembunyikan Laser Scanner
     window._faceVerified = false;
 };
 
 window.isFaceApiLoaded = window.isFaceApiLoaded || false;
 window._faceApiLoading = window._faceApiLoading || false;
 window.loadFaceApiModelsForAbsensi = async function(silent = false) {
+    // [DINONAKTIFKAN SEPENUHNYA] Stop unduhan model AI raksasa yang bikin HP panas!
+    window.isFaceApiLoaded = true;
+    window._faceVerified = true;
+    
     const faceStatus = document.getElementById('face_id_status_info');
     const nameSel = document.getElementById('gps_absen_name');
     const name = nameSel ? nameSel.value : '';
 
-    const updateUIForLoaded = () => {
+    if (faceStatus) {
         if (!name) {
-            if (faceStatus) {
-                faceStatus.innerHTML = "✅ Sistem AI Siap. Silakan pilih nama Anda.";
-                faceStatus.style.color = "#15803d";
-                faceStatus.style.background = "#f0fdf4";
-                faceStatus.style.borderColor = "#bbf7d0";
-            }
-            return;
-        }
-        
-        // [FITUR FACE ID DINONAKTIFKAN SEMENTARA]
-        // Langsung tampilkan pesan siap dan hentikan proses Face API
-        if (faceStatus) {
+            faceStatus.innerHTML = "✅ Sistem Siap. Silakan pilih nama Anda.";
+        } else {
             faceStatus.innerHTML = "✅ Siap. Silakan klik tombol Absen di bawah.";
-            faceStatus.style.color = "#15803d";
-            faceStatus.style.background = "#dcfce7";
-            faceStatus.style.borderColor = "#bbf7d0";
         }
-        return;
-
-        if (silent) return;
-        
-        const faceKey = typeof getRbmStorageKey === 'function' ? getRbmStorageKey('RBM_FACE_DATA') : 'RBM_FACE_DATA';
-        const faceData = getCachedParsedStorage(faceKey, {});
-        if (!faceData[name]) {
-            if (faceStatus) {
-                faceStatus.innerHTML = "❌ Wajah belum terdaftar. Hubungi Manager.";
-                faceStatus.style.color = "#b91c1c";
-                faceStatus.style.background = "#fef2f2";
-                faceStatus.style.borderColor = "#fecaca";
-            }
-            if (typeof window.stopLiveFaceVerification === 'function') window.stopLiveFaceVerification();
-        } else {
-            if (faceStatus) {
-                faceStatus.innerHTML = '<span class="rbm-spinner"></span><span class="pulse-text">Memulai pemindaian wajah...</span>';
-                faceStatus.style.color = "#1d4ed8";
-                faceStatus.style.background = "#eff6ff";
-                faceStatus.style.borderColor = "#bfdbfe";
-            }
-            if (typeof window.startLiveFaceVerification === 'function') window.startLiveFaceVerification();
-        }
-    };
-
-    if (window.isFaceApiLoaded) {
-        updateUIForLoaded();
-        return;
+        faceStatus.style.color = "#15803d";
+        faceStatus.style.background = "#dcfce7";
+        faceStatus.style.borderColor = "#bbf7d0";
     }
-
-    if (window._faceApiLoading) {
-        if (!silent && faceStatus) {
-            faceStatus.innerHTML = '<span class="rbm-spinner"></span><span class="pulse-text">Memuat model AI Face ID...</span>';
-            faceStatus.style.color = "#b45309";
-            faceStatus.style.background = "#fffbeb";
-            faceStatus.style.borderColor = "#fde68a";
-        }
-        const checkInterval = setInterval(() => {
-            if (window.isFaceApiLoaded) {
-                clearInterval(checkInterval);
-                updateUIForLoaded();
-            } else if (!window._faceApiLoading) {
-                clearInterval(checkInterval);
-                if (faceStatus && !silent) {
-                    faceStatus.innerHTML = "❌ Gagal memuat Face ID. Periksa koneksi internet.";
-                    faceStatus.style.color = "#b91c1c";
-                    faceStatus.style.background = "#fef2f2";
-                    faceStatus.style.borderColor = "#fecaca";
-                }
-            }
-        }, 200);
-        return;
-    }
-
-    window._faceApiLoading = true;
-    if (faceStatus && !silent) {
-        faceStatus.innerHTML = '<span class="rbm-spinner"></span><span class="pulse-text">Memuat model AI Face ID...</span>';
-        faceStatus.style.color = "#b45309";
-        faceStatus.style.background = "#fffbeb";
-        faceStatus.style.borderColor = "#fde68a";
-    }
-    try {
-        const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
-        
-        let waitCount = 0;
-        while (typeof faceapi === 'undefined' && waitCount < 20) {
-            await new Promise(r => setTimeout(r, 250));
-            waitCount++;
-        }
-
-        if (typeof faceapi !== 'undefined') {
-            await Promise.all([
-                faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-            ]);
-            window.isFaceApiLoaded = true;
-            updateUIForLoaded();
-        } else {
-            throw new Error("Library Face API tidak ditemukan atau gagal dimuat.");
-        }
-    } catch (e) {
-        console.error("Face API Load Error:", e);
-        if (faceStatus) {
-            if (window.location.protocol === 'file:') {
-                faceStatus.innerHTML = "❌ Gagal memuat Face ID.<br>Aplikasi harus dijalankan lewat <b>Live Server</b>, bukan file:///";
-            } else {
-                faceStatus.innerHTML = "❌ Gagal memuat Face ID. Periksa koneksi internet.";
-            }
-            faceStatus.style.color = "#b91c1c";
-            faceStatus.style.background = "#fef2f2";
-            faceStatus.style.borderColor = "#fecaca";
-        }
-    } finally {
-        window._faceApiLoading = false;
-    }
+    
+    if (typeof checkDistance === 'function') checkDistance();
+    return;
 };
 
 function initAbsensiHardware() {
@@ -11501,7 +11298,7 @@ async function updateGpsJadwalDisplay() {
         if (quoteMasaKerja.trim() === 'Terima kasih atas dedikasi dan kontribusinya selama') {
             quoteMasaKerja = 'Terima kasih atas dedikasi dan kontribusinya selama ini. Terus berikan yang terbaik!';
         }
-        let durasiMasaKerja = 'Hari ini';
+        let durasiMasaKerja = 'Belum disetting';
         if (emp.joinDate) {
             const start = new Date(emp.joinDate);
             const now2 = new Date();
@@ -11516,7 +11313,7 @@ async function updateGpsJadwalDisplay() {
                 if (years > 0) res.push(`${years} thn`);
                 if (months > 0) res.push(`${months} bln`);
                 if (days > 0) res.push(`${days} hr`);
-                if (res.length > 0) durasiMasaKerja = res.join(', ');
+                durasiMasaKerja = res.length > 0 ? res.join(', ') : 'Hari ini';
             }
         }
         let spHtml = '';
@@ -11627,14 +11424,18 @@ function processAbsensiGPS(type) {
         showCustomConfirm(warning, "Konfirmasi Absensi", function() {
             showCustomAlert("📸 Menjepret foto...<br>Mohon tunggu.", "Memproses", "info");
             setTimeout(function() {
-                _executeAbsensiGPS(type).catch(e => console.error("Error execute:", e));
-            }, 50); // [PERCEPATAN] Jeda dikurangi dari 400ms menjadi 50ms
+                requestAnimationFrame(function() {
+                    _executeAbsensiGPS(type).catch(e => console.error("Error execute:", e));
+                });
+            }, 150); // Memberi waktu browser menyelesaikan animasi pop-up sebelum membebani CPU
         });
     } else {
         showCustomAlert("📸 Menjepret foto...<br>Mohon tunggu.", "Memproses", "info");
         setTimeout(function() {
-            _executeAbsensiGPS(type).catch(e => console.error("Error execute:", e));
-        }, 50); // [PERCEPATAN] Jeda dikurangi dari 400ms menjadi 50ms
+            requestAnimationFrame(function() {
+                _executeAbsensiGPS(type).catch(e => console.error("Error execute:", e));
+            });
+        }, 150); // Memberi waktu browser menyelesaikan animasi pop-up sebelum membebani CPU
     }
 }
 
@@ -11660,8 +11461,11 @@ async function _executeAbsensiGPS(type) {
     const canvas = document.getElementById('gps_canvas');
     const context = canvas.getContext('2d');
 
+    // [OPTIMASI KILAT] Matikan penghalusan gambar agar proses jepret lebih cepat dan ringan di HP low-end
+    context.imageSmoothingEnabled = false;
+
     // [OPTIMASI KILAT] Perkecil ukuran foto drastis agar HP tidak lemot/hang
-    const MAX_WIDTH = 200; // Turun ke 200 agar sangat ringan
+    const MAX_WIDTH = 150; // [EKSTREM] Turunkan ke 150px agar ukuran file hanya beberapa KB
     let scale = 1;
     if (video.videoWidth > MAX_WIDTH) {
         scale = MAX_WIDTH / video.videoWidth;
@@ -11683,7 +11487,8 @@ async function _executeAbsensiGPS(type) {
     context.fillText(`${dateStr} ${timeStr} | ${locStr}`, 5, canvas.height - 8);
 
     // [OPTIMASI KILAT] Gunakan toDataURL langsung karena resolusi sudah sangat kecil (toBlob kadang lambat di HP jadul)
-    const photoData = canvas.toDataURL('image/jpeg', 0.3);
+    // [EKSTREM] Turunkan kualitas JPEG menjadi 20% (0.2)
+    const photoData = canvas.toDataURL('image/jpeg', 0.2);
 
     const log = {
         id: Date.now(),
@@ -11805,36 +11610,12 @@ async function _executeAbsensiGPS(type) {
     const isBreakAlertShown = alertTitle && (alertTitle.textContent === 'Over Istirahat' || alertTitle.textContent === 'Info Istirahat');
 
     if (!isLate && !isBreakAlertShown) {
-        showCustomAlert(`Absensi ${type} Berhasil!`, "Sukses", "success");
+        showCustomAlert(`Absensi <b>${type}</b> berhasil tercatat!<br>Waktu: <strong>${timeStr}</strong>`, "Sukses", "success");
     }
 
-    // [SUPER KILAT] Langsung timpa UI dengan feedback sukses (tanpa download ulang data dari Firebase)
-    const box = document.getElementById('gps_jadwal_display');
-    if (box) {
-        box.innerHTML = `<div style="text-align:center; padding:24px 12px; background:#f0fdf4; border-radius:12px; border:1px solid #bbf7d0; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
-            <div style="font-size:32px; margin-bottom:12px;">✅</div>
-            <div style="color:#15803d; font-weight:800; font-size:18px;">Absensi ${type} Tercatat!</div>
-            <div style="font-size:14px; color:#475569; margin-top:8px;">Waktu: <strong>${timeStr}</strong></div>
-            <div style="font-size:12px; color:#64748b; margin-top:16px; font-style:italic;">Sistem siap untuk karyawan berikutnya.</div>
-        </div>`;
-        box.style.display = 'block';
-        
-        // Reset pilihan nama agar form kembali bersih untuk karyawan selanjutnya
-        setTimeout(() => {
-            const select = document.getElementById('gps_absen_name');
-            if (select) {
-                select.value = "";
-                if (typeof window.stopLiveFaceVerification === 'function') window.stopLiveFaceVerification();
-                const faceStatus = document.getElementById('face_id_status_info');
-                if (faceStatus) {
-                    faceStatus.innerHTML = "✅ Sistem AI Siap. Silakan pilih nama Anda.";
-                    faceStatus.style.color = "#15803d";
-                    faceStatus.style.background = "#f0fdf4";
-                    faceStatus.style.borderColor = "#bbf7d0";
-                }
-                if (typeof checkDistance === 'function') checkDistance();
-            }
-        }, 150);
+    // Perbarui tampilan Jadwal & Status agar data terbarunya (seperti info "Sedang Istirahat") langsung muncul
+    if (typeof updateGpsJadwalDisplay === 'function') {
+        updateGpsJadwalDisplay();
     }
 }
 
