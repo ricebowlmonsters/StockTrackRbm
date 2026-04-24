@@ -1435,7 +1435,10 @@
                 renderCart();
             };
 
+            let isProcessingOrder = false;
+
             window.processOrder = async function(method = 'Cash') {
+                if (isProcessingOrder) return;
                 if (cart.length === 0) {
                     showCustomAlert('Keranjang masih kosong');
                     return;
@@ -1470,6 +1473,8 @@
                     return;
                 }
                 
+                isProcessingOrder = true;
+
                 const idPrefix = currentOutletPrefix;
                 
                 // [DIUBAH] Gunakan ID yang sudah ada jika sedang edit/retrieve, atau buat baru
@@ -1529,10 +1534,12 @@
                         // Play sound if needed
                         playNotificationSound();
                         closePaymentModal();
+                        isProcessingOrder = false;
                     })
                     .catch(err => {
                         console.error(err);
                         showCustomAlert('Gagal membuat pesanan: ' + err.message);
+                        isProcessingOrder = false;
                     });
             };
 
@@ -1564,7 +1571,11 @@
             };
 
             // Print and Display helpers
-            window.printBill = function(orderData = null) {
+            let isPrinting = false;
+            window.printBill = async function(orderData = null) {
+                if (isPrinting) return;
+                isPrinting = true;
+
                 // Jika orderData tidak ada (misal tombol Print manual), buat dummy dari cart saat ini
                 if (!orderData) {
                     if (cart.length === 0) {
@@ -1589,32 +1600,50 @@
                     };
                 }
 
+                // Coba kirim data ke Print Bridge (Auto-Print tanpa dialog via LAN)
+                try {
+                    // Beri batas waktu (timeout) 1 detik agar tidak hang lama jika komputer mati
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 1000);
+
+                    // 👇 GANTI BAGIAN INI DENGAN IP KOMPUTER WINDOWS ANDA
+                    const PRINT_BRIDGE_URL = 'http://192.168.1.15:3000'; 
+                    const response = await fetch(`${PRINT_BRIDGE_URL}/print`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(orderData),
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+
+                    if (response.ok) {
+                        console.log('Berhasil print otomatis melalui Print Bridge.');
+                        isPrinting = false;
+                        return; // Stop di sini, pesanan sudah tercetak tanpa dialog browser
+                    }
+                } catch (e) {
+                    console.warn('Print Bridge tidak berjalan. Fallback ke print browser.', e);
+                }
+
                 const htmlContent = buildReceiptHtml(orderData);
                 
-                // Gunakan teknik iframe untuk print struk saja
-                const iframe = document.createElement('iframe');
-                iframe.style.position = 'fixed';
-                iframe.style.right = '0';
-                iframe.style.bottom = '0';
-                iframe.style.width = '0';
-                iframe.style.height = '0';
-                iframe.style.border = '0';
-                document.body.appendChild(iframe);
-                
-                const doc = iframe.contentWindow.document;
-                doc.open();
-                doc.write(htmlContent);
-                doc.close();
-                
-                iframe.onload = () => {
+                // Gunakan div container agar kompatibel dengan Android Chrome
+                let container = document.getElementById('print-receipt-container');
+                if (!container) {
+                    container = document.createElement('div');
+                    container.id = 'print-receipt-container';
+                    document.body.appendChild(container);
+                }
+                container.innerHTML = htmlContent;
+
+                setTimeout(() => {
+                    window.print();
                     setTimeout(() => {
-                        iframe.contentWindow.focus();
-                        iframe.contentWindow.print();
-                        setTimeout(() => {
-                            document.body.removeChild(iframe);
-                        }, 1000);
-                    }, 500);
-                };
+                        container.innerHTML = '';
+                        isPrinting = false;
+                    }, 1000);
+                }, 500);
             };
 
             // Determine if a promo matches current cart
@@ -2332,15 +2361,6 @@
                 renderCart();
             }
 
-            initialize();
-        });
-    </script>
-</body>
-</html>cript>
-</body>
-</html>cript>
-</body>
-</html>
             initialize();
         });
     </script>

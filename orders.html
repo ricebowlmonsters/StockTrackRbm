@@ -656,7 +656,9 @@
             }
 
             // [BARU] Konfigurasi Print Bridge (jika digunakan)
-            const PRINT_BRIDGE_URL = 'http://localhost:3000'; // URL print bridge server
+            // GANTI 'localhost' DENGAN IP KOMPUTER WINDOWS YANG MENJALANKAN PRINT BRIDGE
+            // Contoh: 'http://192.168.1.15:3000'
+            const PRINT_BRIDGE_URL = 'http://localhost:3000';
             const USE_PRINT_BRIDGE = true; // Set false untuk gunakan browser print biasa
 
             // [BARU] Fungsi untuk print via Print Bridge (opsional: kirim printerIP dari Kelompok Printer)
@@ -780,7 +782,7 @@
 
             // [BARU] Fungsi untuk mengekstrak kategori dari HTML struk yang sudah dibuat
             function getCategoryFromHtml(htmlStr) {
-                const match = html.match(/--- (MAKANAN|MINUMAN|CHECKER) ---/);
+                const match = htmlStr.match(/--- (MAKANAN|MINUMAN|CHECKER) ---/);
                 if (match && match[1]) {
                     return match[1];
                 }
@@ -846,31 +848,21 @@
                     itemsHtml += `<div>${it.name} x${it.quantity}${note}</div>`;
                 });
 
-                // Template ini mirip dengan yang lain, tapi headernya "KASIR" dan itemnya lengkap
-                return `<!DOCTYPE html>
-                <html><head><meta charset="utf-8">
-                <style>
-                    @page { size: 80mm 297mm; margin: 0; padding: 0; }
-                    body { font-family: 'Courier New', monospace; width: 76mm; margin: 0; padding: 2mm; font-size: 10px; line-height: 1.2; white-space: pre-wrap; }
-                    .center { text-align:center; }
-                    .line { border-top:1px dashed #000; margin:6px 0; }
-                    .muted { opacity:.9; font-size:9px; }
-                    .row { display:flex; justify-content:space-between; font-size:10px; }
-                </style></head>
-                <body>
-                    <div class="center"><strong>RICE BOWL MONSTER</strong></div>
-                    <div class="center muted">${store}</div>
-                    <div class="center muted">${time}</div>
-                    <div class="line"></div>
-                    <div class="center" style="margin-bottom: 5px; font-size:10px;">--- KASIR ---</div>
-                    <div class="row"><span>Tipe</span><span>${orderType}</span></div>
-                    <div class="row"><span>Pembayaran</span><span>${method}</span></div>
-                    <div class="line"></div>
+                return `
+                <div style="font-family: 'Courier New', Courier, monospace; width: 76mm; margin: 0 auto; padding: 2mm; font-size: 10px; line-height: 1.2; color: #000; white-space: pre-wrap;">
+                    <div style="text-align:center;"><strong>RICE BOWL MONSTER</strong></div>
+                    <div style="text-align:center; opacity:0.9;">${store}</div>
+                    <div style="text-align:center; opacity:0.9;">${time}</div>
+                    <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+                    <div style="text-align:center; margin-bottom: 5px; font-size:10px;">--- KASIR ---</div>
+                    <div style="display:flex; justify-content:space-between; font-size:10px;"><span>Tipe</span><span>${orderType}</span></div>
+                    <div style="display:flex; justify-content:space-between; font-size:10px;"><span>Pembayaran</span><span>${method}</span></div>
+                    <div style="border-top:1px dashed #000; margin:6px 0;"></div>
                     <div style="font-size:10px;">${itemsHtml || '-'}</div>
-                    <div class="line"></div>
-                    <div class="row" style="font-size:12px;"><strong>Total</strong><strong>Rp ${total}</strong></div>
-                    <div style="margin-top:8px;" class="center muted">Terima kasih</div>
-                </body></html>`;
+                    <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+                    <div style="display:flex; justify-content:space-between; font-size:12px;"><strong>Total</strong><strong>Rp ${total}</strong></div>
+                    <div style="margin-top:8px; text-align:center; opacity:0.9;">Terima kasih</div>
+                </div>`;
             }
 
             function formatPrice(price) {
