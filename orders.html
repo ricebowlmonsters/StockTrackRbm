@@ -813,19 +813,18 @@
                 // [BARU] Buat bagian footer yang berisi harga, hanya jika BUKAN struk dapur
                 const priceFooter = isKitchenReceipt ? '' : `
                     <div style="display:flex; justify-content:space-between; font-size:10px;"><span>Pembayaran</span><span>${method}</span></div>
-                    <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+                    <div style="border-top:2px dashed #000; margin:6px 0;"></div>
                     <div style="font-size:12px;">${itemsHtml || '-'}</div>
-                    <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+                    <div style="border-top:2px dashed #000; margin:6px 0;"></div>
                     <div style="display:flex; justify-content:space-between; font-size:14px;"><strong>Total</strong><strong>Rp ${total}</strong></div>
                     <div style="margin-top:8px; text-align:center; opacity:0.9;">Terima kasih</div>`;
 
                 // Template thermal 80mm sederhana
                 return `
-                <div style="font-family: 'Courier New', Courier, monospace; width: 76mm; margin: 0 auto; padding: 0 2mm 2mm 2mm; font-size: 10px; line-height: 1.2; color: #000; white-space: pre-wrap;">
                     <div style="text-align:center;"><strong>RICE BOWL MONSTER</strong></div>
                     <div style="text-align:center; opacity:0.9;">${store}</div>
                     <div style="text-align:center; opacity:0.9;">${time}</div>
-                    <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+                    <div style="border-top:2px dashed #000; margin:6px 0;"></div>
                     <div style="display:flex; justify-content:space-between;"><span>Tipe</span><span>${orderType}</span></div>`
                     // [DIUBAH] Jika struk dapur, hanya tampilkan item. Jika tidak, tampilkan footer harga.
                     + (isKitchenReceipt ? '<div class="line"></div><div style="font-size:10px;">' + (itemsHtml || '-') + '</div>' : priceFooter)
@@ -849,17 +848,17 @@
                 });
 
                 return `
-                <div style="font-family: 'Courier New', Courier, monospace; width: 76mm; margin: 0 auto; padding: 0 2mm 2mm 2mm; font-size: 10px; line-height: 1.2; color: #000; white-space: pre-wrap;">
+                <div style="font-family: 'Courier New', Courier, monospace; width: 76mm; margin: 0 auto; padding: 0 2mm 2mm 2mm; font-size: 14px; font-weight: bold; line-height: 1.2; color: #000; white-space: pre-wrap;">
                     <div style="text-align:center;"><strong>RICE BOWL MONSTER</strong></div>
                     <div style="text-align:center; opacity:0.9;">${store}</div>
                     <div style="text-align:center; opacity:0.9;">${time}</div>
-                    <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+                    <div style="border-top:2px dashed #000; margin:6px 0;"></div>
                     <div style="text-align:center; margin-bottom: 5px; font-size:10px;">--- KASIR ---</div>
                     <div style="display:flex; justify-content:space-between; font-size:10px;"><span>Tipe</span><span>${orderType}</span></div>
                     <div style="display:flex; justify-content:space-between; font-size:10px;"><span>Pembayaran</span><span>${method}</span></div>
-                    <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+                    <div style="border-top:2px dashed #000; margin:6px 0;"></div>
                     <div style="font-size:10px;">${itemsHtml || '-'}</div>
-                    <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+                    <div style="border-top:2px dashed #000; margin:6px 0;"></div>
                     <div style="display:flex; justify-content:space-between; font-size:12px;"><strong>Total</strong><strong>Rp ${total}</strong></div>
                     <div style="margin-top:8px; text-align:center; opacity:0.9;">Terima kasih</div>
                 </div>`;
