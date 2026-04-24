@@ -1583,15 +1583,28 @@
                         return;
                     }
                     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                    const tax = subtotal * 0.1;
+                    let discountAmount = 0;
+                    if (appliedPromo) {
+                        discountAmount = computePromoDiscount(appliedPromo) || 0;
+                        if (discountAmount > subtotal) discountAmount = subtotal;
+                    }
+                    const taxable = Math.max(0, subtotal - discountAmount);
+                    const tax = taxable * 0.1;
                     const total = subtotal + tax;
+                    const cashReceived = parseFloat(document.getElementById('cash-input')?.value) || 0;
                     
                     orderData = {
+                        id: currentOrderId || 'PREVIEW',
                         date: Date.now(),
                         items: cart,
                         payment: {
-                            method: 'TAGIHAN', // Belum bayar
-                            total: total
+                            method: 'TAGIHAN',
+                            subtotal: subtotal,
+                            discount: discountAmount,
+                            tax: tax,
+                            total: total,
+                            cashReceived: cashReceived,
+                            change: Math.max(0, cashReceived - total)
                         },
                         details: {
                             type: orderType,
@@ -1603,9 +1616,25 @@
                 // [BARU] Fungsi pembuat format Teks Polos untuk Print Bridge (Mesin Thermal Port 9100)
                 function buildReceiptText(order) {
                     const store = (currentOutletId || 'RBM').toUpperCase();
-                    const time = new Date(order.date).toLocaleString('id-ID');
+                    let orderDate = order.date;
+                    if (typeof orderDate === 'object') orderDate = Date.now(); // Perbaiki Invalid Date
+                    const time = new Date(orderDate).toLocaleString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+                    
                     const method = order.payment?.method || '-';
+                    const orderId = order.id || '-';
+                    
+                    let operator = 'Kasir';
+                    try {
+                        const user = JSON.parse(localStorage.getItem('rbm_user'));
+                        operator = user?.nama || user?.username || 'Kasir';
+                    } catch(e) {}
+                    
+                    const subtotal = formatPrice(order.payment?.subtotal || 0).replace('Rp ', '');
+                    const tax = formatPrice(order.payment?.tax || 0).replace('Rp ', '');
+                    const discount = formatPrice(order.payment?.discount || 0).replace('Rp ', '');
                     const total = formatPrice(order.payment?.total || 0).replace('Rp ', '');
+                    const cash = formatPrice(order.payment?.cashReceived || 0).replace('Rp ', '');
+                    const change = formatPrice(order.payment?.change || 0).replace('Rp ', '');
                     const orderType = order.details?.type === 'Dine-in' ? `Meja ${order.details?.tableNumber || '-'}` : 'Bawa Pulang';
 
                     let text = '\x1B\x40'; // Perintah ESC/POS: Initialize Printer (Reset margin/format ke standar)
@@ -1616,17 +1645,24 @@
                     // text += '\x1C\x70\x01\x00\n'; // Perintah: Panggil NV Logo urutan ke-1
                     // text += '\x1B\x61\x00';       // Perintah: Kembalikan ke Rata Kiri (Left)
                     
-                    text += `      RICE BOWL MONSTER      \n`;
-                    text += `      ${store.padEnd(14, ' ').substring(0, 14)}       \n`;
-                    text += `${time}\n`;
+                    text += '\x1B\x61\x01'; // Perintah: Rata Tengah (Center)
+                    text += '\x1B\x21\x30'; // Perintah: Font Ukuran Ganda (Besar)
+                    text += `RICE BOWL MONSTER\n`;
+                    text += '\x1B\x21\x00'; // Perintah: Kembalikan ukuran font normal
+                    text += `${store}\n`;
+                    text += '\x1B\x61\x00'; // Perintah: Kembalikan ke Rata Kiri (Left)
                     text += `--------------------------------\n`;
+                    text += `Waktu : ${time}\n`;
+                    text += `No    : ${orderId}\n`;
+                    text += `Kasir : ${operator}\n`;
                     text += `Tipe : ${orderType}\n`;
-                    text += `Bayar: ${method}\n`;
                     text += `--------------------------------\n`;
                     
+                    let totalQty = 0;
                     (order.items || []).forEach(it => {
-                        text += `${it.name}\n`;
-                        let qtyPrice = `${it.quantity}x @ ${formatPrice(it.price).replace('Rp ', '')}`;
+                        totalQty += (it.quantity || 0);
+                        text += `\x1B\x45\x01${it.name}\x1B\x45\x00\n`; // Cetak Nama Item dengan Cetak Tebal (Bold)
+                        let qtyPrice = `  ${it.quantity}x @ ${formatPrice(it.price).replace('Rp ', '')}`;
                         let itemTotal = formatPrice(it.price * it.quantity).replace('Rp ', '');
                         let spaces = Math.max(1, 32 - qtyPrice.length - itemTotal.length);
                         text += `${qtyPrice}${' '.repeat(spaces)}${itemTotal}\n`;
@@ -1634,8 +1670,26 @@
                     });
                     
                     text += `--------------------------------\n`;
-                    text += `Total: Rp ${total.padStart(22, ' ')}\n`;
-                    text += `\n          Terima Kasih          \n\n\n\n\n`; // Feed kertas
+                    text += `Subtotal  : Rp ${subtotal.padStart(17, ' ')}\n`;
+                    if (order.payment?.discount > 0) {
+                        text += `Diskon    : Rp -${discount.padStart(16, ' ')}\n`;
+                    }
+                    text += `PPN (10%) : Rp ${tax.padStart(17, ' ')}\n`;
+                    text += `--------------------------------\n`;
+                    text += `\x1B\x45\x01TOTAL     : Rp ${total.padStart(17, ' ')}\x1B\x45\x00\n`; // Cetak Total dengan Tebal (Bold)
+                    
+                    if (method === 'Cash' || method === 'Tunai') {
+                        text += `Tunai     : Rp ${cash.padStart(17, ' ')}\n`;
+                        text += `Kembalian : Rp ${change.padStart(17, ' ')}\n`;
+                    } else {
+                        text += `Bayar via : ${method.padStart(20, ' ')}\n`;
+                    }
+                    
+                    text += `\nTotal Item: ${totalQty}\n`;
+                    text += `--------------------------------\n`;
+                    text += '\x1B\x61\x01'; // Perintah: Rata Tengah (Center)
+                    text += `\x1B\x45\x01Terima Kasih\x1B\x45\x00\n`; // Teks Terima Kasih Cetak Tebal
+                    text += `Silakan Datang Kembali!\n\n\n\n\n`; // Feed kertas
                     return text;
                 }
 
@@ -1782,31 +1836,109 @@
 
             function buildReceiptHtml(order) {
                 const store = (currentOutletId || 'RBM').toUpperCase();
-                const time = new Date(order.date).toLocaleString('id-ID');
+                let orderDate = order.date;
+                if (typeof orderDate === 'object') orderDate = Date.now();
+                const time = new Date(orderDate).toLocaleString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+                
                 const method = order.payment?.method || '-';
+                const orderId = order.id || '-';
+                
+                let operator = 'Kasir';
+                try {
+                    const user = JSON.parse(localStorage.getItem('rbm_user'));
+                    operator = user?.nama || user?.username || 'Kasir';
+                } catch(e) {}
+
+                const subtotal = formatPrice(order.payment?.subtotal || 0).replace('Rp ', '');
+                const tax = formatPrice(order.payment?.tax || 0).replace('Rp ', '');
+                const discount = formatPrice(order.payment?.discount || 0).replace('Rp ', '');
                 const total = formatPrice(order.payment?.total || 0).replace('Rp ', '');
+                const cash = formatPrice(order.payment?.cashReceived || 0).replace('Rp ', '');
+                const change = formatPrice(order.payment?.change || 0).replace('Rp ', '');
                 const orderType = order.details?.type === 'Dine-in' ? `Meja ${order.details?.tableNumber || '-'}` : 'Bawa Pulang';
 
                 let itemsHtml = '';
+                let totalQty = 0;
                 (order.items || []).forEach(it => {
-                    const note = it.note ? `<div style="font-size:10px;opacity:.8;padding-left:10px;">Catatan: ${it.note}</div>` : '';
-                    itemsHtml += `<div>${it.name} x${it.quantity}${note}</div>`;
+                    totalQty += (it.quantity || 0);
+                    const note = it.note ? `<div style="font-size:10px; opacity:0.8; padding-left:8px; font-style:italic;">Catatan: ${it.note}</div>` : '';
+                    const itemTotal = formatPrice(it.price * it.quantity).replace('Rp ', '');
+                    const unitPrice = formatPrice(it.price).replace('Rp ', '');
+                    itemsHtml += `
+                        <div class="r-item">
+                            <div class="r-item-name">${it.name}</div>
+                            <div class="r-item-detail">
+                                <span>${it.quantity}x @ ${unitPrice}</span>
+                                <span class="r-bold">${itemTotal}</span>
+                            </div>
+                            ${note}
+                        </div>
+                    `;
                 });
 
+                let paymentHtml = '';
+                if (method === 'Cash' || method === 'Tunai') {
+                    paymentHtml = `
+                        <div class="r-row"><span>Tunai</span><span class="r-bold">Rp ${cash}</span></div>
+                        <div class="r-row"><span>Kembali</span><span class="r-bold">Rp ${change}</span></div>
+                    `;
+                } else {
+                    paymentHtml = `<div class="r-row"><span>Bayar via</span><span class="r-bold">${method}</span></div>`;
+                }
+
+                let discountHtml = '';
+                if (order.payment?.discount > 0) {
+                    discountHtml = `<div class="r-row" style="color: #d97706;"><span>Diskon</span><span class="r-bold">-Rp ${discount}</span></div>`;
+                }
+
             return `
-            <style>@page { margin: 0; } body { margin: 0; padding: 0; }</style>
-            <div style="font-family: 'Courier New', monospace; width: 100%; max-width: 76mm; margin: 0 auto; padding: 0 4mm 4mm 4mm; font-size: 12px; line-height: 1.2; color: #000;">
-                <div style="text-align:center; font-weight:bold;">RICE BOWL MONSTER</div>
-                <div style="text-align:center;">${store}</div>
-                <div style="text-align:center; font-size:9pt; margin-bottom:8px;">${time}</div>
-                <div style="border-top:1px dashed #000; margin:8px 0;"></div>
-                <div style="display:flex; justify-content:space-between;"><span>Tipe</span><span>${orderType}</span></div>
-                <div style="display:flex; justify-content:space-between;"><span>Bayar</span><span>${method}</span></div>
-                <div style="border-top:1px dashed #000; margin:8px 0;"></div>
+            <style>
+                @page { margin: 0; } 
+                body { margin: 0; padding: 0; background: #fff; }
+                .receipt { font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif; width: 100%; max-width: 76mm; margin: 0 auto; padding: 0 4mm 4mm 4mm; font-size: 12px; line-height: 1.4; color: #111827; }
+                .r-header { text-align: center; margin-bottom: 12px; }
+                .r-brand { font-weight: 800; font-size: 18px; letter-spacing: 1px; margin-bottom: 2px; }
+                .r-store { font-size: 11px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.5px; }
+                .r-divider { border-top: 1px dashed #d1d5db; margin: 10px 0; }
+                .r-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 11px; color: #374151; }
+                .r-bold { font-weight: 600; color: #111827; }
+                .r-item { margin-bottom: 8px; }
+                .r-item-name { font-weight: 600; font-size: 12px; margin-bottom: 2px; }
+                .r-item-detail { display: flex; justify-content: space-between; padding-left: 8px; font-size: 11px; color: #4b5563; }
+                .r-total-row { display: flex; justify-content: space-between; font-weight: 800; font-size: 16px; margin: 8px 0; padding: 4px 0; border-top: 2px solid #111827; border-bottom: 2px solid #111827; }
+                .r-footer { text-align: center; margin-top: 20px; }
+                .r-thanks { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+                .r-welcome { font-size: 10px; color: #6b7280; }
+            </style>
+            <div class="receipt">
+                <div class="r-header">
+                    <div class="r-brand">RICE BOWL MONSTER</div>
+                    <div class="r-store">${store}</div>
+                </div>
+                
+                <div class="r-row"><span>Waktu</span><span class="r-bold">${time}</span></div>
+                <div class="r-row"><span>No. Order</span><span class="r-bold">${orderId}</span></div>
+                <div class="r-row"><span>Kasir</span><span class="r-bold">${operator}</span></div>
+                <div class="r-row"><span>Tipe</span><span class="r-bold">${orderType}</span></div>
+                
+                <div class="r-divider"></div>
                 <div style="margin-bottom:8px;">${itemsHtml || '-'}</div>
-                <div style="border-top:1px dashed #000; margin:8px 0;"></div>
-                <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:12pt;"><span>Total</span><span>Rp ${total}</span></div>
-                <div style="text-align:center; margin-top:15px; font-size:9pt;">Terima Kasih</div>
+                
+                <div class="r-divider"></div>
+                <div class="r-row"><span>Subtotal</span><span class="r-bold">Rp ${subtotal}</span></div>
+                ${discountHtml}
+                <div class="r-row"><span>PPN (10%)</span><span class="r-bold">Rp ${tax}</span></div>
+                
+                <div class="r-total-row"><span>TOTAL</span><span>Rp ${total}</span></div>
+                
+                ${paymentHtml}
+                
+                <div class="r-row" style="margin-top:8px;"><span>Total Item</span><span class="r-bold">${totalQty}</span></div>
+                <div class="r-divider"></div>
+                <div class="r-footer">
+                    <div class="r-thanks">Terima Kasih</div>
+                    <div class="r-welcome">Silakan Datang Kembali!</div>
+                </div>
             </div>`;
             };
 
