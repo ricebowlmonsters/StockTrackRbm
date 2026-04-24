@@ -1608,7 +1608,7 @@
                     const total = formatPrice(order.payment?.total || 0).replace('Rp ', '');
                     const orderType = order.details?.type === 'Dine-in' ? `Meja ${order.details?.tableNumber || '-'}` : 'Bawa Pulang';
 
-                    let text = '';
+                    let text = '\x1B\x40'; // Perintah ESC/POS: Initialize Printer (Reset margin/format ke standar)
                     
                     // --- [KODE CETAK LOGO] ---
                     // Hapus tanda // pada 3 baris di bawah ini JIKA Anda sudah memasukkan gambar logo ke dalam memori printer (NV Logo)
@@ -1795,7 +1795,7 @@
 
             return `
             <style>@page { margin: 0; } body { margin: 0; padding: 0; }</style>
-            <div style="font-family: 'Courier New', monospace; width: 100%; max-width: 76mm; margin: 0 auto; padding: 4mm; font-size: 12px; line-height: 1.2; color: #000;">
+            <div style="font-family: 'Courier New', monospace; width: 100%; max-width: 76mm; margin: 0 auto; padding: 0 4mm 4mm 4mm; font-size: 12px; line-height: 1.2; color: #000;">
                 <div style="text-align:center; font-weight:bold;">RICE BOWL MONSTER</div>
                 <div style="text-align:center;">${store}</div>
                 <div style="text-align:center; font-size:9pt; margin-bottom:8px;">${time}</div>
@@ -2103,8 +2103,12 @@
             const tableInput = document.getElementById('table-number');
             const cashInput = document.getElementById('cash-input');
             if (tableInput) {
-                tableInput.addEventListener('focus', () => showNumpadFor(tableInput));
-                tableInput.addEventListener('click', () => showNumpadFor(tableInput));
+                tableInput.addEventListener('focus', () => {
+                    if (orderType === 'Dine-in') showNumpadFor(tableInput);
+                });
+                tableInput.addEventListener('click', () => {
+                    if (orderType === 'Dine-in') showNumpadFor(tableInput);
+                });
             }
             if (cashInput) {
                 cashInput.addEventListener('focus', () => showNumpadFor(cashInput));
