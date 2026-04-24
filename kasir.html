@@ -1600,6 +1600,45 @@
                     };
                 }
 
+                // [BARU] Fungsi pembuat format Teks Polos untuk Print Bridge (Mesin Thermal Port 9100)
+                function buildReceiptText(order) {
+                    const store = (currentOutletId || 'RBM').toUpperCase();
+                    const time = new Date(order.date).toLocaleString('id-ID');
+                    const method = order.payment?.method || '-';
+                    const total = formatPrice(order.payment?.total || 0).replace('Rp ', '');
+                    const orderType = order.details?.type === 'Dine-in' ? `Meja ${order.details?.tableNumber || '-'}` : 'Bawa Pulang';
+
+                    let text = '';
+                    
+                    // --- [KODE CETAK LOGO] ---
+                    // Hapus tanda // pada 3 baris di bawah ini JIKA Anda sudah memasukkan gambar logo ke dalam memori printer (NV Logo)
+                    // text += '\x1B\x61\x01';       // Perintah: Rata Tengah (Center)
+                    // text += '\x1C\x70\x01\x00\n'; // Perintah: Panggil NV Logo urutan ke-1
+                    // text += '\x1B\x61\x00';       // Perintah: Kembalikan ke Rata Kiri (Left)
+                    
+                    text += `      RICE BOWL MONSTER      \n`;
+                    text += `      ${store.padEnd(14, ' ').substring(0, 14)}       \n`;
+                    text += `${time}\n`;
+                    text += `--------------------------------\n`;
+                    text += `Tipe : ${orderType}\n`;
+                    text += `Bayar: ${method}\n`;
+                    text += `--------------------------------\n`;
+                    
+                    (order.items || []).forEach(it => {
+                        text += `${it.name}\n`;
+                        let qtyPrice = `${it.quantity}x @ ${formatPrice(it.price).replace('Rp ', '')}`;
+                        let itemTotal = formatPrice(it.price * it.quantity).replace('Rp ', '');
+                        let spaces = Math.max(1, 32 - qtyPrice.length - itemTotal.length);
+                        text += `${qtyPrice}${' '.repeat(spaces)}${itemTotal}\n`;
+                        if(it.note) text += `  Cat: ${it.note}\n`;
+                    });
+                    
+                    text += `--------------------------------\n`;
+                    text += `Total: Rp ${total.padStart(22, ' ')}\n`;
+                    text += `\n          Terima Kasih          \n\n\n\n\n`; // Feed kertas
+                    return text;
+                }
+
                 // Coba kirim data ke Print Bridge (Auto-Print tanpa dialog via LAN)
                 try {
                     // Beri batas waktu (timeout) 1 detik agar tidak hang lama jika komputer mati
@@ -1611,7 +1650,10 @@
                     const response = await fetch(`${PRINT_BRIDGE_URL}/print`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(orderData),
+                        body: JSON.stringify({
+                            printerName: 'PRINTER_UTAMA',
+                            content: buildReceiptText(orderData)
+                        }),
                         signal: controller.signal
                     });
                     
@@ -1752,7 +1794,8 @@
                 });
 
             return `
-            <div style="font-family: 'Courier New', monospace; width: 72mm; margin: 0 auto; padding: 4mm; font-size: 10pt; line-height: 1.2; color: #000;">
+            <style>@page { margin: 0; } body { margin: 0; padding: 0; }</style>
+            <div style="font-family: 'Courier New', monospace; width: 100%; max-width: 76mm; margin: 0 auto; padding: 4mm; font-size: 12px; line-height: 1.2; color: #000;">
                 <div style="text-align:center; font-weight:bold;">RICE BOWL MONSTER</div>
                 <div style="text-align:center;">${store}</div>
                 <div style="text-align:center; font-size:9pt; margin-bottom:8px;">${time}</div>
