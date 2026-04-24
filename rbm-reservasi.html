@@ -2,6 +2,13 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <script>
+  (function(){
+    var b = document.createElement('base');
+    b.target = (location.protocol === 'file:') ? '_self' : '_top';
+    document.head.appendChild(b);
+  })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>RBM Pro</title>
   <link rel="stylesheet" href="rbm-pro.css">
@@ -55,7 +62,7 @@
 </script>
 <header class="rbm-page-header">
   <a href="index.html" class="rbm-back-btn">&#8249;</a>
-  <h1 class="rbm-page-title">Reservasi</h1>
+  <h1 class="rbm-page-title" style="display:flex; align-items:center; gap:10px;">Reservasi <span onclick="openResSettingsModal()" style="cursor:pointer; font-size:20px; transition: transform 0.2s;" onmouseover="this.style.transform='rotate(90deg)'" onmouseout="this.style.transform='none'" title="Pengaturan Reservasi">⚙️</span></h1>
 </header>
 <div class="rbm-content-wrap">
 <section class="rbm-outlet-card" style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px;">
@@ -174,9 +181,9 @@
         <div class="table-wrapper">
             <table class="data-table" id="reservasi_table">
                 <thead>
-                    <tr><th>ID</th><th>Tanggal</th><th>Nama</th><th>Jam</th><th>Tamu</th><th>Ruangan</th><th>DP</th><th>Aksi</th></tr>
+                    <tr><th>ID</th><th>Tanggal</th><th>Nama</th><th>Jam</th><th>Tamu</th><th>Ruangan</th><th>Menu</th><th>DP</th><th>Aksi</th></tr>
                 </thead>
-                <tbody id="reservasi_tbody"><tr><td colspan="8" class="table-empty">Klik Tampilkan Data</td></tr></tbody>
+                <tbody id="reservasi_tbody"><tr><td colspan="9" class="table-empty">Klik Tampilkan Data</td></tr></tbody>
             </table>
         </div>
     </div>
@@ -248,6 +255,73 @@
     </div>
   </div>
 </div>
+
+<!-- Modal Pengaturan Reservasi -->
+<div id="resSettingsModal" class="modal-overlay" style="display:none; align-items:flex-start; padding-top: 50px; overflow-y: auto; z-index: 9999;">
+  <div class="modal-content" style="background:white; padding:20px; width:800px; max-width:95%; border-radius:8px; position: relative;">
+    <span class="modal-close" onclick="closeResSettingsModal()" style="color:#333; top:10px; right:15px;">&times;</span>
+    <h3 style="margin-top:0;">⚙️ Pengaturan Reservasi Outlet</h3>
+    
+    <div style="margin-bottom:15px;">
+        <label style="font-size:12px; font-weight:bold;">Syarat & Ketentuan Reservasi</label>
+        <textarea id="res_set_tnc" rows="4" style="width:100%; padding:8px; margin-top:4px;" placeholder="Masukkan syarat & ketentuan..."></textarea>
+    </div>
+
+    <div style="margin-bottom:15px;">
+        <label style="font-size:12px; font-weight:bold;">PPN Pre-Order Menu (%)</label>
+        <input type="number" id="res_set_ppn" style="width:100%; padding:8px; margin-top:4px;" placeholder="Contoh: 10" min="0" max="100">
+    </div>
+
+    <div style="margin-bottom:15px;">
+        <label style="font-size:12px; font-weight:bold;">Saran DP Pre-Order (%)</label>
+        <input type="number" id="res_set_dp_percent" style="width:100%; padding:8px; margin-top:4px;" placeholder="Contoh: 50" min="0" max="100">
+    </div>
+
+    <div style="margin-bottom:15px; padding:15px; background:#f8f9fa; border-radius:8px; border:1px solid #e5e7eb;">
+        <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:8px;">Informasi Rekening (Untuk Pembayaran DP)</label>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <input type="text" id="res_set_bank_name" placeholder="Nama Bank (Contoh: BCA)" style="flex:1; min-width:120px; padding:8px; border:1px solid #ccc; border-radius:4px;">
+            <input type="text" id="res_set_bank_rek" placeholder="No Rekening" style="flex:2; min-width:150px; padding:8px; border:1px solid #ccc; border-radius:4px;">
+            <input type="text" id="res_set_bank_an" placeholder="Atas Nama" style="flex:2; min-width:150px; padding:8px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+    </div>
+
+    <div style="display:flex; gap:20px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:300px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <label style="font-size:12px; font-weight:bold;">Pilihan Ruangan & Foto</label>
+                <button class="btn-secondary" onclick="addResSettingItemRow('ruangan-list')" style="font-size:11px; padding:4px 8px;">+ Tambah</button>
+            </div>
+            <div id="ruangan-list"></div>
+        </div>
+        
+        <div style="flex:1; min-width:300px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <label style="font-size:12px; font-weight:bold;">Penataan Kursi/Meja & Foto</label>
+                <button class="btn-secondary" onclick="addResSettingItemRow('meja-list')" style="font-size:11px; padding:4px 8px;">+ Tambah</button>
+            </div>
+            <div id="meja-list"></div>
+        </div>
+    </div>
+
+    <div style="margin-top:20px; text-align:right;">
+        <button class="btn btn-primary" id="btnSaveResSettings" onclick="saveResSettings()" style="width:auto;">Simpan Pengaturan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Pre-Order Menu -->
+<div id="preorderModal" class="modal-overlay" style="display:none; align-items:center; justify-content:center; z-index: 9999;">
+  <div class="modal-content" style="background:white; padding:20px; width:400px; max-width:95%; border-radius:8px; position: relative;">
+    <span class="modal-close" onclick="closePreorderModal()" style="color:#333; top:10px; right:15px; cursor:pointer;">&times;</span>
+    <h3 style="margin-top:0;">🛒 Detail Pre-Order Menu</h3>
+    <div id="preorderModalBody" style="margin-top: 15px; font-size: 13px; line-height: 1.5;"></div>
+    <div style="margin-top:20px; text-align:right;">
+        <button class="btn btn-secondary" onclick="closePreorderModal()">Tutup</button>
+    </div>
+  </div>
+</div>
+
 <script>window.RBM_PAGE = 'lihat-reservasi-view';</script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -348,7 +422,7 @@ function loadReservasiData() {
     const filtered = allData.filter(d => d.tanggal && d.tanggal >= tglAwal && d.tanggal <= tglAkhir);
     
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="table-empty">Tidak ada data reservasi pada rentang tanggal ini.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="table-empty">Tidak ada data reservasi pada rentang tanggal ini.</td></tr>';
         return;
     }
 
@@ -357,6 +431,7 @@ function loadReservasiData() {
     let html = '';
     filtered.forEach((res) => {
         const dpFormatted = res.dp ? 'Rp ' + parseInt(res.dp).toLocaleString('id-ID') : 'Rp 0';
+        const preorderBadge = (res.pesanan && res.pesanan.length > 0) ? `<button class="btn-secondary" style="font-size:11px; padding:4px 8px; background:#fef3c7; color:#d97706; border:1px solid #fcd34d; border-radius: 4px; cursor: pointer; white-space: nowrap;" onclick="showPreorderMenu('${res.id}')">🛒 Lihat</button>` : '-';
         html += `<tr>
             <td><span style="font-size:11px; font-weight:bold; color:#1e40af;">${res.id}</span></td>
             <td>${res.tanggal}</td>
@@ -364,6 +439,7 @@ function loadReservasiData() {
             <td>${res.jamMulai} - ${res.jamSelesai}</td>
             <td style="text-align:center;">${res.jmlTamu}</td>
             <td>${res.ruangan}</td>
+            <td style="text-align:center;">${preorderBadge}</td>
             <td style="text-align:right;">${dpFormatted}</td>
             <td>
                 <button class="btn-small-danger" style="background:#0d6efd;" onclick="printReservasiBill('${res.id}')">Print Bill</button>
@@ -402,6 +478,28 @@ function printReservasiBill(id) {
     if (!res) return;
 
     const dpFormatted = res.dp ? 'Rp ' + parseInt(res.dp).toLocaleString('id-ID') : 'Rp 0';
+    
+    let displayFasilitas = res.fasilitas || '-';
+    let preorderHtml = '';
+    if (res.pesanan && res.pesanan.length > 0) {
+        if (typeof displayFasilitas === 'string') {
+            const parts = displayFasilitas.split('Catatan Tambahan:\n');
+            if (parts.length > 1) {
+                displayFasilitas = parts[1].trim();
+            } else if (displayFasilitas.includes('[PRE-ORDER MENU]')) {
+                displayFasilitas = '-';
+            }
+        }
+        
+        preorderHtml += `<br><div style="border-top: 1px dashed #000; margin: 10px 0;"></div>`;
+        preorderHtml += `<div style="font-weight:bold; text-align:center; margin-bottom: 5px;">PRE-ORDER MENU</div>`;
+        res.pesanan.forEach(item => {
+            preorderHtml += `<div class="row"><div style="flex:2;">${item.name}</div><div style="width:30px; text-align:center;">x${item.quantity}</div><div style="flex:1; text-align:right;">${(item.price * item.quantity).toLocaleString('id-ID')}</div></div>`;
+        });
+        preorderHtml += `<div style="border-top: 1px dashed #000; margin: 5px 0;"></div>`;
+        preorderHtml += `<div class="row"><div style="flex:1; font-weight:bold;">Total Pesanan</div><div style="flex:1; text-align:right; font-weight:bold;">Rp ${parseInt(res.totalPesanan || 0).toLocaleString('id-ID')}</div></div>`;
+    }
+
     const html = `
     <!DOCTYPE html>
     <html><head><title>Bill Reservasi</title>
@@ -430,7 +528,8 @@ function printReservasiBill(id) {
         <div class="row"><div class="label">Jml Tamu</div><div class="val">: ${res.jmlTamu} Orang</div></div>
         <div class="row"><div class="label">Ruangan</div><div class="val">: ${res.ruangan}</div></div>
         <div class="row"><div class="label">Meja</div><div class="val">: ${res.meja || '-'}</div></div>
-        <div class="row"><div class="label">Fasilitas</div><div class="val">: ${res.fasilitas || '-'}</div></div>
+        <div class="row"><div class="label">Fasilitas</div><div class="val" style="white-space: pre-wrap;">:<br>${displayFasilitas}</div></div>
+        ${preorderHtml}
         <br>
         <div class="row" style="font-size:14px; font-weight:bold;">
             <div class="label">DP MASUK</div>
@@ -550,6 +649,103 @@ window.addEventListener('load', function() {
         window.RBMStorage.ready().then(initReservasi).catch(initReservasi);
     }
 });
+
+// ================= PENGATURAN RESERVASI (MODAL) =================
+function openResSettingsModal() {
+    const outletId = document.getElementById('rbm-outlet-select').value;
+    if(!outletId) return alert('Pilih outlet terlebih dahulu!');
+    
+    document.getElementById('resSettingsModal').style.display = 'flex';
+    document.getElementById('res_set_tnc').value = 'Memuat data...';
+    
+    firebase.database().ref('customer_app_settings/reservasi/' + outletId).once('value', snap => {
+        const data = snap.val() || {};
+        document.getElementById('res_set_tnc').value = data.syaratKetentuan || '';
+        document.getElementById('res_set_ppn').value = data.ppn || 0;
+        document.getElementById('res_set_dp_percent').value = data.dpPercent || 0;
+        document.getElementById('res_set_bank_name').value = data.bankInfo?.bank || '';
+        document.getElementById('res_set_bank_rek').value = data.bankInfo?.noRek || '';
+        document.getElementById('res_set_bank_an').value = data.bankInfo?.aName || '';
+        
+        renderResSettingItems('ruangan-list', data.ruangan || [{nama:'', foto:''}]);
+        renderResSettingItems('meja-list', data.penataanMeja || [{nama:'', foto:''}]);
+    });
+}
+
+function closeResSettingsModal() { document.getElementById('resSettingsModal').style.display = 'none'; }
+
+function renderResSettingItems(containerId, items) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    if(items.length === 0) addResSettingItemRow(containerId);
+    else items.forEach(item => addResSettingItemRow(containerId, item.nama, item.foto));
+}
+
+function addResSettingItemRow(containerId, nama = '', foto = '') {
+    const container = document.getElementById(containerId);
+    const div = document.createElement('div');
+    div.style.display = 'flex'; div.style.gap = '8px'; div.style.marginBottom = '8px';
+    div.innerHTML = `
+        <input type="text" class="item-nama" placeholder="Nama (Misal: VIP)" value="${nama}" style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:12px;">
+        <input type="text" class="item-foto" placeholder="URL Foto Gambar" value="${foto}" style="flex:2; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:12px;">
+        <button class="btn-small-danger" onclick="this.parentElement.remove()" style="background:#dc2626; border-radius:4px;">x</button>
+    `;
+    container.appendChild(div);
+}
+
+function saveResSettings() {
+    const outletId = document.getElementById('rbm-outlet-select').value;
+    const btn = document.getElementById('btnSaveResSettings');
+    btn.textContent = 'Menyimpan...'; btn.disabled = true;
+    
+    const extractItems = (id) => Array.from(document.getElementById(id).children).map(row => ({
+        nama: row.querySelector('.item-nama').value, foto: row.querySelector('.item-foto').value
+    })).filter(i => i.nama);
+
+    const data = {
+        syaratKetentuan: document.getElementById('res_set_tnc').value,
+        ppn: parseFloat(document.getElementById('res_set_ppn').value) || 0,
+        dpPercent: parseFloat(document.getElementById('res_set_dp_percent').value) || 0,
+        bankInfo: { bank: document.getElementById('res_set_bank_name').value, noRek: document.getElementById('res_set_bank_rek').value, aName: document.getElementById('res_set_bank_an').value },
+        ruangan: extractItems('ruangan-list'),
+        penataanMeja: extractItems('meja-list')
+    };
+
+    firebase.database().ref('customer_app_settings/reservasi/' + outletId).set(data)
+        .then(() => { alert('✅ Pengaturan reservasi berhasil disimpan!'); closeResSettingsModal(); })
+        .catch(e => alert('❌ Gagal menyimpan: ' + e.message))
+        .finally(() => { btn.textContent = 'Simpan Pengaturan'; btn.disabled = false; });
+}
+
+// ================= TAMPILKAN POPUP PREORDER =================
+function showPreorderMenu(id) {
+    const storageKey = getRbmStorageKey('RBM_RESERVASI_DATA');
+    let allData = getSafeReservasiData(storageKey);
+    const res = allData.find(d => d.id === id);
+    if (!res || !res.pesanan || res.pesanan.length === 0) return;
+
+    let html = '<table style="width:100%; border-collapse: collapse; margin-bottom: 10px;">';
+    html += '<tr style="border-bottom: 1px solid #eee;"><th style="text-align:left; padding:6px 0;">Menu</th><th style="text-align:center; padding:6px 0;">Qty</th><th style="text-align:right; padding:6px 0;">Harga</th></tr>';
+    
+    let subtotal = 0;
+    res.pesanan.forEach(item => {
+        const total = item.price * item.quantity;
+        subtotal += total;
+        html += `<tr style="border-bottom: 1px solid #f9fafb;"><td style="padding: 6px 0;">${item.name}</td><td style="padding: 6px 0; text-align:center;">x${item.quantity}</td><td style="padding: 6px 0; text-align:right;">Rp ${total.toLocaleString('id-ID')}</td></tr>`;
+    });
+    html += '</table>';
+    
+    const grandTotal = res.totalPesanan || subtotal;
+    
+    html += `<div style="text-align:right; font-weight:bold; margin-top: 10px;">Subtotal: Rp ${subtotal.toLocaleString('id-ID')}</div>`;
+    if (grandTotal > subtotal) html += `<div style="text-align:right; font-weight:bold; color:#dc2626;">PPN: Rp ${(grandTotal - subtotal).toLocaleString('id-ID')}</div>`;
+    html += `<div style="text-align:right; font-weight:bold; font-size: 16px; color:#10b981; margin-top: 5px;">Total: Rp ${parseInt(grandTotal).toLocaleString('id-ID')}</div>`;
+
+    document.getElementById('preorderModalBody').innerHTML = html;
+    document.getElementById('preorderModal').style.display = 'flex';
+}
+
+function closePreorderModal() { document.getElementById('preorderModal').style.display = 'none'; }
 </script>
 </body>
 </html>

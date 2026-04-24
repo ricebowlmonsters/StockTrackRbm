@@ -109,7 +109,7 @@
           // [SUPER OPTIMASI FINAL] Halaman GPS Kiosk HANYA memuat config.
           // Jangan download face_data secara global di sini, karena akan bikin HP lag/hang.
           // Wajah, jadwal, & histori HANYA akan didownload 1 per 1 SAAT nama dipilih.
-          nodesToLoad = ['gps_config' + sfx, 'gps_jam_config' + sfx, 'employees' + sfx];
+          nodesToLoad = ['gps_config' + sfx, 'gps_jam_config' + sfx];
           backgroundNodes = [];
       } else if (page === 'pengaturan-jadwal-absensi') {
           nodesToLoad.push('employees' + sfx, 'face_data' + sfx);

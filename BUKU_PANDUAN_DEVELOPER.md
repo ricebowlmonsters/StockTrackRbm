@@ -53,6 +53,7 @@
 | | `google-apps-script-enhanced.js` | Referensi API Web App GAS: doGet/doPost, action addPoints, claimVoucher, getMenu, dll. |
 | **RBM Pro** | `rbm-pro.js` | Logika RBM Pro (outlet, absensi, petty cash, inventaris, pembukuan, dll.). |
 | | `rbm-pro-storage.js` | Lapisan storage: Firebase atau fallback localStorage untuk key `RBM_*`. |
+| | `rbm-laba-rugi.js` | Logika untuk modul Keuangan (Laba Rugi, Neraca, Stok). |
 | | `temp.js` | Data pending sync ke GAS (petty cash, pembukuan, inventaris, karyawan); baca/tulis localStorage. |
 
 ### 2.3 File HTML utama (ringkas)
@@ -60,6 +61,7 @@
 - **Utama:** `index.html`, `login.html`, `kasir.html`, `orders.html`, `manage-menu.html`, `input-point.html`, `claim-vcr.html`, `revenue-report.html`, `report-transactions.html`, `manage-rewards.html`, `customer-settings.html`, `customer-account-settings.html`, `settings.html`, `storage-viewer.html`, `promo-settings.html`, `qr_generator.html`, `admin-menu.html`, `report-category.html`, `report-menu.html`.
 - **RBM Pro:** `rbm-absensi.html`, `rbm-absensi-gps.html`, `rbm-stok-barang.html`, `rbm-input-barang.html`, `rbm-input-petty-cash.html`, `rbm-lihat-petty-cash.html`, `rbm-input-keuangan.html`, `rbm-lihat-pembukuan.html`, `rbm-input-inventaris.html`, `rbm-lihat-inventaris.html`, `rbm-pengajuan.html`, dll.
 - **Lain:** `global-chat-manager.html`, `ai-settings.html`, `storage-viewer.html`, `print-bridge-simple.html`.
+- **Keuangan:** `rbm-laba-rugi-settings.html`, `rbm-laba-rugi-input.html`, `rbm-laba-rugi-report.html`.
 
 ---
 
@@ -109,6 +111,11 @@
 | `customer_app_settings` | Pengaturan aplikasi customer. |
 | `global_chat`, `ai_responses`, `games` | Fitur tambahan. |
 | `rbm_pro/...` | Data RBM Pro di Firebase. |
+| `rbm_pro/laba_rugi_settings` | Konfigurasi untuk modul keuangan (akun bank, kategori biaya, item HPP). |
+| `rbm_pro/transactions` | Semua catatan transaksi keuangan (uang masuk/keluar). |
+| `rbm_pro/inventory/items` | Master data barang untuk stok (stok awal, stok saat ini). |
+| `rbm_pro/inventory/movements` | Riwayat pergerakan stok (pembelian, pemakaian, penyesuaian). |
+| `products/{outletId}/{productId}/recipe` | **(Baru)** Resep/BOM untuk setiap menu, untuk kalkulasi pemakaian stok. |
 
 ### 3.4 File yang mengelola baca/tulis
 
@@ -189,6 +196,7 @@
 | **report-category.html** | Laporan per kategori | Firebase: orders/{outlet} | Query orders by date, agregasi per kategori. |
 | **RBM Pro (rbm-*.html)** | Absensi, reservasi, stok, petty cash, pembukuan, inventaris | Firebase `rbm_pro`, localStorage `RBM_*`, GAS Code.gs | Input/sync ke Firebase; pending ke localStorage; sinkron ke Sheet lewat Code.gs. |
 | **print-bridge (print-bridge.js)** | Cetak struk | Konfigurasi IP printer | POST /print → socket ke printer (port 9100). |
+| **Modul Keuangan (rbm-laba-rugi-*.html)** | Setting, Input, dan Laporan Keuangan/Stok | Firebase: `rbm_pro/laba_rugi_*`, `rbm_pro/transactions`, `rbm_pro/inventory`, `orders` | Mengelola seluruh siklus keuangan dari setup, input transaksi, hingga pelaporan laba rugi dan stok. |
 
 ---
 

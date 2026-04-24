@@ -12,7 +12,7 @@
 </head>
 <body>
 <header class="rbm-page-header">
-  <a href="#" onclick="try{ if(window.self !== window.top) { window.parent.postMessage({action:'go_home'}, '*'); } else { window.location.href='index.html'; } }catch(e){ window.location.href='index.html'; }; return false;" class="rbm-back-btn">&#8249;</a>
+  <a href="index.html" class="rbm-back-btn">&#8249;</a>
   <h1 class="rbm-page-title">Input Absensi Manual</h1>
   <button id="rbm-dev-import-btn" type="button" class="btn" style="display:inline-block; margin-left: 15px; background: #2e7d32; color: white; font-size: 12px; vertical-align: middle; padding: 4px 8px;" title="Fitur Developer: Import Data Absensi dari Excel">📥 Import Excel</button>
   <button id="rbm-dev-template-btn" type="button" class="btn" style="display:inline-block; margin-left: 5px; background: #6c757d; color: white; font-size: 12px; vertical-align: middle; padding: 4px 8px;" title="Download Template Excel">📄 Template</button>
@@ -28,7 +28,7 @@
 (function(){
   var u = JSON.parse(localStorage.getItem('rbm_user') || '{}');
   if ((u.username || '').toString().toLowerCase() !== 'burhan') {
-    document.body.innerHTML = '<div class="rbm-content-wrap" style="text-align:center; padding:40px;"><p style="color:#b91c1c; font-weight:600;">Akses ditolak. Fitur ini hanya untuk Developer (Burhan).</p><a href="#" onclick="try{ if(window.self !== window.top) { window.parent.postMessage({action:\'go_home\'}, \'*\'); } else { window.location.href=\'index.html\'; } }catch(e){ window.location.href=\'index.html\'; }; return false;" class="btn btn-primary" style="display:inline-block; margin-top:16px;">Kembali</a></div>';
+    document.body.innerHTML = '<div class="rbm-content-wrap" style="text-align:center; padding:40px;"><p style="color:#b91c1c; font-weight:600;">Akses ditolak. Fitur ini hanya untuk Developer (Burhan).</p><a href="index.html" class="btn btn-primary" style="display:inline-block; margin-top:16px;">Kembali</a></div>';
     document.querySelector('.rbm-page-header') && document.querySelector('.rbm-page-header').remove();
     return;
   }

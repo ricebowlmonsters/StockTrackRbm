@@ -56,6 +56,28 @@ BIG MONSTERS tidak hanya mencatat uang masuk, tapi juga mengamankan uang keluar 
 
 ---
 
+## 5. FITUR: MODUL KEUANGAN (NERACA & LABA RUGI)
+**Penjelasan untuk Klien:**
+Aplikasi ini tidak hanya mencatat penjualan, tapi juga kesehatan finansial bisnis secara keseluruhan. Owner bisa melihat Laporan Laba Rugi dan posisi kas (Neraca) secara *real-time* tanpa perlu menunggu laporan akuntan di akhir bulan.
+
+**Logika Sistem:**
+1.  **Input Terpusat:** Disediakan halaman khusus untuk menginput semua transaksi uang masuk (selain dari POS) dan uang keluar (biaya operasional, pembelian bahan baku, gaji, dll).
+2.  **Pengelompokan Otomatis (Smart Categorization):**
+    *   Saat input pembelian "Daging Slice", sistem otomatis mengelompokkannya ke dalam **HPP (Harga Pokok Penjualan)**.
+    *   Saat input "Bayar Gaji", sistem mengelompokkannya ke **Biaya Operasional**. Pengelompokan ini diatur sekali di halaman Setting.
+3.  **Kalkulasi Laba Rugi Real-Time:** Halaman laporan akan otomatis menarik data dari 3 sumber:
+    *   **Total Pendapatan** dari Aplikasi Kasir.
+    *   **Total HPP** dari input pembelian bahan baku.
+    *   **Total Biaya** dari input pengeluaran operasional.
+    *   Sistem kemudian menghitung: `Laba Kotor = Pendapatan - HPP` dan `Laba Bersih = Laba Kotor - Biaya`.
+4.  **Manajemen Stok (Stok Opname):** Sistem juga menghitung sisa stok barang secara otomatis.
+    *   **Logika:** `Stok Akhir = Stok Awal + Total Pembelian - Total Pemakaian`.
+    *   *Total Pemakaian* dihitung dengan cerdas berdasarkan resep menu yang terjual di kasir. Jika 1 "Hot Monsters Beef" terjual, sistem tahu itu mengurangi 100gr stok daging.
+
+**Keuntungan:** Owner mendapatkan gambaran finansial yang akurat dan cepat, memungkinkan pengambilan keputusan yang lebih baik, seperti kapan harus restock barang atau strategi apa yang perlu dilakukan untuk menekan biaya.
+
+---
+
 ## 5. FITUR: LAPORAN REAL-TIME & REKAPITULASI
 **Penjelasan untuk Klien:**
 Laporan pendapatan disajikan dalam bentuk grafik dan angka yang mudah dibaca, bisa diakses detik ini juga tanpa perlu menunggu kasir tutup buku (Close Sales).

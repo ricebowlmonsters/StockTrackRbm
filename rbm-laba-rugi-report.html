@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <script>
+  (function(){
+    var b = document.createElement('base');
+    b.target = (location.protocol === 'file:') ? '_self' : '_top';
+    document.head.appendChild(b);
+  })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Laporan Keuangan & Stok - RBM Pro</title>
+  <link rel="stylesheet" href="rbm-pro.css">
+</head>
+<body>
+<header class="rbm-page-header">
+  <a href="index.html" class="rbm-back-btn">&#8249;</a>
+  <h1 class="rbm-page-title">Laporan Keuangan & Stok</h1>
+</header>
+<div class="rbm-content-wrap">
+  <div class="app-layout">
+    <main class="app-main" style="margin-left:0;">
+      <div class="view-container">
+        <div class="page-header">
+          <h2>Laba Rugi & Stok Opname</h2>
+          <p>Lihat laporan laba/rugi bersih dan pergerakan stok otomatis.</p>
+        </div>
+        
+        <div class="form-container">
+            <div class="filter-row" style="margin-bottom: 24px; display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                <div class="filter-group" style="flex: 1; min-width: 150px;">
+                    <label for="start-date" style="display: block; margin-bottom: 4px; font-size: 12px; font-weight: bold;">Dari Tanggal:</label>
+                    <input type="date" id="start-date" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+                <div class="filter-group" style="flex: 1; min-width: 150px;">
+                    <label for="end-date" style="display: block; margin-bottom: 4px; font-size: 12px; font-weight: bold;">Sampai Tanggal:</label>
+                    <input type="date" id="end-date" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+                <button id="btn-generate-report" class="btn btn-primary" style="width: auto; margin-top: 0; padding: 9px 16px;">Tampilkan Laporan</button>
+            </div>
+
+            <!-- [BARU] Tab Navigasi Laporan -->
+            <div class="tabs" style="margin-bottom: 20px;">
+                <button class="tab-btn active" id="tab-btn-lr" onclick="switchReportTab('lr')">Laporan Laba Rugi</button>
+                <button class="tab-btn" id="tab-btn-mutasi" onclick="switchReportTab('mutasi')">Buku Besar (Mutasi)</button>
+                <button class="tab-btn" id="tab-btn-stok" onclick="switchReportTab('stok')">Laporan Stok Opname</button>
+            </div>
+
+            <div id="tab-content-lr" class="table-card" style="margin-bottom: 24px; display: block;">
+                <div style="background: #f8fafc; padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
+                    <h3 style="margin: 0; font-size: 16px; color: #1e40af;">Laporan Laba Rugi</h3>
+                </div>
+                <div id="report-laba-rugi-container" style="padding: 20px;">
+                    <p style="color:#6b7280; font-size:13px; text-align:center; margin: 0;">Pilih rentang tanggal dan klik "Tampilkan Laporan".</p>
+                </div>
+            </div>
+
+            <div id="tab-content-mutasi" class="table-card" style="margin-bottom: 24px; display: none;">
+                <div style="background: #f8fafc; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; font-size: 16px; color: #1e40af;">Buku Besar (Mutasi Kas & Bank)</h3>
+                    <select id="filter-mutasi-akun" style="padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; display: none; background: white;" onchange="generateReports()">
+                        <option value="all">-- Semua Akun Kas/Bank --</option>
+                    </select>
+                </div>
+                <div id="report-kas-bank-container" style="padding: 20px;">
+                    <p style="color:#6b7280; font-size:13px; text-align:center; margin: 0;">Pilih rentang tanggal dan klik "Tampilkan Laporan".</p>
+                </div>
+            </div>
+
+            <div id="tab-content-stok" class="table-card" style="margin-bottom: 24px; display: none;">
+                <div style="background: #f8fafc; padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
+                    <h3 style="margin: 0; font-size: 16px; color: #1e40af;">Laporan Stok Opname</h3>
+                </div>
+                <div id="report-stok-container" style="padding: 20px;">
+                    <p style="color:#6b7280; font-size:13px; text-align:center; margin: 0;">Pilih rentang tanggal dan klik "Tampilkan Laporan".</p>
+                </div>
+            </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="custom-ui.js"></script>
+<script src="rbm-pro-storage.js"></script>
+<script src="firebase-storage.js"></script>
+<script src="rbm-laba-rugi.js"></script>
+</body>
+</html>

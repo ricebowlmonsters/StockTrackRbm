@@ -83,8 +83,13 @@ Di Code.gs, foto di-upload ke Google Drive. Di Firebase, simpan file ke **Fireba
 │   ├── employees                 # RBM_EMPLOYEES
 │   ├── stok_items                # RBM_STOK_ITEMS
 │   ├── points_history            # (opsional, jika dari app.js)
-│   └── vouchers                  # (opsional)
-└── orders/, products/, rewards/, ...  # Tetap seperti sekarang
+│   └── vouchers                  # (opsional),
+│   ├── laba_rugi_settings/       # Pengaturan modul keuangan
+│   ├── transactions/             # Semua transaksi keuangan (masuk/keluar)
+│   └── inventory/                # Data & pergerakan stok
+├── orders/, rewards/, ...        # Tetap seperti sekarang
+└── products/                     # Perlu penambahan `recipe` untuk kalkulasi stok
+    └── {outletId}/{productId}/recipe/
 ```
 
 ---

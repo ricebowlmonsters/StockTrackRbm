@@ -78,16 +78,10 @@
             const welcomeScreen = document.getElementById('owner-welcome');
             if (welcomeScreen) {
               welcomeScreen.style.display = 'flex';
-              setTimeout(() => {
-                if (window.self !== window.top && window.location.protocol !== 'file:') {
-                  window.top.location.href = 'index.html';
-                } else {
-                  window.location.href = 'index.html';
-                }
-              }, 2500);
+              setTimeout(() => { window.top.location.href = 'index.html'; }, 2500);
             } else {
               show('Login berhasil', 'success');
-              setTimeout(() => { window.location.href = 'index.html'; }, 500); // Fallback if animation element is missing
+              setTimeout(() => { window.top.location.href = 'index.html'; }, 500);
             }
             return;
           }
@@ -106,13 +100,7 @@
               FirebaseStorage.setActiveSession(user.username, sessionId).then(() => {});
             }
             show('Login berhasil', 'success');
-            setTimeout(() => {
-              if (window.self !== window.top && window.location.protocol !== 'file:') {
-                window.top.location.href = 'index.html';
-              } else {
-                window.location.href = 'index.html';
-              }
-            }, 500);
+            setTimeout(() => { window.top.location.href = 'index.html'; }, 500);
           } else {
             show('Username atau password salah', 'error');
           }

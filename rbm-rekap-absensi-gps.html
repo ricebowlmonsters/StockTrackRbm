@@ -8,18 +8,10 @@
 </head>
 <body>
 <script>
-(function(){ 
-  var u = JSON.parse(localStorage.getItem('rbm_user') || '{}'); 
-  if (u.role === 'staff') { 
-    try { 
-      if(window.self !== window.top) { window.parent.postMessage({action:'go_home'}, '*'); }
-      else { window.location.replace('index.html'); }
-    } catch(e) { window.location.href = 'index.html'; }
-  } 
-})();
+(function(){ var u = JSON.parse(localStorage.getItem('rbm_user') || '{}'); if (u.role === 'staff') { window.location.href = 'index.html'; } })();
 </script>
 <header class="rbm-page-header">
-  <a href="#" onclick="try{ if(window.self !== window.top) { window.parent.postMessage({action:'go_home'}, '*'); } else { window.location.href='index.html'; } }catch(e){ window.location.href='index.html'; }; return false;" class="rbm-back-btn">&#8249;</a>
+  <a href="index.html" class="rbm-back-btn">&#8249;</a>
   <h1 class="rbm-page-title">Rekap Absensi GPS</h1>
 </header>
 <div class="rbm-content-wrap">

@@ -634,6 +634,23 @@
             color: #4C2A85;
             background: #f3f4f6;
         }
+
+        /* [BARU] Mode Cetak Khusus Tablet Android & Aplikasi Pihak ke-3 */
+        @media print {
+            body > *:not(#print-receipt-container) {
+                display: none !important;
+            }
+            #print-receipt-container {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                background: white;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1705,29 +1722,20 @@
                     itemsHtml += `<div>${it.name} x${it.quantity}${note}</div>`;
                 });
 
-                return `<!DOCTYPE html>
-                <html><head><meta charset="utf-8">
-                <style>
-                    @page { size: 80mm auto; margin: 0; padding: 0; }
-                    body { font-family: 'Courier New', monospace; width: 72mm; margin: 0; padding: 4mm; font-size: 10pt; line-height: 1.2; }
-                    .center { text-align:center; }
-                    .line { border-top:1px dashed #000; margin:8px 0; }
-                    .row { display:flex; justify-content:space-between; }
-                    .bold { font-weight:bold; }
-                </style></head>
-                <body>
-                    <div class="center bold">RICE BOWL MONSTER</div>
-                    <div class="center">${store}</div>
-                    <div class="center" style="font-size:9pt; margin-bottom:8px;">${time}</div>
-                    <div class="line"></div>
-                    <div class="row"><span>Tipe</span><span>${orderType}</span></div>
-                    <div class="row"><span>Bayar</span><span>${method}</span></div>
-                    <div class="line"></div>
-                    <div style="margin-bottom:8px;">${itemsHtml || '-'}</div>
-                    <div class="line"></div>
-                    <div class="row bold" style="font-size:12pt;"><span>Total</span><span>Rp ${total}</span></div>
-                    <div class="center" style="margin-top:15px; font-size:9pt;">Terima Kasih</div>
-                </body></html>`;
+            return `
+            <div style="font-family: 'Courier New', monospace; width: 72mm; margin: 0 auto; padding: 4mm; font-size: 10pt; line-height: 1.2; color: #000;">
+                <div style="text-align:center; font-weight:bold;">RICE BOWL MONSTER</div>
+                <div style="text-align:center;">${store}</div>
+                <div style="text-align:center; font-size:9pt; margin-bottom:8px;">${time}</div>
+                <div style="border-top:1px dashed #000; margin:8px 0;"></div>
+                <div style="display:flex; justify-content:space-between;"><span>Tipe</span><span>${orderType}</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>Bayar</span><span>${method}</span></div>
+                <div style="border-top:1px dashed #000; margin:8px 0;"></div>
+                <div style="margin-bottom:8px;">${itemsHtml || '-'}</div>
+                <div style="border-top:1px dashed #000; margin:8px 0;"></div>
+                <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:12pt;"><span>Total</span><span>Rp ${total}</span></div>
+                <div style="text-align:center; margin-top:15px; font-size:9pt;">Terima Kasih</div>
+            </div>`;
             };
 
             function toggleDisplay() {

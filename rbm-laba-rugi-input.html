@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <script>
+  (function(){
+    var b = document.createElement('base');
+    b.target = (location.protocol === 'file:') ? '_self' : '_top';
+    document.head.appendChild(b);
+  })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Input Transaksi Keuangan - RBM Pro</title>
+  <link rel="stylesheet" href="rbm-pro.css">
+</head>
+<body>
+<header class="rbm-page-header">
+  <a href="index.html" class="rbm-back-btn">&#8249;</a>
+  <h1 class="rbm-page-title">Input Keuangan Modul</h1>
+</header>
+<div class="rbm-content-wrap">
+  <div class="app-layout">
+    <main class="app-main" style="margin-left:0;">
+      <div class="view-container">
+        <div class="page-header">
+          <h2>Input Transaksi Keuangan</h2>
+          <p>Pilih jenis transaksi yang ingin Anda catat.</p>
+        </div>
+
+        <!-- [BARU] Tombol Pilihan Utama -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+            <button id="btn-show-stok" class="btn btn-primary" style="padding: 20px; font-size: 16px; background: #1e40af; border: none;">🛒 Input Pembelian Stok (HPP)</button>
+            <button id="btn-show-nonstok" class="btn btn-secondary" style="padding: 20px; font-size: 16px;">💸 Input Transaksi Lain (Non-Stok)</button>
+            <button id="btn-show-history" class="btn btn-secondary" style="padding: 20px; font-size: 16px;">🕒 Riwayat Transaksi</button>
+        </div>
+
+        <!-- [BARU] Container untuk Form Stok -->
+        <div id="form-stok-container" class="form-container" style="display: none;">
+            <form id="form-transaksi-stok" onsubmit="event.preventDefault();">
+                <h3 style="margin-top:0; color:#1e40af;">Form Pembelian Stok</h3>
+                <div id="form-stok-fields">
+                    <!-- Form Stok akan dirender oleh JS di sini -->
+                </div>
+                <button type="submit" class="btn btn-primary">Simpan Pembelian Stok</button>
+            </form>
+        </div>
+
+        <!-- [BARU] Container untuk Form Non-Stok -->
+        <div id="form-nonstok-container" class="form-container" style="display: none;">
+            <form id="form-transaksi-nonstok" onsubmit="event.preventDefault();">
+                <h3 style="margin-top:0; color:#1e40af;">Form Transaksi Lainnya</h3>
+                <div id="form-nonstok-fields">
+                    <!-- Form Non-Stok akan dirender oleh JS di sini -->
+                </div>
+                <button type="submit" class="btn btn-primary">Simpan Transaksi</button>
+            </form>
+        </div>
+
+        <!-- [BARU] Container untuk Riwayat -->
+        <div id="history-container" class="table-card" style="display: none;">
+            <div style="background: #f8fafc; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 16px; color: #1e40af;">Riwayat Transaksi Keuangan</h3>
+                <div style="display: flex; gap: 10px;">
+                    <input type="month" id="history-month-filter" class="form-input" style="padding: 6px 10px; border-radius: 6px; height: auto;">
+                    <button class="btn btn-primary" onclick="loadTransactionHistory()" style="padding: 6px 12px; width: auto; margin-top: 0;">Tampilkan</button>
+                </div>
+            </div>
+            <div style="padding: 20px; overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <thead>
+                        <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
+                            <th style="padding: 10px 16px; text-align: left;">Tanggal</th>
+                            <th style="padding: 10px 16px; text-align: left;">Keterangan / Nama</th>
+                            <th style="padding: 10px 16px; text-align: left;">Jenis</th>
+                            <th style="padding: 10px 16px; text-align: right;">Total (Rp)</th>
+                            <th style="padding: 10px 16px; text-align: center;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-tbody">
+                        <tr><td colspan="5" class="table-empty">Pilih bulan dan klik Tampilkan.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="custom-ui.js"></script>
+<script src="rbm-pro-storage.js"></script>
+<script src="firebase-storage.js"></script>
+<script src="rbm-laba-rugi.js"></script>
+</body>
+</html>

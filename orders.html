@@ -108,6 +108,23 @@
             color: var(--primary, #4C2A85);
             border-color: var(--primary, #4C2A85);
         }
+
+        /* [BARU] Mode Cetak Khusus Tablet Android & Aplikasi Pihak ke-3 */
+        @media print {
+            body > *:not(#print-receipt-container) {
+                display: none !important;
+            }
+            #print-receipt-container {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                background: white;
+            }
+        }
     </style>
     <script>
         // Otomatis sembunyikan header ganda saat dibuka dari file:///
@@ -702,37 +719,22 @@
 
             // [BARU] Fungsi untuk mencetak via browser (dipisahkan agar bisa dipanggil berulang)
             function fallbackBrowserPrint(html, orderId) {
-                const iframe = document.createElement('iframe');
-                iframe.style.position = 'fixed';
-                iframe.style.right = '0';
-                iframe.style.bottom = '0';
-                iframe.style.width = '0';
-                iframe.style.height = '0';
-                iframe.style.border = '0';
-                document.body.appendChild(iframe);
-                const doc = iframe.contentWindow.document;
-                doc.open();
-                doc.write(html);
-                doc.close();
-                iframe.onload = () => {
-                    setTimeout(() => {
-                        const iw = iframe.contentWindow;
-                        if (iw) {
-                            const cleanup = () => {
-                                updatePrintedFlag(orderId);
-                                try { iframe.remove(); } catch (e) {}
-                                try { window.focus(); } catch (e) {}
-                            };
-                            iw.onafterprint = cleanup;
-                            setTimeout(cleanup, 4000); // Jaring pengaman jika onafterprint tidak jalan
-                            try { iw.focus(); } catch (e) {}
-                            iw.print();
-                        } else {
-                            window.print(); // Fallback paling akhir
-                            setTimeout(() => { try { iframe.remove(); } catch (e) {} }, 1000);
-                                }
-                    }, 50); // Jeda singkat agar iframe siap
+                let container = document.getElementById('print-receipt-container');
+                if (!container) {
+                    container = document.createElement('div');
+                    container.id = 'print-receipt-container';
+                    document.body.appendChild(container);
                 }
+                
+                container.innerHTML = html;
+
+                setTimeout(() => {
+                    window.print();
+                    updatePrintedFlag(orderId);
+                    setTimeout(() => {
+                        container.innerHTML = '';
+                    }, 1000);
+                }, 300);
             }
 
             window.manualPrint = function(orderId) {
@@ -808,34 +810,25 @@
 
                 // [BARU] Buat bagian footer yang berisi harga, hanya jika BUKAN struk dapur
                 const priceFooter = isKitchenReceipt ? '' : `
-                    <div class="row"><span>Pembayaran</span><span>${method}</span></div>
-                    <div class="line"></div>
+                    <div style="display:flex; justify-content:space-between; font-size:10px;"><span>Pembayaran</span><span>${method}</span></div>
+                    <div style="border-top:1px dashed #000; margin:6px 0;"></div>
                     <div style="font-size:12px;">${itemsHtml || '-'}</div>
-                    <div class="line"></div>
-                    <div class="row" style="font-size:14px;"><strong>Total</strong><strong>Rp ${total}</strong></div>
-                    <div style="margin-top:8px;" class="center muted">Terima kasih</div>`;
+                    <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+                    <div style="display:flex; justify-content:space-between; font-size:14px;"><strong>Total</strong><strong>Rp ${total}</strong></div>
+                    <div style="margin-top:8px; text-align:center; opacity:0.9;">Terima kasih</div>`;
 
                 // Template thermal 80mm sederhana
-                return `<!DOCTYPE html>
-                <html><head><meta charset="utf-8">
-                <style>
-                    @page { size: 80mm 297mm; margin: 0; padding: 0; }
-                    body { font-family: 'Courier New', monospace; width: 76mm; margin: 0; padding: 2mm; font-size: 10px; line-height: 1.2; white-space: pre-wrap; }
-                    .center { text-align:center; }
-                    .line { border-top:1px dashed #000; margin:6px 0; }
-                    .muted { opacity:.9; font-size:9px; }
-                    .row { display:flex; justify-content:space-between; font-size:10px; }
-                </style></head>
-                <body>
-                    <div class="center"><strong>RICE BOWL MONSTER</strong></div>
-                    <div class="center muted">${store}</div>
-                    <div class="center muted">${time}</div>
-                    <div class="line"></div>
-                    <div class="row"><span>Tipe</span><span>${orderType}</span></div>`
+                return `
+                <div style="font-family: 'Courier New', Courier, monospace; width: 76mm; margin: 0 auto; padding: 2mm; font-size: 10px; line-height: 1.2; color: #000; white-space: pre-wrap;">
+                    <div style="text-align:center;"><strong>RICE BOWL MONSTER</strong></div>
+                    <div style="text-align:center; opacity:0.9;">${store}</div>
+                    <div style="text-align:center; opacity:0.9;">${time}</div>
+                    <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+                    <div style="display:flex; justify-content:space-between;"><span>Tipe</span><span>${orderType}</span></div>`
                     // [DIUBAH] Jika struk dapur, hanya tampilkan item. Jika tidak, tampilkan footer harga.
                     + (isKitchenReceipt ? '<div class="line"></div><div style="font-size:10px;">' + (itemsHtml || '-') + '</div>' : priceFooter)
                     + ` 
-                </body></html>`;
+                </div>`;
             }
 
             // [BARU] Fungsi untuk membuat struk lengkap untuk kasir

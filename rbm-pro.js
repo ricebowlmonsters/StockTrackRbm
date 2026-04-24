@@ -2254,9 +2254,17 @@ function getPettyCashRecapForPengajuan(cb) {
                 lastKreditDate = r.tanggal || r.date || '-';
                 saldoAtLastKredit = runningSaldo;
                 
-                // Kosongkan riwayat pengeluaran lama.
-                // Hitung pengeluaran hanya SETELAH dana masuk terakhir ini.
-                unreimbursed = [];
+                // Gunakan dana masuk untuk melunasi pengeluaran lama yang belum ter-reimburse
+                var remainingKredit = k;
+                while (unreimbursed.length > 0 && remainingKredit > 0) {
+                    if (remainingKredit >= unreimbursed[0]._remainingDebit) {
+                        remainingKredit -= unreimbursed[0]._remainingDebit;
+                        unreimbursed.shift(); // Lunas sepenuhnya
+                    } else {
+                        unreimbursed[0]._remainingDebit -= remainingKredit; // Lunas sebagian
+                        remainingKredit = 0;
+                    }
+                }
             } else if (d > 0) {
                 // Tambahkan pengeluaran ke dalam antrean
                 var clonedR = Object.assign({}, r);
@@ -2289,7 +2297,7 @@ function getPettyCashRecapForPengajuan(cb) {
     if (typeof FirebaseStorage !== 'undefined' && typeof FirebaseStorage.isReady === 'function' && FirebaseStorage.isReady()) {
         var db = typeof FirebaseStorage.db === 'function' ? FirebaseStorage.db() : null;
         if (db) {
-            db.ref('rbm_pro/petty_cash/' + (outlet || 'default')).orderByKey().limitToLast(365).once('value').then(function(snap) {
+            db.ref('rbm_pro/petty_cash/' + (outlet || 'default')).orderByKey().limitToLast(60).once('value').then(function(snap) {
                 var root = snap.val();
                 var list = [];
                 if (root && typeof root === 'object') {
@@ -10268,40 +10276,235 @@ window._playSuccessBeep = function() {
 };
 
 window.startLiveFaceVerification = function() {
-    // [DINONAKTIFKAN SEPENUHNYA] Bypass AI Face Detection untuk menghemat baterai & CPU HP
-    window._faceVerified = true;
-    if (typeof checkDistance === 'function') checkDistance();
-    return;
+    if (typeof window.stopLiveFaceVerification === 'function') window.stopLiveFaceVerification();
+    const nameSel = document.getElementById('gps_absen_name');
+    const name = nameSel ? nameSel.value : '';
+    if (!name) return;
+
+    // ===== PENGATURAN KEKETATAN FACE ID =====
+    // 0.40 = Sangat ketat (wajah dan cahaya harus sama persis)
+    // 0.45 = Standar / Ideal
+    // 0.50 = Agak longgar (lebih mudah mendeteksi, tapi berisiko tertukar)
+    const FACE_MATCH_THRESHOLD = 0.45; // <-- SILAKAN UBAH ANGKA INI
+
+    const registeredDescriptorArr = getRegisteredFaceDescriptorByName(name);
+
+    if (!registeredDescriptorArr || !window.isFaceApiLoaded || typeof faceapi === 'undefined') {
+        window._faceVerified = false;
+        if (typeof checkDistance === 'function') checkDistance();
+        return;
+    }
+
+    const registeredDescriptor = new Float32Array(registeredDescriptorArr);
+    const video = document.getElementById('gps_video');
+    const faceStatus = document.getElementById('face_id_status_info');
+    const scannerUI = document.getElementById('gps_scanner_ui');
+    if (scannerUI) scannerUI.style.display = 'block'; // Tampilkan Laser Scanner
+
+    let isProcessing = false;
+    window._faceVerificationActive = true; // Flag untuk menghentikan loop
+
+    const scanLoop = async () => {
+        if (!window._faceVerificationActive) return;
+        if (isProcessing) return;
+        
+        if (!video || !video.videoWidth || video.paused || video.ended) {
+            window._faceVerificationInterval = setTimeout(scanLoop, 500);
+            return;
+        }
+
+        // OPTIMASI: Jika sudah diverifikasi, pelankan scan agar tidak boros baterai/CPU HP
+        if (window._faceVerified) {
+            window._faceVerificationInterval = setTimeout(scanLoop, 2000);
+            return;
+        }
+        
+        isProcessing = true;
+        try {
+            // PENGATURAN AI UNTUK PENCAHAYAAN GELAP:
+            // inputSize: 224 (Diturunkan dari 320 agar kalkulasi AI di HP jauh lebih cepat/tidak lag)
+            // scoreThreshold: 0.3 (lebih sensitif mendeteksi wajah samar, default 0.5)
+            const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.3 });
+            const detection = await faceapi.detectSingleFace(video, options).withFaceLandmarks().withFaceDescriptor();
+            
+            if (!detection) {
+                window._faceVerified = false;
+                if (faceStatus) {
+                    faceStatus.innerHTML = "🔍 Wajah tidak terdeteksi di kamera...";
+                    faceStatus.style.color = "#b45309";
+                    faceStatus.style.background = "#fffbeb";
+                    faceStatus.style.borderColor = "#fde68a";
+                }
+            } else {
+                const distance = faceapi.euclideanDistance(detection.descriptor, registeredDescriptor);
+                if (distance > FACE_MATCH_THRESHOLD) {
+                    window._faceVerified = false;
+                    if (faceStatus) {
+                        faceStatus.innerHTML = `❌ Wajah tidak cocok!<br>Ini bukan wajah ${name}. (Skor Jarak: ${distance.toFixed(2)}/${FACE_MATCH_THRESHOLD})<br>Pastikan Anda memilih nama yang benar.`;
+                        faceStatus.style.color = "#b91c1c";
+                        faceStatus.style.background = "#fef2f2";
+                        faceStatus.style.borderColor = "#fecaca";
+                    }
+                } else {
+                    if (!window._faceVerified) {
+                        window._faceVerified = true;
+                        if (typeof window._playSuccessBeep === 'function') window._playSuccessBeep();
+                    }
+                    if (faceStatus) {
+                        faceStatus.innerHTML = "✅ Wajah Terverifikasi. Tombol Absen Aktif.";
+                        faceStatus.style.color = "#15803d";
+                        faceStatus.style.background = "#dcfce7";
+                        faceStatus.style.borderColor = "#bbf7d0";
+                    }
+                }
+            }
+            if (typeof checkDistance === 'function') checkDistance();
+        } catch (e) {
+            console.error(e);
+        }
+        isProcessing = false;
+        
+        // OPTIMASI: Cek setiap 400ms (Sangat responsif dibanding 1.5 detik)
+        window._faceVerificationInterval = setTimeout(scanLoop, 400);
+    };
+    
+    // Jalankan loop pertama kali
+    scanLoop();
 };
 
 window.stopLiveFaceVerification = function() {
+    window._faceVerificationActive = false;
+    if (window._faceVerificationInterval) {
+        clearTimeout(window._faceVerificationInterval);
+        window._faceVerificationInterval = null;
+    }
+    const scannerUI = document.getElementById('gps_scanner_ui');
+    if (scannerUI) scannerUI.style.display = 'none'; // Sembunyikan Laser Scanner
     window._faceVerified = false;
 };
 
 window.isFaceApiLoaded = window.isFaceApiLoaded || false;
 window._faceApiLoading = window._faceApiLoading || false;
 window.loadFaceApiModelsForAbsensi = async function(silent = false) {
-    // [DINONAKTIFKAN SEPENUHNYA] Stop unduhan model AI raksasa yang bikin HP panas!
-    window.isFaceApiLoaded = true;
-    window._faceVerified = true;
-    
     const faceStatus = document.getElementById('face_id_status_info');
     const nameSel = document.getElementById('gps_absen_name');
     const name = nameSel ? nameSel.value : '';
 
-    if (faceStatus) {
+    const updateUIForLoaded = () => {
         if (!name) {
-            faceStatus.innerHTML = "✅ Sistem Siap. Silakan pilih nama Anda.";
-        } else {
-            faceStatus.innerHTML = "✅ Siap. Silakan klik tombol Absen di bawah.";
+            if (faceStatus) {
+                faceStatus.innerHTML = "✅ Sistem AI Siap. Silakan pilih nama Anda.";
+                faceStatus.style.color = "#15803d";
+                faceStatus.style.background = "#f0fdf4";
+                faceStatus.style.borderColor = "#bbf7d0";
+            }
+            return;
         }
-        faceStatus.style.color = "#15803d";
-        faceStatus.style.background = "#dcfce7";
-        faceStatus.style.borderColor = "#bbf7d0";
+        
+        // [FITUR FACE ID DINONAKTIFKAN SEMENTARA]
+        // Langsung tampilkan pesan siap dan hentikan proses Face API
+        if (faceStatus) {
+            faceStatus.innerHTML = "✅ Siap. Silakan klik tombol Absen di bawah.";
+            faceStatus.style.color = "#15803d";
+            faceStatus.style.background = "#dcfce7";
+            faceStatus.style.borderColor = "#bbf7d0";
+        }
+        return;
+
+        if (silent) return;
+        
+        const faceKey = typeof getRbmStorageKey === 'function' ? getRbmStorageKey('RBM_FACE_DATA') : 'RBM_FACE_DATA';
+        const faceData = getCachedParsedStorage(faceKey, {});
+        if (!faceData[name]) {
+            if (faceStatus) {
+                faceStatus.innerHTML = "❌ Wajah belum terdaftar. Hubungi Manager.";
+                faceStatus.style.color = "#b91c1c";
+                faceStatus.style.background = "#fef2f2";
+                faceStatus.style.borderColor = "#fecaca";
+            }
+            if (typeof window.stopLiveFaceVerification === 'function') window.stopLiveFaceVerification();
+        } else {
+            if (faceStatus) {
+                faceStatus.innerHTML = '<span class="rbm-spinner"></span><span class="pulse-text">Memulai pemindaian wajah...</span>';
+                faceStatus.style.color = "#1d4ed8";
+                faceStatus.style.background = "#eff6ff";
+                faceStatus.style.borderColor = "#bfdbfe";
+            }
+            if (typeof window.startLiveFaceVerification === 'function') window.startLiveFaceVerification();
+        }
+    };
+
+    if (window.isFaceApiLoaded) {
+        updateUIForLoaded();
+        return;
     }
-    
-    if (typeof checkDistance === 'function') checkDistance();
-    return;
+
+    if (window._faceApiLoading) {
+        if (!silent && faceStatus) {
+            faceStatus.innerHTML = '<span class="rbm-spinner"></span><span class="pulse-text">Memuat model AI Face ID...</span>';
+            faceStatus.style.color = "#b45309";
+            faceStatus.style.background = "#fffbeb";
+            faceStatus.style.borderColor = "#fde68a";
+        }
+        const checkInterval = setInterval(() => {
+            if (window.isFaceApiLoaded) {
+                clearInterval(checkInterval);
+                updateUIForLoaded();
+            } else if (!window._faceApiLoading) {
+                clearInterval(checkInterval);
+                if (faceStatus && !silent) {
+                    faceStatus.innerHTML = "❌ Gagal memuat Face ID. Periksa koneksi internet.";
+                    faceStatus.style.color = "#b91c1c";
+                    faceStatus.style.background = "#fef2f2";
+                    faceStatus.style.borderColor = "#fecaca";
+                }
+            }
+        }, 200);
+        return;
+    }
+
+    window._faceApiLoading = true;
+    if (faceStatus && !silent) {
+        faceStatus.innerHTML = '<span class="rbm-spinner"></span><span class="pulse-text">Memuat model AI Face ID...</span>';
+        faceStatus.style.color = "#b45309";
+        faceStatus.style.background = "#fffbeb";
+        faceStatus.style.borderColor = "#fde68a";
+    }
+    try {
+        const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+        
+        let waitCount = 0;
+        while (typeof faceapi === 'undefined' && waitCount < 20) {
+            await new Promise(r => setTimeout(r, 250));
+            waitCount++;
+        }
+
+        if (typeof faceapi !== 'undefined') {
+            await Promise.all([
+                faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+            ]);
+            window.isFaceApiLoaded = true;
+            updateUIForLoaded();
+        } else {
+            throw new Error("Library Face API tidak ditemukan atau gagal dimuat.");
+        }
+    } catch (e) {
+        console.error("Face API Load Error:", e);
+        if (faceStatus) {
+            if (window.location.protocol === 'file:') {
+                faceStatus.innerHTML = "❌ Gagal memuat Face ID.<br>Aplikasi harus dijalankan lewat <b>Live Server</b>, bukan file:///";
+            } else {
+                faceStatus.innerHTML = "❌ Gagal memuat Face ID. Periksa koneksi internet.";
+            }
+            faceStatus.style.color = "#b91c1c";
+            faceStatus.style.background = "#fef2f2";
+            faceStatus.style.borderColor = "#fecaca";
+        }
+    } finally {
+        window._faceApiLoading = false;
+    }
 };
 
 function initAbsensiHardware() {
@@ -10317,11 +10520,7 @@ function initAbsensiHardware() {
     // Start Camera
     const video = document.getElementById('gps_video');
     if (video && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            // [PERCEPATAN] Pastikan video dibisukan agar browser seluler (terutama iOS) langsung mengizinkan autoplay instan
-            video.muted = true;
-            
-            // [PERCEPATAN] Minta resolusi menengah (480p) agar hardware kamera tidak butuh waktu negosiasi sensor lama
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 480 } } })
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
         .then(stream => {
             gpsStream = stream;
             video.srcObject = stream;
@@ -11156,6 +11355,9 @@ async function updateGpsJadwalDisplay() {
         return;
     }
 
+    textEl.innerHTML = '<span style="color:#64748b;">Memuat data khusus untuk Anda... ⏳</span>';
+    box.style.display = 'block';
+
     const employees = (window._gpsKioskRosterEmployees && window._gpsKioskRosterEmployees.length)
         ? window._gpsKioskRosterEmployees
         : getCachedParsedStorage(getRbmStorageKey('RBM_EMPLOYEES'), []);
@@ -11168,54 +11370,41 @@ async function updateGpsJadwalDisplay() {
     const today = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2) + '-' + ('0' + now.getDate()).slice(-2);
     const ym = today.substring(0, 7);
     const outlet = typeof getRbmOutlet === 'function' ? getRbmOutlet() : 'default';
-    const empIdSafe = (emp.id != null) ? emp.id : emp.name.replace(/[^a-zA-Z0-9]/g, '_');
     
-    textEl.innerHTML = '<span style="color:#64748b;">Memuat data khusus untuk Anda... ⏳</span>';
-    box.style.display = 'block';
-
-    let shift = '';
-    let myLogs = [];
-    let hrData = {};
-    let spSettingsData = {};
-
-    // [KEMBALI KE AWAL] Fetch data dari server HANYA khusus untuk karyawan yang dipilih
+    var shift = '';
+    var myLogs = [];
+    
+    // [OPTIMASI] Fetch data jadwal dan history istirahat dari server HANYA setelah nama dipilih
     if (typeof FirebaseStorage !== 'undefined' && FirebaseStorage.isReady()) {
         const db = FirebaseStorage.db();
         try {
-            const [shiftSnap, logsSnap, hrSnap, spSettingsSnap] = await Promise.all([
+            // [SUPER CEPAT] Ambil Jadwal dan Histori Absen secara BERSAMAAN (Paralel)
+            const [shiftSnap, logsSnap] = await Promise.all([
                 db.ref(`rbm_pro/jadwal/${outlet}/${ym}/${today}_${emp.id}`).once('value'),
-                db.ref(`rbm_pro/gps_logs_partitioned/${outlet}/${ym}`).limitToLast(100).once('value'),
-                db.ref(`rbm_pro/hr_karyawan/${outlet}/${empIdSafe}`).once('value'),
-                db.ref(`rbm_pro/hr_sp_settings/${outlet}`).once('value')
+                db.ref(`rbm_pro/gps_logs_partitioned/${outlet}/${ym}`).limitToLast(300).once('value')
             ]);
-            
             shift = shiftSnap.val() || '';
             const logsVal = logsSnap.val();
             if (logsVal) {
                 myLogs = Object.values(logsVal).filter(l => l.name === name && l.date === today);
             }
-            hrData = hrSnap.val() || {};
-            spSettingsData = spSettingsSnap.val() || {};
-
-            window._cachedHrData = window._cachedHrData || {};
-            window._cachedHrData[empIdSafe] = hrData;
-            window._cachedSpSettings = spSettingsData;
         } catch (e) {
             console.warn("Gagal fetch data spesifik", e);
         }
     } else {
         const jadwalData = getCachedParsedStorage(getRbmStorageKey('RBM_JADWAL_DATA'), {});
-        const jadwalKey = `${today}_${emp.id || employees.indexOf(emp)}`;
-        shift = jadwalData[jadwalKey] || '';
+        const key = `${today}_${emp.id || employees.indexOf(emp)}`;
+        shift = jadwalData[key] || '';
         
         const allLogs = getCachedParsedStorage(getRbmStorageKey('RBM_GPS_LOGS'), []);
         myLogs = allLogs.filter(l => l.name === name && l.date === today);
-    
-        hrData = (window._cachedHrData && window._cachedHrData[empIdSafe]) || {};
-        spSettingsData = window._cachedSpSettings || {};
     }
 
+    // Cache untuk kebutuhan:
+    // - Tombol "Lihat Riwayat Absensi Saya" (loadMyGpsHistory)
+    // - Validasi proses absen (processAbsensiGPS)
     window._cachedGpsMyLogs = myLogs || [];
+
     const label = (typeof getJadwalLabelFromConfig === 'function' ? getJadwalLabelFromConfig(shift) : null) || (typeof JADWAL_LABEL !== 'undefined' && JADWAL_LABEL[shift]) || shift || 'Tidak ada jadwal';
     
     // Hitung sisa istirahat dari log spesifik ini
@@ -11231,7 +11420,7 @@ async function updateGpsJadwalDisplay() {
         leaveCode = shift;
     }
 
-        if (shift && !isOnLeave) {
+    if (shift && !isOnLeave) {
             const batasMasuk = (typeof getBatasMasukFromConfig === 'function' ? getBatasMasukFromConfig(shift, emp.jabatan) : null) || (typeof JADWAL_BATAS_MASUK !== 'undefined' ? JADWAL_BATAS_MASUK[shift] : null);
             if (batasMasuk) {
                 const hasMasuk = myLogs && myLogs.some(l => l.type === 'Masuk');
@@ -11243,12 +11432,12 @@ async function updateGpsJadwalDisplay() {
                     if (menitSekarang > menitBatas) {
                         const menitTelat = menitSekarang - menitBatas;
                         if (toleransi > 0 && menitTelat <= toleransi) {
-                            info += `<div style="margin-top:8px; font-size:13px;"><span style="color:#b45309; font-weight:600;">Batas Masuk: ${batasMasuk} (Telat ${menitTelat} menit - Dimaafkan)</span></div>`;
+                            info += `<br><span style="color:#b45309; font-weight:bold; font-size:0.9em;">Batas Masuk: ${batasMasuk} (Telat ${menitTelat} menit - Dimaafkan)</span>`;
                         } else {
-                            info += `<div style="margin-top:8px; font-size:13px;"><span style="color:#dc2626; font-weight:600;">⚠️ Anda Telat ${menitTelat} menit (Batas Masuk: ${batasMasuk})</span></div>`;
+                            info += `<br><span style="color:#dc2626; font-weight:bold; font-size:0.9em;">⚠️ Anda Telat ${menitTelat} menit (Batas Masuk: ${batasMasuk})</span>`;
                         }
                     } else {
-                            info += `<div style="margin-top:8px; font-size:13px;"><span style="color:#16a34a; font-weight:600;">Batas Masuk: ${batasMasuk} (Belum telat)</span></div>`;
+                        info += `<br><span style="color:#16a34a; font-weight:bold; font-size:0.9em;">Batas Masuk: ${batasMasuk} (Belum telat)</span>`;
                     }
                 } else {
                     const masukLog = myLogs.find(l => l.type === 'Masuk');
@@ -11257,139 +11446,52 @@ async function updateGpsJadwalDisplay() {
                         if (menitMasuk > menitBatas) {
                             const menitTelat = menitMasuk - menitBatas;
                             if (toleransi > 0 && menitTelat <= toleransi) {
-                                info += `<div style="margin-top:8px; font-size:13px;"><span style="color:#b45309; font-weight:600;">Waktu Masuk: ${masukLog.time} (Telat ${menitTelat} menit - Dimaafkan)</span></div>`;
+                                info += `<br><span style="color:#b45309; font-weight:bold; font-size:0.9em;">Waktu Masuk: ${masukLog.time} (Telat ${menitTelat} menit - Dimaafkan)</span>`;
                             } else {
-                                info += `<div style="margin-top:8px; font-size:13px;"><span style="color:#dc2626; font-weight:600;">⚠️ Waktu Masuk: ${masukLog.time} (Telat ${menitTelat} menit)</span></div>`;
+                                info += `<br><span style="color:#dc2626; font-weight:bold; font-size:0.9em;">⚠️ Waktu Masuk: ${masukLog.time} (Telat ${menitTelat} menit)</span>`;
                             }
                         } else {
-                            info += `<div style="margin-top:8px; font-size:13px;"><span style="color:#16a34a; font-weight:600;">Waktu Masuk: ${masukLog.time} (Tepat waktu)</span></div>`;
+                            info += `<br><span style="color:#16a34a; font-weight:bold; font-size:0.9em;">Waktu Masuk: ${masukLog.time} (Tepat waktu)</span>`;
                         }
                     }
                 }
             }
 
-            info += `<div style="margin-top:6px; font-size:12px; color:#64748b;">Jatah Istirahat: ${batasMenit} menit.`;
-            if (stats.total > 0) {
-                info += ` | Terpakai: ${stats.total} menit.`;
-            }
-            
-            if (stats.lastOut !== null) {
-                const currentMinutes = now.getHours() * 60 + now.getMinutes();
-                let currentDur = currentMinutes - stats.lastOut;
-                if (currentDur < 0) currentDur += 24 * 60;
-                info += ` <span style="color:#d97706; font-weight:600;">(Sedang Istirahat: ${currentDur} menit)</span>`;
-            } else {
-                const sisa = batasMenit - stats.total;
-                info += sisa >= 0 ? ` <span style="color:#16a34a; font-weight:600;">(Sisa: ${sisa} menit)</span>` : ` <span style="color:#dc2626; font-weight:600;">(Over: ${Math.abs(sisa)} menit)</span>`;
-            }
-            info += `</div>`;
+        info += `<br><span style="font-size:0.9em; color:#555;">Jatah Istirahat: ${batasMenit} menit.</span>`;
+        if (stats.total > 0) {
+            info += `<br><span style="font-size:0.9em; color:#555;">Terpakai: ${stats.total} menit.</span>`;
         }
-
-        let cutiInfo = `<div style="font-size:13px; color:#334155; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0; margin-top:16px;">
-            <strong style="display:block; margin-bottom:8px; color:#475569; font-size:12px;">SISA CUTI KAMU:</strong>
-            <div style="display:flex; justify-content:space-around; text-align:center;">
-                <span><span style="font-size:10px; color:#64748b; display:block;">Tahunan (AL)</span><strong style="font-size:18px; color:#15803d;">${emp.sisaAL || 0}</strong></span>
-                <span><span style="font-size:10px; color:#64748b; display:block;">Pengganti (DP)</span><strong style="font-size:18px; color:#15803d;">${emp.sisaDP || 0}</strong></span>
-                <span><span style="font-size:10px; color:#64748b; display:block;">Tgl Merah (PH)</span><strong style="font-size:18px; color:#15803d;">${emp.sisaPH || 0}</strong></span>
-            </div>
-        </div>`;
-
-        let quoteMasaKerja = spSettingsData.quoteMasaKerja || 'Terima kasih atas dedikasi dan kontribusinya selama ini. Terus berikan yang terbaik!';
-        if (quoteMasaKerja.trim() === 'Terima kasih atas dedikasi dan kontribusinya selama') {
-            quoteMasaKerja = 'Terima kasih atas dedikasi dan kontribusinya selama ini. Terus berikan yang terbaik!';
-        }
-        let durasiMasaKerja = 'Belum disetting';
-        if (emp.joinDate) {
-            const start = new Date(emp.joinDate);
-            const now2 = new Date();
-            start.setHours(0,0,0,0); now2.setHours(0,0,0,0);
-            if (now2 >= start && !isNaN(start.getTime())) {
-                let years = now2.getFullYear() - start.getFullYear();
-                let months = now2.getMonth() - start.getMonth();
-                let days = now2.getDate() - start.getDate();
-                if (days < 0) { months--; const prevMonth = new Date(now2.getFullYear(), now2.getMonth(), 0); days += prevMonth.getDate(); }
-                if (months < 0) { years--; months += 12; }
-                let res = [];
-                if (years > 0) res.push(`${years} thn`);
-                if (months > 0) res.push(`${months} bln`);
-                if (days > 0) res.push(`${days} hr`);
-                durasiMasaKerja = res.length > 0 ? res.join(', ') : 'Hari ini';
-            }
-        }
-        let spHtml = '';
-        if (hrData.sp && hrData.sp.length > 0) {
-            let activeCount = 0;
-            const n = new Date();
-            let spDetails = [];
-            hrData.sp.forEach(sp => {
-                let isActive = false;
-                let endD = null;
-                if (sp.berlakuHingga) {
-                    endD = new Date(sp.berlakuHingga);
-                    endD.setHours(23,59,59,999);
-                    if (n <= endD) isActive = true;
-                } else { isActive = true; }
-                if (isActive) {
-                    activeCount++;
-                    let startD = new Date(sp.tanggal);
-                    startD.setHours(0,0,0,0);
-                    let diffTime = n - startD;
-                    let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                    let berjalanStr = sp.tanggal ? (diffDays < 0 ? `Belum mulai (H${diffDays})` : (diffDays === 0 ? 'Hari ini' : `${diffDays} hari`)) : '-';
-                    
-                    spDetails.push(`
-                      <div style="margin-top:8px; padding:10px; background:white; border-radius:6px; font-size:12px; color:#7f1d1d; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-                         <strong style="font-size:13px; color:#b91c1c;">${sp.tingkat || 'SP'}</strong>
-                         <div style="margin-top:6px; display:grid; grid-template-columns:60px 1fr; gap:4px; font-size:11px;">
-                             <span style="color:#9ca3af;">Berlaku:</span> <span><strong>${sp.tanggal ? new Date(sp.tanggal).toLocaleDateString('id-ID') : '-'}</strong> s/d <strong>${sp.berlakuHingga ? new Date(sp.berlakuHingga).toLocaleDateString('id-ID') : '-'}</strong></span>
-                             <span style="color:#9ca3af;">Berjalan:</span> <span><strong>${berjalanStr}</strong></span>
-                             <span style="color:#9ca3af;">Alasan:</span> <span>${sp.keterangan || '-'}</span>
-                         </div>
-                         <div style="margin-top:6px; padding-top:6px; border-top:1px dotted #fecaca; font-weight:600; color:#b91c1c; font-size:11px;">Sanksi: ${sp.sanksi || '-'}</div>
-                      </div>
-                    `);
-                }
-            });
-            if (activeCount > 0) {
-                spHtml = `<div style="margin-top:12px; background:#fef2f2; border:1px solid #fecaca; padding:12px; border-radius:8px; color:#dc2626;">
-                    <div style="font-weight:bold; font-size:13px; display:flex; align-items:center; gap:6px;"><span>⚠️</span> Terdapat ${activeCount} Surat Peringatan Aktif!</div>
-                    ${spDetails.join('')}
-                </div>`;
-            }
-        }
-        let notesHtml = '';
-        if (hrData.notes) {
-            notesHtml = `<div style="margin-top:12px; background:#fef2f2; border:1px solid #ef4444; padding:12px; border-radius:8px; color:#b91c1c; font-size:12px; line-height:1.5;">
-                <div style="font-size:13px; margin-bottom:6px; display:flex; align-items:center; gap:6px;"><span>⚠️</span> <strong>CATATAN HR:</strong></div>
-                ${hrData.notes.replace(/\\n/g, '<br>')}
-            </div>`;
-        }
-        let hrSectionHtml = `<div style="font-size:13px; color:#334155; background:#f8fafc; padding:16px; border-radius:8px; border:1px solid #e2e8f0; margin-top:16px;">
-            <div style="text-align:center; margin-bottom:${spHtml || notesHtml ? '16px' : '0'};">
-                <div style="font-size:11px; color:#64748b; font-weight:700; letter-spacing:1px; margin-bottom:8px;">⭐ MASA KERJA ⭐</div>
-                <div style="font-style:italic; color:#475569; font-size:12px; line-height:1.5; margin-bottom:12px;">"${quoteMasaKerja}"</div>
-                <div style="color:#0f766e; font-size:16px; font-weight:900; background:#ccfbf1; border:1px solid #99f6e4; display:inline-block; padding:8px 16px; border-radius:24px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">${durasiMasaKerja}</div>
-            </div>
-            <div style="text-align:left;">
-                ${spHtml}
-                ${notesHtml}
-            </div>
-        </div>`;
-
-        let quote = '';
-        if (isOnLeave) {
-            let leaveName = leaveCode === 'AL' ? 'Cuti Tahunan (AL)' : (leaveCode === 'PH' ? 'Public Holiday (PH)' : 'Day Off Payment (DP)');
-            quote = `<div style="font-style:italic; text-align:center; color:#059669; font-size:13px; font-weight:600; border-top:1px dashed #cbd5e1; padding-top:16px; margin-top:16px; line-height:1.5;">"Selamat menikmati ${leaveName} kamu! Lepaskan penat, nikmati waktumu, dan kembalilah dengan energi baru!" 🌴✨</div>`;
-        } else {
-            const defaultQuote = '"Lakukan rutinitas pekerjaanmu dengan senang hati. Jangan lupa istirahat jika lelah!" 💪😊';
-            const customQuote = spSettingsData.quoteAbsensi || defaultQuote;
-            quote = `<div style="font-style:italic; text-align:center; color:#64748b; font-size:12px; border-top:1px dashed #cbd5e1; padding-top:16px; margin-top:16px; line-height:1.5;">${customQuote}</div>`;
-        }
-
-        textEl.innerHTML = (shift ? `<div style="font-size:16px; color:#1e40af; margin-bottom:12px;"><strong>${shift} (${label})</strong></div>` : `<div style="font-size:16px; color:#1e40af; margin-bottom:12px;"><strong>${label}</strong></div>`) + info + cutiInfo + hrSectionHtml + quote;
-        box.style.display = 'block';
         
-        if (typeof checkDistance === 'function') checkDistance();
+        if (stats.lastOut !== null) {
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            let currentDur = currentMinutes - stats.lastOut;
+            if (currentDur < 0) currentDur += 24 * 60;
+            info += `<br><span style="color:#d97706; font-weight:bold;">Sedang Istirahat: ${currentDur} menit.</span>`;
+        } else {
+            const sisa = batasMenit - stats.total;
+            info += sisa >= 0 ? `<br><span style="color:#16a34a; font-weight:bold;">Sisa: ${sisa} menit.</span>` : `<br><span style="color:#dc2626; font-weight:bold;">Over: ${Math.abs(sisa)} menit.</span>`;
+        }
+    }
+
+    let cutiInfo = `<br><br><div style="font-size:0.9em; color:#374151; background:#f8fafc; padding:8px; border-radius:6px; border:1px solid #e2e8f0; margin-top:8px;">
+        <strong>Sisa Cuti Kamu:</strong><br>
+        <span style="display:inline-block; margin-right:10px;">AL: <strong>${emp.sisaAL || 0}</strong></span>
+        <span style="display:inline-block; margin-right:10px;">DP: <strong>${emp.sisaDP || 0}</strong></span>
+        <span style="display:inline-block;">PH: <strong>${emp.sisaPH || 0}</strong></span>
+    </div>`;
+
+    let quote = '';
+    if (isOnLeave) {
+        let leaveName = leaveCode === 'AL' ? 'Cuti Tahunan (AL)' : (leaveCode === 'PH' ? 'Public Holiday (PH)' : 'Day Off Payment (DP)');
+        quote = `<br><div style="font-style:italic; color:#059669; font-size:1em; font-weight:bold; border-top:1px solid #e5e7eb; padding-top:12px; margin-top:8px;">"Selamat menikmati ${leaveName} kamu! Lepaskan penat, nikmati waktumu, dan kembalilah dengan energi baru!" 🌴✨</div>`;
+    } else {
+        quote = `<br><div style="font-style:italic; color:#6b7280; font-size:0.9em; border-top:1px solid #e5e7eb; padding-top:8px; margin-top:8px;">"Lakukan rutinitas pekerjaanmu dengan senang hati. Jangan lupa istirahat jika lelah!" 💪😊</div>`;
+    }
+
+    textEl.innerHTML = (shift ? `<strong>${shift} (${label})</strong>` : `<strong>${label}</strong>`) + info + cutiInfo + quote;
+    box.style.display = 'block';
+    
+    if (typeof checkDistance === 'function') checkDistance();
 }
 
 function processAbsensiGPS(type) {
@@ -11422,20 +11524,16 @@ function processAbsensiGPS(type) {
 
     if (warning) {
         showCustomConfirm(warning, "Konfirmasi Absensi", function() {
-            showCustomAlert("📸 Menjepret foto...<br>Mohon tunggu.", "Memproses", "info");
+            showCustomAlert("📸 Sedang menjepret foto dan memproses...<br>Mohon tunggu sejenak.", "Memproses", "info");
             setTimeout(function() {
-                requestAnimationFrame(function() {
-                    _executeAbsensiGPS(type).catch(e => console.error("Error execute:", e));
-                });
-            }, 150); // Memberi waktu browser menyelesaikan animasi pop-up sebelum membebani CPU
+                _executeAbsensiGPS(type).catch(e => console.error("Error execute:", e));
+            }, 400); // Beri jeda 400ms biar UI Popup benar-benar ke-render
         });
     } else {
-        showCustomAlert("📸 Menjepret foto...<br>Mohon tunggu.", "Memproses", "info");
+        showCustomAlert("📸 Sedang menjepret foto dan memproses...<br>Mohon tunggu sejenak.", "Memproses", "info");
         setTimeout(function() {
-            requestAnimationFrame(function() {
-                _executeAbsensiGPS(type).catch(e => console.error("Error execute:", e));
-            });
-        }, 150); // Memberi waktu browser menyelesaikan animasi pop-up sebelum membebani CPU
+            _executeAbsensiGPS(type).catch(e => console.error("Error execute:", e));
+        }, 400); // Beri jeda 400ms biar UI Popup benar-benar ke-render
     }
 }
 
@@ -11444,10 +11542,32 @@ async function _executeAbsensiGPS(type) {
     if (!currentPos) { showCustomAlert("Lokasi belum ditemukan! Pastikan GPS aktif.", "GPS Error", "error"); return; }
 
     const video = document.getElementById('gps_video');
-    
-    // [OPTIMASI SUPER KILAT] Menghapus blok request Data Wajah (Firebase) dari fungsi jepret foto.
-    // Karena jika Face ID aktif pun, validasi sudah berjalan secara LIVE menggunakan kamera 
-    // sebelum tombol absen diizinkan untuk ditekan.
+    const faceKey = typeof getRbmStorageKey === 'function' ? getRbmStorageKey('RBM_FACE_DATA') : 'RBM_FACE_DATA';
+    const faceData = getCachedParsedStorage(faceKey, {});
+    var registeredDescriptorArr = faceData[name];
+    if (!registeredDescriptorArr && typeof useFirebaseBackend === 'function' && useFirebaseBackend() &&
+        typeof FirebaseStorage !== 'undefined' && FirebaseStorage.loadGpsKioskFace) {
+        const emListF = (window._gpsKioskRosterEmployees && window._gpsKioskRosterEmployees.length)
+            ? window._gpsKioskRosterEmployees
+            : getCachedParsedStorage(getRbmStorageKey('RBM_EMPLOYEES'), []);
+        const empF = emListF.find(function(e) { return e && e.name === name; });
+        const empIdF = (empF && empF.id != null) ? empF.id : (empF ? emListF.indexOf(empF) : null);
+        try {
+            var outletF = typeof getRbmOutlet === 'function' ? getRbmOutlet() : '';
+            if (empIdF != null) {
+                var rawF = await FirebaseStorage.loadGpsKioskFace(outletF || 'default', empIdF);
+                var descF = normalizeGpsKioskDescriptor(rawF);
+                if (descF && descF.length) registeredDescriptorArr = descF;
+            }
+            if (!registeredDescriptorArr) {
+                var sfx = outletF ? '_' + outletF.toLowerCase().replace(/[^a-z0-9_]/g, '_') : '';
+                var snapMaster = await firebase.database().ref('rbm_pro/face_data' + sfx + '/' + name).once('value');
+                var masterRaw = snapMaster.val();
+                var masterDesc = normalizeGpsKioskDescriptor(masterRaw);
+                if (masterDesc && masterDesc.length) registeredDescriptorArr = masterDesc;
+            }
+        } catch (eFx) {}
+    }
 
     const employees = (window._gpsKioskRosterEmployees && window._gpsKioskRosterEmployees.length)
         ? window._gpsKioskRosterEmployees
@@ -11461,11 +11581,8 @@ async function _executeAbsensiGPS(type) {
     const canvas = document.getElementById('gps_canvas');
     const context = canvas.getContext('2d');
 
-    // [OPTIMASI KILAT] Matikan penghalusan gambar agar proses jepret lebih cepat dan ringan di HP low-end
-    context.imageSmoothingEnabled = false;
-
     // [OPTIMASI KILAT] Perkecil ukuran foto drastis agar HP tidak lemot/hang
-    const MAX_WIDTH = 150; // [EKSTREM] Turunkan ke 150px agar ukuran file hanya beberapa KB
+    const MAX_WIDTH = 200; // Turun ke 200 agar sangat ringan
     let scale = 1;
     if (video.videoWidth > MAX_WIDTH) {
         scale = MAX_WIDTH / video.videoWidth;
@@ -11487,8 +11604,7 @@ async function _executeAbsensiGPS(type) {
     context.fillText(`${dateStr} ${timeStr} | ${locStr}`, 5, canvas.height - 8);
 
     // [OPTIMASI KILAT] Gunakan toDataURL langsung karena resolusi sudah sangat kecil (toBlob kadang lambat di HP jadul)
-    // [EKSTREM] Turunkan kualitas JPEG menjadi 20% (0.2)
-    const photoData = canvas.toDataURL('image/jpeg', 0.2);
+    const photoData = canvas.toDataURL('image/jpeg', 0.3);
 
     const log = {
         id: Date.now(),
@@ -11535,8 +11651,6 @@ async function _executeAbsensiGPS(type) {
     }
 
     logs.push(log);
-    myLogs.push(log);
-    window._cachedGpsMyLogs = myLogs;
     
     // [OPTIMASI KILAT & AMAN] Jangan gunakan setItem untuk gps_logs karena akan menimpa seluruh history!
     // Pastikan log tersimpan ke struktur partitioned agar "Riwayat Absensi" bisa langsung terbaca.
@@ -11580,7 +11694,6 @@ async function _executeAbsensiGPS(type) {
     }
 
     // Cek telat (hanya untuk Masuk)
-    let isLate = false;
     if (type === 'Masuk' && empId !== null) {
         const jadwalData = getCachedParsedStorage(getRbmStorageKey('RBM_JADWAL_DATA'), {});
         const jadwalKey = `${today}_${empId}`;
@@ -11601,22 +11714,12 @@ async function _executeAbsensiGPS(type) {
                 }
                 
                 showCustomAlert(pesanTelat + "Batas masuk " + ((typeof getJadwalLabelFromConfig === 'function' ? getJadwalLabelFromConfig(shift) : null) || (typeof JADWAL_LABEL !== 'undefined' && JADWAL_LABEL[shift]) || shift) + ": " + batas + "<br>Waktu Anda: " + timeStr, "Terlambat", "warning");
-                isLate = true;
             }
         }
     }
 
-    const alertTitle = document.getElementById('rbm-alert-title');
-    const isBreakAlertShown = alertTitle && (alertTitle.textContent === 'Over Istirahat' || alertTitle.textContent === 'Info Istirahat');
-
-    if (!isLate && !isBreakAlertShown) {
-        showCustomAlert(`Absensi <b>${type}</b> berhasil tercatat!<br>Waktu: <strong>${timeStr}</strong>`, "Sukses", "success");
-    }
-
-    // Perbarui tampilan Jadwal & Status agar data terbarunya (seperti info "Sedang Istirahat") langsung muncul
-    if (typeof updateGpsJadwalDisplay === 'function') {
-        updateGpsJadwalDisplay();
-    }
+    showCustomAlert(`Absensi ${type} Berhasil!`, "Sukses", "success");
+    if (typeof updateGpsJadwalDisplay === 'function') updateGpsJadwalDisplay();
 }
 
 function loadMyGpsHistory() {
@@ -11980,9 +12083,6 @@ function saveAbsensiGpsManual(name, type, date, time, photoData, feedbackEl, noA
 // [OPTIMASI] Jalankan Kamera & GPS segera setelah halaman siap (tanpa menunggu DB)
 if (window.RBM_PAGE === 'absensi-gps-view') {
     function runGpsEarlyInit() {
-        // [PERCEPATAN] Langsung singkirkan layar loading putih agar kamera yang sedang bersiap langsung terlihat
-        if (typeof window.hideGlobalLoader === 'function') window.hideGlobalLoader();
-        
         if (window.initAbsensiHardware) window.initAbsensiHardware();
         // [OPTIMASI 2] Langsung isi nama dari cache localStorage, jangan tunggu DB
         if (window.populateGpsNames) window.populateGpsNames();

@@ -79,7 +79,6 @@
             <li><a href="settings.html" class="menu-link"><span style="font-size: 16px;">⚙️</span><span class="menu-text">Pengaturan</span></a></li>
 
             <li><a href="rbm-absensi.html" class="menu-link"><span style="font-size: 16px;">📅</span><span class="menu-text">Absensi & Jadwal</span></a></li>
-            <li><a href="rbm-data-karyawan.html" class="menu-link"><span style="font-size: 16px;">👥</span><span class="menu-text">Data Karyawan (HR)</span></a></li>
             <li><a href="rbm-reservasi.html" class="menu-link"><span style="font-size: 16px;">🕐</span><span class="menu-text">Reservasi</span></a></li>
             <li><a href="rbm-stok-barang.html" class="menu-link"><span style="font-size: 16px;">📊</span><span class="menu-text">Stok Barang</span></a></li>
             <li><a href="rbm-absensi-gps.html" class="menu-link"><span style="font-size: 16px;">📍</span><span class="menu-text">Absensi GPS</span></a></li>
@@ -90,6 +89,11 @@
             <li><a href="rbm-lihat-inventaris.html" class="menu-link"><span style="font-size: 16px;">📋</span><span class="menu-text">Lihat Inventaris</span></a></li>
             <li><a href="rbm-rekap-absensi-gps.html" class="menu-link"><span style="font-size: 16px;">📍</span><span class="menu-text">Rekap Absensi GPS</span></a></li>
             <li id="menu-absensi-gps-manual" style="display:none;"><a href="rbm-absensi-gps-manual.html" class="menu-link"><span style="font-size: 16px;">📤</span><span class="menu-text">Input Absensi Manual (Dev)</span></a></li>
+            
+            <li><div class="menu-category" style="padding: 12px 16px 4px; font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Modul Keuangan Baru</div></li>
+            <li><a href="rbm-laba-rugi-settings.html" class="menu-link"><span style="font-size: 16px;">⚙️</span><span class="menu-text">Setting Keuangan</span></a></li>
+            <li><a href="rbm-laba-rugi-input.html" class="menu-link"><span style="font-size: 16px;">📥</span><span class="menu-text">Input Transaksi</span></a></li>
+            <li><a href="rbm-laba-rugi-report.html" class="menu-link"><span style="font-size: 16px;">📈</span><span class="menu-text">Laba Rugi & Stok</span></a></li>
           </ul>
         </nav>
         <div class="sidebar-footer">
@@ -498,11 +502,7 @@
           if (this.getAttribute('href') === 'login.html') {
             localStorage.removeItem('rbm_user');
             localStorage.removeItem('rbm_session_id');
-            if (window.self !== window.top && window.location.protocol !== 'file:') {
-              window.top.location.href = 'login.html'; // Redirect window utama
-            } else {
-              window.location.href = 'login.html';
-            }
+            window.top.location.href = 'login.html'; // Redirect window utama
             return;
           }
 
@@ -540,10 +540,6 @@
       window.addEventListener('message', (event) => {
           if (event.data && event.data.type === 'UPDATE_TITLE') {
               pageTitle.textContent = event.data.title;
-          }
-          if (event.data && event.data.action === 'go_home') {
-              const defaultPage = document.querySelector('a[href="orders.html"]') || document.querySelector('a[href="kasir.html"]');
-              if (defaultPage) defaultPage.click();
           }
       });
 

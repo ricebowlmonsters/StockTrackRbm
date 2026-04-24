@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <script>
+  (function(){
+    var b = document.createElement('base');
+    b.target = (location.protocol === 'file:') ? '_self' : '_top';
+    document.head.appendChild(b);
+  })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pengaturan Keuangan - RBM Pro</title>
+  <link rel="stylesheet" href="rbm-pro.css">
+  <style>
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .tab-button { flex: 1; min-width: 120px; }
+  </style>
+</head>
+<body>
+<header class="rbm-page-header">
+  <a href="index.html" class="rbm-back-btn">&#8249;</a>
+  <h1 class="rbm-page-title">Pengaturan Keuangan</h1>
+</header>
+<div class="rbm-content-wrap">
+  <div class="app-layout">
+    <main class="app-main" style="margin-left:0;">
+      <div class="view-container">
+        <div class="page-header">
+          <h2>Pengaturan Modul Keuangan</h2>
+          <p>Atur semua master data untuk laporan laba rugi dan neraca di sini.</p>
+        </div>
+        
+        <div class="form-container">
+          <!-- Navigasi Tab -->
+          <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; overflow-x: auto;">
+              <button class="btn btn-primary tab-button active" onclick="openTab('kas-bank', this)">Kas & Bank</button>
+              <button class="btn btn-secondary tab-button" onclick="openTab('kategori-hpp', this)">Kategori HPP</button>
+              <button class="btn btn-secondary tab-button" onclick="openTab('hpp', this)">Barang HPP</button>
+              <button class="btn btn-secondary tab-button" onclick="openTab('biaya', this)">Jenis Biaya</button>
+              <button class="btn btn-secondary tab-button" onclick="openTab('pendapatan', this)">Jenis Pendapatan</button>
+              <button class="btn btn-secondary tab-button" onclick="openTab('ppn', this)">Pajak (PPN)</button>
+          </div>
+
+          <!-- Konten Tab -->
+          <div id="kas-bank" class="tab-content active">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div>
+                    <h3 style="margin-top:0; margin-bottom: 4px;">Daftar Akun Kas & Bank</h3>
+                    <p style="color:#6b7280; font-size:13px; margin:0;">Data akun bank dan kas yang dipakai perusahaan.</p>
+                </div>
+                <button class="btn btn-primary" id="btn-add-account" style="width: auto; margin: 0;">+ Tambah Akun</button>
+              </div>
+              <!-- Form dan tabel untuk CRUD Akun Kas & Bank -->
+              <div class="table-card">
+                  <div class="table-wrapper">
+                      <table class="data-table">
+                          <thead>
+                            <tr><th>Nama Akun</th><th>Nomor Rekening / Keterangan</th><th>Aksi</th></tr>
+                          </thead>
+                          <tbody id="accounts-tbody"><tr><td colspan="3" class="table-loading">Memuat data...</td></tr></tbody>
+                      </table>
+                  </div>
+              </div>
+          </div>
+          
+          <div id="kategori-hpp" class="tab-content">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div>
+                    <h3 style="margin-top:0; margin-bottom: 4px;">Kategori Barang HPP</h3>
+                    <p style="color:#6b7280; font-size:13px; margin:0;">Kelompok pembagian bahan baku (Misal: Sayuran, Daging, Packaging).</p>
+                </div>
+                <button class="btn btn-primary" id="btn-add-kategori-hpp" style="width: auto; margin: 0;">+ Tambah Kategori</button>
+              </div>
+              <div class="table-card">
+                  <div class="table-wrapper">
+                      <table class="data-table">
+                          <thead><tr><th>Nama Kategori</th><th style="width:120px;">Aksi</th></tr></thead>
+                          <tbody id="kategori-hpp-tbody"><tr><td colspan="2" class="table-loading">Memuat data...</td></tr></tbody>
+                      </table>
+                  </div>
+              </div>
+          </div>
+
+          <div id="hpp" class="tab-content">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div>
+                    <h3 style="margin-top:0; margin-bottom: 4px;">Daftar Barang HPP</h3>
+                    <p style="color:#6b7280; font-size:13px; margin:0;">Master data bahan baku untuk perhitungan HPP.</p>
+                </div>
+                <button class="btn btn-primary" id="btn-add-hpp" style="width: auto; margin: 0;">+ Tambah Barang</button>
+              </div>
+              <div class="table-card">
+                  <div class="table-wrapper">
+                      <table class="data-table">
+                          <thead><tr><th>Kategori</th><th>Nama Barang</th><th>Satuan</th><th>Harga Default</th><th style="width:120px;">Aksi</th></tr></thead>
+                          <tbody id="hpp-tbody"><tr><td colspan="5" class="table-loading">Memuat data...</td></tr></tbody>
+                      </table>
+                  </div>
+              </div>
+          </div>
+          
+          <div id="biaya" class="tab-content">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div>
+                    <h3 style="margin-top:0; margin-bottom: 4px;">Daftar Jenis Biaya</h3>
+                    <p style="color:#6b7280; font-size:13px; margin:0;">Kategori pengeluaran operasional.</p>
+                </div>
+                <button class="btn btn-primary" id="btn-add-biaya" style="width: auto; margin: 0;">+ Tambah Biaya</button>
+              </div>
+              <div class="table-card">
+                  <div class="table-wrapper">
+                      <table class="data-table">
+                          <thead><tr><th>Nama Biaya Operasional</th><th style="width:120px;">Aksi</th></tr></thead>
+                          <tbody id="biaya-tbody"><tr><td colspan="2" class="table-loading">Memuat data...</td></tr></tbody>
+                      </table>
+                  </div>
+              </div>
+          </div>
+          
+          <div id="pendapatan" class="tab-content">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div>
+                    <h3 style="margin-top:0; margin-bottom: 4px;">Daftar Pendapatan Lain</h3>
+                    <p style="color:#6b7280; font-size:13px; margin:0;">Kategori pendapatan di luar kasir (Misal: Bunga Bank).</p>
+                </div>
+                <button class="btn btn-primary" id="btn-add-pendapatan" style="width: auto; margin: 0;">+ Tambah Pendapatan</button>
+              </div>
+              <div class="table-card">
+                  <div class="table-wrapper">
+                      <table class="data-table">
+                          <thead><tr><th>Nama Pendapatan</th><th style="width:120px;">Aksi</th></tr></thead>
+                          <tbody id="pendapatan-tbody"><tr><td colspan="2" class="table-loading">Memuat data...</td></tr></tbody>
+                      </table>
+                  </div>
+              </div>
+          </div>
+          
+          <div id="ppn" class="tab-content">
+              <h3 style="margin-top:0;">Pengaturan Pajak (PPN)</h3>
+              <p style="color:#6b7280; font-size:13px; margin-bottom:15px;">Atur persentase pajak (Misal: 10 atau 11).</p>
+              <div class="form-section" style="max-width: 320px; background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                  <label for="ppn-input" style="font-size: 13px; font-weight: 600; margin-bottom: 8px; display: block;">Persentase PPN (%)</label>
+                  <div style="display: flex; gap: 10px; align-items: center;">
+                      <input type="number" id="ppn-input" class="form-input" placeholder="Misal: 11" min="0" max="100" style="background: white;">
+                      <button class="btn btn-primary" id="btn-save-ppn" style="width: auto; margin: 0;">Simpan</button>
+                  </div>
+                  <span id="ppn-feedback" style="font-size: 12px; margin-top: 8px; display: block; font-weight: bold;"></span>
+              </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- [BARU] Modal untuk Tambah/Edit Akun -->
+<div id="account-modal" class="modal-overlay" style="display:none; align-items:center; justify-content:center;">
+  <div class="modal-content" style="background:white; padding:24px; max-width:420px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.15); position:relative;" onclick="event.stopPropagation()">
+    <span class="modal-close" onclick="closeAccountModal()" style="color:#333; top:10px; right:14px; cursor:pointer; position:absolute; font-size: 24px;">&times;</span>
+    <h3 id="account-modal-title" style="margin:0 0 20px; font-size:18px;">Tambah Akun Baru</h3>
+    <form id="account-form" onsubmit="event.preventDefault();">
+        <input type="hidden" id="account-id">
+        <div class="form-section">
+            <label for="account-name">Nama Akun</label>
+            <input type="text" id="account-name" class="form-input" placeholder="Contoh: Kas Tunai, BCA, Mandiri" required>
+        </div>
+        <div class="form-section">
+            <label for="account-number">Nomor Rekening / Keterangan</label>
+            <input type="text" id="account-number" class="form-input" placeholder="Contoh: 1234567890 atau 'Laci Kasir'">
+        </div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button type="button" class="btn btn-secondary" onclick="closeAccountModal()" style="flex:1;">Batal</button>
+            <button type="submit" class="btn btn-primary" style="flex:2; margin-top:0;">Simpan Akun</button>
+        </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Kategori HPP -->
+<div id="kategori-hpp-modal" class="modal-overlay" style="display:none; align-items:center; justify-content:center;">
+  <div class="modal-content" style="background:white; padding:24px; max-width:420px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.15); position:relative;" onclick="event.stopPropagation()">
+    <span class="modal-close" onclick="closeKategoriHppModal()" style="color:#333; top:10px; right:14px; cursor:pointer; position:absolute; font-size: 24px;">&times;</span>
+    <h3 id="kategori-hpp-modal-title" style="margin:0 0 20px; font-size:18px;">Tambah Kategori HPP</h3>
+    <form id="kategori-hpp-form" onsubmit="event.preventDefault();">
+        <input type="hidden" id="kategori-hpp-id">
+        <div class="form-section">
+            <label for="kategori-hpp-name">Nama Kategori</label>
+            <input type="text" id="kategori-hpp-name" class="form-input" placeholder="Contoh: Daging & Unggas" required>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button type="button" class="btn btn-secondary" onclick="closeKategoriHppModal()" style="flex:1;">Batal</button>
+            <button type="submit" class="btn btn-primary" style="flex:2; margin-top:0;">Simpan Kategori</button>
+        </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal HPP -->
+<div id="hpp-modal" class="modal-overlay" style="display:none; align-items:center; justify-content:center;">
+  <div class="modal-content" style="background:white; padding:24px; max-width:420px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.15); position:relative;" onclick="event.stopPropagation()">
+    <span class="modal-close" onclick="closeHppModal()" style="color:#333; top:10px; right:14px; cursor:pointer; position:absolute; font-size: 24px;">&times;</span>
+    <h3 id="hpp-modal-title" style="margin:0 0 20px; font-size:18px;">Tambah Barang HPP</h3>
+    <form id="hpp-form" onsubmit="event.preventDefault();">
+        <input type="hidden" id="hpp-id">
+        <div class="form-section">
+            <label for="hpp-category">Kategori HPP</label>
+            <select id="hpp-category" class="form-input" required><option value="">-- Pilih Kategori --</option></select>
+        </div>
+        <div class="form-section">
+            <label for="hpp-name">Nama Barang</label>
+            <input type="text" id="hpp-name" class="form-input" placeholder="Contoh: Daging Sapi" required>
+        </div>
+        <div class="form-section">
+            <label for="hpp-unit">Satuan</label>
+            <input type="text" id="hpp-unit" class="form-input" placeholder="Contoh: Kg, Pcs, Liter" required>
+        </div>
+        <div class="form-section">
+            <label for="hpp-price">Harga Beli Default (Rp)</label>
+            <input type="number" id="hpp-price" class="form-input" placeholder="Opsional (Mis: 50000)" min="0">
+        </div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button type="button" class="btn btn-secondary" onclick="closeHppModal()" style="flex:1;">Batal</button>
+            <button type="submit" class="btn btn-primary" style="flex:2; margin-top:0;">Simpan Barang</button>
+        </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Biaya -->
+<div id="biaya-modal" class="modal-overlay" style="display:none; align-items:center; justify-content:center;">
+  <div class="modal-content" style="background:white; padding:24px; max-width:420px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.15); position:relative;" onclick="event.stopPropagation()">
+    <span class="modal-close" onclick="closeBiayaModal()" style="color:#333; top:10px; right:14px; cursor:pointer; position:absolute; font-size: 24px;">&times;</span>
+    <h3 id="biaya-modal-title" style="margin:0 0 20px; font-size:18px;">Tambah Jenis Biaya</h3>
+    <form id="biaya-form" onsubmit="event.preventDefault();">
+        <input type="hidden" id="biaya-id">
+        <div class="form-section">
+            <label for="biaya-name">Nama Kategori Pengeluaran</label>
+            <input type="text" id="biaya-name" class="form-input" placeholder="Contoh: Biaya Listrik, Sewa" required>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button type="button" class="btn btn-secondary" onclick="closeBiayaModal()" style="flex:1;">Batal</button>
+            <button type="submit" class="btn btn-primary" style="flex:2; margin-top:0;">Simpan Biaya</button>
+        </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Pendapatan -->
+<div id="pendapatan-modal" class="modal-overlay" style="display:none; align-items:center; justify-content:center;">
+  <div class="modal-content" style="background:white; padding:24px; max-width:420px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.15); position:relative;" onclick="event.stopPropagation()">
+    <span class="modal-close" onclick="closePendapatanModal()" style="color:#333; top:10px; right:14px; cursor:pointer; position:absolute; font-size: 24px;">&times;</span>
+    <h3 id="pendapatan-modal-title" style="margin:0 0 20px; font-size:18px;">Tambah Jenis Pendapatan</h3>
+    <form id="pendapatan-form" onsubmit="event.preventDefault();">
+        <input type="hidden" id="pendapatan-id">
+        <div class="form-section">
+            <label for="pendapatan-name">Nama Pendapatan Lainnya</label>
+            <input type="text" id="pendapatan-name" class="form-input" placeholder="Contoh: Sponsor, Bunga" required>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button type="button" class="btn btn-secondary" onclick="closePendapatanModal()" style="flex:1;">Batal</button>
+            <button type="submit" class="btn btn-primary" style="flex:2; margin-top:0;">Simpan Pendapatan</button>
+        </div>
+    </form>
+  </div>
+</div>
+
+<script>
+    function openTab(tabId, btnElement) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-button').forEach(el => {
+            el.classList.remove('btn-primary');
+            el.classList.add('btn-secondary');
+        });
+        
+        document.getElementById(tabId).classList.add('active');
+        btnElement.classList.remove('btn-secondary');
+        btnElement.classList.add('btn-primary');
+    }
+</script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="custom-ui.js"></script>
+<script src="rbm-pro-storage.js"></script>
+<script src="firebase-storage.js"></script>
+<script src="rbm-laba-rugi.js"></script>
+</body>
+</html>
+    </div>
+    <script src="rbm-laba-rugi.js"></script>
+</body>
+</html>
