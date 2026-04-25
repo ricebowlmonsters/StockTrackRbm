@@ -11245,13 +11245,13 @@ function processAbsensiGPS(type) {
             showCustomAlert("📸 Sedang menjepret foto dan memproses...<br>Mohon tunggu sejenak.", "Memproses", "info");
             setTimeout(function() {
                 _executeAbsensiGPS(type).catch(e => console.error("Error execute:", e));
-            }, 400); // Beri jeda 400ms biar UI Popup benar-benar ke-render
+                    }, 50); // Beri jeda 50ms biar UI Popup benar-benar ke-render
         });
     } else {
         showCustomAlert("📸 Sedang menjepret foto dan memproses...<br>Mohon tunggu sejenak.", "Memproses", "info");
         setTimeout(function() {
             _executeAbsensiGPS(type).catch(e => console.error("Error execute:", e));
-        }, 400); // Beri jeda 400ms biar UI Popup benar-benar ke-render
+                }, 50); // Beri jeda 50ms biar UI Popup benar-benar ke-render
     }
 }
 
@@ -11260,32 +11260,6 @@ async function _executeAbsensiGPS(type) {
     if (!currentPos) { showCustomAlert("Lokasi belum ditemukan! Pastikan GPS aktif.", "GPS Error", "error"); return; }
 
     const video = document.getElementById('gps_video');
-    const faceKey = typeof getRbmStorageKey === 'function' ? getRbmStorageKey('RBM_FACE_DATA') : 'RBM_FACE_DATA';
-    const faceData = getCachedParsedStorage(faceKey, {});
-    var registeredDescriptorArr = faceData[name];
-    if (!registeredDescriptorArr && typeof useFirebaseBackend === 'function' && useFirebaseBackend() &&
-        typeof FirebaseStorage !== 'undefined' && FirebaseStorage.loadGpsKioskFace) {
-        const emListF = (window._gpsKioskRosterEmployees && window._gpsKioskRosterEmployees.length)
-            ? window._gpsKioskRosterEmployees
-            : getCachedParsedStorage(getRbmStorageKey('RBM_EMPLOYEES'), []);
-        const empF = emListF.find(function(e) { return e && e.name === name; });
-        const empIdF = (empF && empF.id != null) ? empF.id : (empF ? emListF.indexOf(empF) : null);
-        try {
-            var outletF = typeof getRbmOutlet === 'function' ? getRbmOutlet() : '';
-            if (empIdF != null) {
-                var rawF = await FirebaseStorage.loadGpsKioskFace(outletF || 'default', empIdF);
-                var descF = normalizeGpsKioskDescriptor(rawF);
-                if (descF && descF.length) registeredDescriptorArr = descF;
-            }
-            if (!registeredDescriptorArr) {
-                var sfx = outletF ? '_' + outletF.toLowerCase().replace(/[^a-z0-9_]/g, '_') : '';
-                var snapMaster = await firebase.database().ref('rbm_pro/face_data' + sfx + '/' + name).once('value');
-                var masterRaw = snapMaster.val();
-                var masterDesc = normalizeGpsKioskDescriptor(masterRaw);
-                if (masterDesc && masterDesc.length) registeredDescriptorArr = masterDesc;
-            }
-        } catch (eFx) {}
-    }
 
     const employees = (window._gpsKioskRosterEmployees && window._gpsKioskRosterEmployees.length)
         ? window._gpsKioskRosterEmployees
@@ -11300,7 +11274,7 @@ async function _executeAbsensiGPS(type) {
     const context = canvas.getContext('2d');
 
     // [OPTIMASI KILAT] Perkecil ukuran foto drastis agar HP tidak lemot/hang
-    const MAX_WIDTH = 200; // Turun ke 200 agar sangat ringan
+    const MAX_WIDTH = 100; // Turun ke 200 agar sangat ringan
     let scale = 1;
     if (video.videoWidth > MAX_WIDTH) {
         scale = MAX_WIDTH / video.videoWidth;
