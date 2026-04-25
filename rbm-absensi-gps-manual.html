@@ -211,22 +211,6 @@ function submitAbsensiGpsManual() {
   if (!name) { feedback.textContent = 'Pilih nama karyawan dulu.'; feedback.style.color = '#b91c1c'; return; }
   if (!date) { feedback.textContent = 'Isi tanggal.'; feedback.style.color = '#b91c1c'; return; }
 
-  // [FACE ID LOGIC] Validasi cepat: pastikan wajah untuk karyawan sudah terdaftar.
-  // Developer masih bisa override, tapi minimal ada peringatan.
-  try {
-    var faceKey = typeof getRbmStorageKey === 'function' ? getRbmStorageKey('RBM_FACE_DATA') : 'RBM_FACE_DATA';
-    var faceData = (typeof getCachedParsedStorage === 'function') ? getCachedParsedStorage(faceKey, {}) : {};
-    var hasFace = !!(faceData && faceData[name] && faceData[name].length > 0);
-    if (!hasFace) {
-      var ok = window.confirm('Face ID untuk "' + name + '" belum terdaftar. Tetap simpan absensi manual?');
-      if (!ok) {
-        feedback.textContent = 'Dibatalkan. Face ID belum terdaftar.';
-        feedback.style.color = '#64748b';
-        return;
-      }
-    }
-  } catch(e) {}
-
   var rows = document.querySelectorAll('#manual_absen_rows .manual-absen-row');
   if (!rows.length) { feedback.textContent = 'Tambah minimal 1 baris absen (klik + Tambah baris absen).'; feedback.style.color = '#b91c1c'; return; }
   var entries = [];

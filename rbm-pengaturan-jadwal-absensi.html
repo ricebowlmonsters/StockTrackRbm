@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pengaturan Jadwal & Absensi - RBM Pro</title>
   <link rel="stylesheet" href="rbm-pro.css">
-  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 </head>
 <body>
 <script>
@@ -59,7 +58,6 @@
   }
   function onOutletChange() {
     if (typeof loadJamConfig === 'function') loadJamConfig();
-    if (typeof loadEmployeesForFaceReg === 'function') loadEmployeesForFaceReg();
   }
   window.onOutletChange = onOutletChange;
 })();
@@ -107,34 +105,6 @@
         <button class="btn-secondary" onclick="saveJamConfig()" style="font-size:11px; padding:5px 10px; margin-top:10px;">Simpan Pengaturan Jam</button>
     </div>
 
-    <!-- Registrasi Wajah Karyawan -->
-    <div class="form-section" style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-        <h3 style="margin-top:0; font-size:14px; color:#166534;">Registrasi Wajah Karyawan (Face ID)</h3>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
-            <p style="font-size:11px; color:#64748b; margin:0;">Daftarkan wajah karyawan untuk validasi absensi otomatis. Pastikan wajah terlihat jelas di kamera.</p>
-            <button type="button" class="btn-secondary" onclick="syncAllFacesToKiosk()" style="font-size:11px; padding:5px 10px; background:#3b82f6; color:white; border:none; border-radius:4px;">🔄 Perbaiki Sync GPS Kiosk</button>
-        </div>
-        <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:15px;">
-            <div style="flex:1; min-width:250px;">
-                <label style="font-size:12px; display:block; margin-bottom:5px;">Pilih Karyawan</label>
-                <select id="face_emp_select" style="width:100%; padding:8px; margin-bottom:10px; border:1px solid #ccc; border-radius:4px;"></select>
-                <button type="button" class="btn-secondary" onclick="startFaceRegistration()" id="btn_start_face_reg" style="font-size:12px; padding:8px 12px; width:100%; margin-bottom:10px;">Mulai Kamera</button>
-                <button type="button" class="btn-primary" onclick="captureAndSaveFace()" id="btn_capture_face" style="font-size:12px; padding:8px 12px; width:100%; display:none; background:#16a34a; color:white; border:none; border-radius:4px; margin-bottom:10px;">Ambil & Simpan Wajah</button>
-                <p id="face_status_msg" style="font-size:11px; font-weight:bold; margin:0;"></p>
-            </div>
-            <div style="flex:1; min-width:250px; text-align:center;">
-                <div style="position:relative; display:inline-block; width:100%; max-width:300px; background:#000; border-radius:8px; overflow:hidden; min-height:225px;">
-                    <video id="face_reg_video" autoplay playsinline style="width:100%; height:auto; display:none;"></video>
-                </div>
-            </div>
-        </div>
-        <div style="overflow-x:auto;">
-            <table class="data-table">
-                <thead><tr><th style="text-align:left;">Nama Karyawan</th><th style="text-align:center;">Status Wajah</th><th style="text-align:center;">Aksi</th></tr></thead>
-                <tbody id="face_registered_tbody"></tbody>
-            </table>
-        </div>
-    </div>
   </div>
   </main>
 </div>
@@ -464,7 +434,6 @@ function deleteFaceData(empName) {
 (function() {
   function runLoad() { 
       if (typeof loadJamConfig === 'function') loadJamConfig(); 
-      setTimeout(loadEmployeesForFaceReg, 500);
   }
   runLoad(); // [OPTIMASI] Langsung render dari cache lokal tanpa tunggu Firebase
   if (window.RBMStorage && typeof window.RBMStorage.ready === 'function') {

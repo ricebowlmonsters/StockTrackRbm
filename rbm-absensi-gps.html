@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>RBM Pro</title>
   <link rel="stylesheet" href="rbm-pro.css">
-  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <style>
     /* [BARU] Perbaikan Tampilan di HP Karyawan */
     body.rbm-absensi-karyawan {
@@ -121,35 +120,6 @@
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         display: inline-block;
         margin-top: 16px;
-    }
-    /* [TAMBAHAN] Style untuk Jadwal & Status AI */
-    body.rbm-absensi-karyawan #gps_jadwal_display {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        color: #334155;
-        padding: 16px 20px;
-        border-radius: 16px;
-        margin-bottom: 24px;
-        text-align: left;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-    body.rbm-absensi-karyawan #gps_jadwal_display > strong {
-        font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        display: block;
-        margin-bottom: 12px;
-        color: #475569;
-        border-bottom: 1px dashed #cbd5e1;
-        padding-bottom: 8px;
-    }
-    body.rbm-absensi-karyawan #gps_jadwal_text {
-        font-size: 13px;
-        line-height: 1.6;
-    }
-    body.rbm-absensi-karyawan #gps_jadwal_text strong {
-        font-weight: 700;
-        color: #0f172a;
     }
     body.rbm-absensi-karyawan #face_id_status_info {
         padding: 10px 14px;
@@ -353,8 +323,13 @@ function fallbackCopy(url, feedback) {
     </div>
 
     <div id="gps_jadwal_display" class="form-section" style="display:none;">
-        <strong>📅 Jadwal & Status Anda</strong> 
         <div id="gps_jadwal_text">-</div>
+    </div>
+
+    <!-- [BARU] Info HR Karyawan (Kontrak, Sanksi, Notes, Masa Kerja) -->
+    <div id="gps_hr_display" class="form-section" style="display:none; background: #ffffff; border: 1px solid #e2e8f0; padding: 16px 20px; border-radius: 16px; margin-bottom: 24px; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <strong style="font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 12px; color: #475569; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">👤 Info HR Karyawan</strong>
+        <div id="gps_hr_text" style="font-size: 13px; line-height: 1.6; color: #334155;">-</div>
     </div>
 
     <div class="form-section" style="text-align: center;">
@@ -365,7 +340,6 @@ function fallbackCopy(url, feedback) {
             <div id="gps_status_overlay" class="rbm-camera-status">Menunggu Lokasi...</div>
         </div>
         <p id="gps_distance_info" class="rbm-distance-info">Jarak: - Meter</p>
-        <p id="face_id_status_info" style="margin: 8px 0 0; font-size: 13px; font-weight: 600; color: #b45309; background: #fffbeb; padding: 6px 12px; border-radius: 6px; display: inline-block; border: 1px solid #fde68a;"><span class="rbm-spinner"></span><span class="pulse-text">Memuat AI Face ID...</span></p>
     </div>
 
     <div class="form-section rbm-absen-buttons">
@@ -465,10 +439,169 @@ function fallbackCopy(url, feedback) {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <!-- [PERFORMA] jszip/xlsx tidak dibutuhkan untuk absensi karyawan. -->
 <script>
-function checkFaceIdRegistration() {
-    // [FITUR DINONAKTIFKAN SEMENTARA]
-    return;
-}
+// [BARU] Logika Memuat Info HR (Masa Kerja, Kontrak, Sanksi, Notes) di Layar Absen
+window.addEventListener('load', function() {
+    var absenSelect = document.getElementById('gps_absen_name');
+    if (absenSelect) {
+        absenSelect.addEventListener('change', function() {
+            var empName = this.value;
+            var hrDisplay = document.getElementById('gps_hr_display');
+            var hrText = document.getElementById('gps_hr_text');
+            if (!empName) {
+                if (hrDisplay) hrDisplay.style.display = 'none';
+                return;
+            }
+
+            var outletSel = document.getElementById('rbm-outlet-select');
+            var outlet = (outletSel && outletSel.value) ? outletSel.value : (localStorage.getItem('rbm_last_selected_outlet') || '');
+            var sfx = outlet ? '_' + outlet.toLowerCase().replace(/[^a-z0-9]/g, '_') : '';
+            
+            // Ambil Join Date dari Cache Local Storage
+            var empData = [];
+            try {
+                var raw = localStorage.getItem('RBM_EMPLOYEES' + sfx) || localStorage.getItem('RBM_EMPLOYEES_ALL');
+                if (raw) empData = JSON.parse(raw);
+            } catch(e) {}
+            if (!Array.isArray(empData)) empData = Object.values(empData || {});
+            
+            var emp = empData.find(function(e) { return e && e.name === empName; });
+            var empId = emp ? ((emp.id != null) ? emp.id : emp.name.replace(/[^a-zA-Z0-9]/g, '_')) : empName.replace(/[^a-zA-Z0-9]/g, '_');
+            
+            var joinDate = emp ? emp.joinDate : null;
+            var lamaBekerja = joinDate ? hitungLamaKerjaHR(joinDate) : 'Belum di-set (Hubungi Admin)';
+
+            if (hrText) hrText.innerHTML = '<span class="loading" style="width:14px; height:14px; border-width:2px; margin-right:6px;"></span> Memuat info HR...';
+            if (hrDisplay) hrDisplay.style.display = 'block';
+
+            if (typeof firebase !== 'undefined' && firebase.database) {
+                firebase.database().ref('rbm_pro/hr_karyawan/' + outlet + '/' + empId).once('value').then(function(snap) {
+                    var hr = snap.val() || {};
+                    firebase.database().ref('rbm_pro/hr_sp_settings/' + outlet).once('value').then(function(setSnap) {
+                        renderHrInfo(hr, lamaBekerja, setSnap.val() || {});
+                    }).catch(function() {
+                        renderHrInfo(hr, lamaBekerja, {});
+                    });
+                }).catch(function() {
+                    if (hrText) hrText.innerHTML = '<span style="color:#dc2626;">Gagal memuat data HR. Pastikan koneksi internet stabil.</span>';
+                });
+            } else {
+                renderHrInfo({}, lamaBekerja, {});
+            }
+
+            function renderHrInfo(hr, lamaKerja, settings) {
+                var html = '<div style="display:flex; flex-direction:column; gap:12px;">';
+                
+                var quoteKerja = settings.quoteMasaKerja ? '<div style="font-size:11px; color:#64748b; font-style:italic; margin-top:6px; border-top:1px dashed #e2e8f0; padding-top:6px;">"' + settings.quoteMasaKerja + '"</div>' : '';
+                html += '<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px;">' +
+                            '<div style="display:flex; align-items:center; gap:8px;">' +
+                                '<div style="background:#dcfce7; color:#166534; width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:16px;">⏳</div>' +
+                                '<div>' +
+                                    '<div style="font-size:10px; color:#64748b; text-transform:uppercase; font-weight:600;">Masa Kerja</div>' +
+                                    '<div style="font-size:14px; font-weight:700; color:#0f172a;">' + lamaKerja + '</div>' +
+                                '</div>' +
+                            '</div>' + quoteKerja +
+                        '</div>';
+                
+                if (hr.kontrakMulai || hr.kontrakSelesai) {
+                    var start = hr.kontrakMulai ? new Date(hr.kontrakMulai).toLocaleDateString('id-ID') : '...';
+                    var end = hr.kontrakSelesai ? new Date(hr.kontrakSelesai).toLocaleDateString('id-ID') : '...';
+                    var statusKontrak = '';
+                    var bgKontrak = '#f8fafc';
+                    var borderKontrak = '#e2e8f0';
+                    var iconKontrak = '📄';
+                    if (hr.kontrakSelesai) {
+                        var endDate = new Date(hr.kontrakSelesai);
+                        var daysLeft = Math.ceil((endDate.setHours(23,59,59,999) - new Date()) / (1000 * 60 * 60 * 24));
+                        if (daysLeft < 0) {
+                            statusKontrak = '<span style="background:#fee2e2; color:#dc2626; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:700;">Expired</span>';
+                            bgKontrak = '#fef2f2'; borderKontrak = '#fecaca'; iconKontrak = '⚠️';
+                        } else if (daysLeft <= 30) {
+                            statusKontrak = '<span style="background:#fef3c7; color:#d97706; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:700;">Sisa ' + daysLeft + ' hari</span>';
+                            bgKontrak = '#fffbeb'; borderKontrak = '#fde68a'; iconKontrak = '⏱️';
+                        } else {
+                            statusKontrak = '<span style="background:#dcfce7; color:#16a34a; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:700;">Aktif</span>';
+                        }
+                    }
+                    html += '<div style="background:' + bgKontrak + '; border:1px solid ' + borderKontrak + '; border-radius:10px; padding:12px;">' +
+                                '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">' +
+                                    '<div style="display:flex; align-items:center; gap:6px;">' +
+                                        '<span style="font-size:16px;">' + iconKontrak + '</span>' +
+                                        '<span style="font-size:12px; font-weight:600; color:#334155;">Masa Kontrak</span>' +
+                                    '</div>' + statusKontrak +
+                                '</div>' +
+                                '<div style="font-size:13px; font-weight:600; color:#0f172a; display:flex; align-items:center; gap:8px;">' +
+                                    '<span>' + start + '</span> <span style="color:#94a3b8;">→</span> <span>' + end + '</span>' +
+                                '</div>' +
+                            '</div>';
+                }
+
+                if (hr.notes) {
+                    html += '<div style="background: linear-gradient(to right, #fffbeb, #fef3c7); border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 12px;">' +
+                                '<div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">' +
+                                    '<span style="font-size:14px;">💡</span>' +
+                                    '<span style="font-size:11px; font-weight:700; color:#b45309; text-transform:uppercase;">Catatan Karyawan</span>' +
+                                '</div>' +
+                                '<div style="font-size:13px; color:#78350f; line-height:1.5;">' + hr.notes.replace(/\n/g, '<br>') + '</div>' +
+                            '</div>';
+                }
+
+                if (hr.sp && hr.sp.length > 0) {
+                    var activeSps = hr.sp.filter(function(sp) {
+                        if (!sp.berlakuHingga) return true;
+                        var endD = new Date(sp.berlakuHingga);
+                        return new Date() <= endD.setHours(23, 59, 59, 999);
+                    });
+
+                    if (activeSps.length > 0) {
+                        html += '<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; overflow: hidden;">' +
+                                    '<div style="background: #fee2e2; padding: 10px 12px; border-bottom: 1px solid #fecaca; display:flex; align-items:center; gap:6px;">' +
+                                        '<span style="font-size:16px;">🚨</span>' +
+                                        '<span style="font-size:12px; font-weight:700; color:#b91c1c; text-transform:uppercase;">Surat Peringatan (SP) Aktif</span>' +
+                                    '</div>' +
+                                    '<div style="padding: 12px; display:flex; flex-direction:column; gap:12px;">';
+                        activeSps.forEach(function(sp, idx) {
+                            var isLast = idx === activeSps.length - 1;
+                            html += '<div style="' + (isLast ? '' : 'border-bottom:1px dashed #fca5a5; padding-bottom:12px;') + '">' +
+                                        '<div style="display:flex; align-items:flex-start; gap:8px; margin-bottom:6px;">' +
+                                            '<span style="background:#ef4444; color:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; white-space:nowrap;">' + (sp.tingkat && sp.tingkat !== 'Lainnya' ? sp.tingkat : 'SP') + '</span>' +
+                                            '<span style="font-size:13px; font-weight:600; color:#7f1d1d; line-height:1.4;">' + sp.keterangan + '</span>' +
+                                        '</div>' +
+                                        (sp.sanksi ? '<div style="background:#fff1f2; border:1px solid #ffe4e6; padding:8px; border-radius:6px; margin-bottom:6px; font-size:12px; color:#991b1b;"><strong>Sanksi:</strong> ' + sp.sanksi + '</div>' : '') +
+                                        (sp.berlakuHingga ? '<div style="font-size:11px; color:#ef4444; display:flex; align-items:center; gap:4px;"><span>📅</span> Berlaku s/d: <strong>' + new Date(sp.berlakuHingga).toLocaleDateString('id-ID') + '</strong></div>' : '') +
+                                    '</div>';
+                        });
+                        html += '</div></div>';
+                    }
+                }
+                html += '</div>';
+
+                if (html === '<div style="display:flex; flex-direction:column; gap:12px;"></div>') html = '<div style="color:#64748b; font-style:italic;">Data HR belum dilengkapi. Semangat bekerja!</div>';
+                if (hrText) hrText.innerHTML = html;
+            }
+        });
+    }
+
+    function hitungLamaKerjaHR(startDateStr) {
+        if (!startDateStr) return '-';
+        var start = new Date(startDateStr);
+        var now = new Date();
+        if (isNaN(start.getTime())) return '-';
+        start.setHours(0,0,0,0);
+        now.setHours(0,0,0,0);
+        if (now < start) return 'Belum mulai';
+        var years = now.getFullYear() - start.getFullYear();
+        var months = now.getMonth() - start.getMonth();
+        var days = now.getDate() - start.getDate();
+        if (days < 0) { months--; var prevMonth = new Date(now.getFullYear(), now.getMonth(), 0); days += prevMonth.getDate(); }
+        if (months < 0) { years--; months += 12; }
+        var res = [];
+        if (years > 0) res.push(years + ' thn');
+        if (months > 0) res.push(months + ' bln');
+        if (days > 0) res.push(days + ' hr');
+        if (res.length === 0) return 'Hari ini';
+        return res.join(', ');
+    }
+});
 </script>
 </body>
 </html>
