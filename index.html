@@ -79,6 +79,7 @@
             <li><a href="settings.html" class="menu-link"><span style="font-size: 16px;">⚙️</span><span class="menu-text">Pengaturan</span></a></li>
 
             <li><a href="rbm-absensi.html" class="menu-link"><span style="font-size: 16px;">📅</span><span class="menu-text">Absensi & Jadwal</span></a></li>
+            <li><a href="rbm-data-karyawan.html" class="menu-link"><span style="font-size: 16px;">👥</span><span class="menu-text">Data Karyawan (HR)</span></a></li>
             <li><a href="rbm-reservasi.html" class="menu-link"><span style="font-size: 16px;">🕐</span><span class="menu-text">Reservasi</span></a></li>
             <li><a href="rbm-stok-barang.html" class="menu-link"><span style="font-size: 16px;">📊</span><span class="menu-text">Stok Barang</span></a></li>
             <li><a href="rbm-absensi-gps.html" class="menu-link"><span style="font-size: 16px;">📍</span><span class="menu-text">Absensi GPS</span></a></li>
@@ -502,7 +503,11 @@
           if (this.getAttribute('href') === 'login.html') {
             localStorage.removeItem('rbm_user');
             localStorage.removeItem('rbm_session_id');
-            window.top.location.href = 'login.html'; // Redirect window utama
+            if (window.self !== window.top && window.location.protocol !== 'file:') {
+              window.top.location.href = 'login.html'; // Redirect window utama
+            } else {
+              window.location.href = 'login.html';
+            }
             return;
           }
 
@@ -540,6 +545,10 @@
       window.addEventListener('message', (event) => {
           if (event.data && event.data.type === 'UPDATE_TITLE') {
               pageTitle.textContent = event.data.title;
+          }
+          if (event.data && event.data.action === 'go_home') {
+              const defaultPage = document.querySelector('a[href="orders.html"]') || document.querySelector('a[href="kasir.html"]');
+              if (defaultPage) defaultPage.click();
           }
       });
 

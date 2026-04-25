@@ -6,6 +6,172 @@
   <title>RBM Pro</title>
   <link rel="stylesheet" href="rbm-pro.css">
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <style>
+    /* [BARU] Perbaikan Tampilan di HP Karyawan */
+    body.rbm-absensi-karyawan {
+        background-color: #f8fafc;
+    }
+    body.rbm-absensi-karyawan .rbm-page-header {
+        padding: 16px;
+        background: #4C2A85;
+        color: white;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        justify-content: center;
+        position: sticky;
+        top: 0;
+        z-index: 999;
+        border-bottom: none;
+    }
+    body.rbm-absensi-karyawan .rbm-page-title {
+        font-size: 18px;
+        color: white;
+        text-align: center;
+    }
+    body.rbm-absensi-karyawan .rbm-back-btn,
+    body.rbm-absensi-karyawan .watermark,
+    body.rbm-absensi-karyawan .page-header {
+        display: none !important;
+    }
+    body.rbm-absensi-karyawan .rbm-content-wrap,
+    body.rbm-absensi-karyawan .app-main {
+        padding: 0 !important;
+    }
+    body.rbm-absensi-karyawan .rbm-outlet-card {
+        padding: 0;
+        margin: 0;
+        border-radius: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+    }
+    body.rbm-absensi-karyawan #rbm-outlet-locked-msg {
+        width: 100%;
+        margin: 0;
+        padding: 16px 20px;
+        background: linear-gradient(135deg, #e0e7ff 0%, #dbeafe 100%);
+        border-radius: 0 0 24px 24px;
+        border: none;
+        border-bottom: 1px solid #bfdbfe;
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
+    body.rbm-absensi-karyawan .rbm-outlet-locked-title {
+        font-size: 18px;
+        margin-bottom: 8px;
+    }
+    body.rbm-absensi-karyawan .view-container {
+        border: none;
+        box-shadow: none;
+        background: transparent;
+        padding: 20px 16px;
+        margin: 0;
+    }
+    body.rbm-absensi-karyawan .form-container {
+        padding: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+    }
+    body.rbm-absensi-karyawan .rbm-absen-name-section {
+        background: white;
+        padding: 20px;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        margin-bottom: 24px;
+    }
+    body.rbm-absensi-karyawan .rbm-absen-name-section label {
+        font-size: 14px;
+        color: #475569;
+        text-align: center;
+        margin-bottom: 12px;
+        display: block;
+    }
+    body.rbm-absensi-karyawan #gps_absen_name {
+        text-align: center;
+        font-size: 18px;
+        font-weight: 700;
+        color: #1e40af;
+        border: 2px solid #bfdbfe;
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 12px;
+        height: auto;
+    }
+    body.rbm-absensi-karyawan .rbm-camera-wrap {
+        border-radius: 20px;
+        border: 4px solid #e2e8f0;
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15);
+        background: #000;
+    }
+    body.rbm-absensi-karyawan .rbm-absen-buttons-grid {
+        gap: 14px;
+        margin-top: 15px;
+    }
+    body.rbm-absensi-karyawan .btn-absen {
+        border-radius: 16px;
+        font-size: 16px;
+        padding: 18px 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        letter-spacing: 0.5px;
+    }
+    body.rbm-absensi-karyawan #gps_distance_info {
+        background: white;
+        padding: 12px;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        display: inline-block;
+        margin-top: 16px;
+    }
+    /* [TAMBAHAN] Style untuk Jadwal & Status AI */
+    body.rbm-absensi-karyawan #gps_jadwal_display {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        color: #334155;
+        padding: 16px 20px;
+        border-radius: 16px;
+        margin-bottom: 24px;
+        text-align: left;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    body.rbm-absensi-karyawan #gps_jadwal_display > strong {
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: block;
+        margin-bottom: 12px;
+        color: #475569;
+        border-bottom: 1px dashed #cbd5e1;
+        padding-bottom: 8px;
+    }
+    body.rbm-absensi-karyawan #gps_jadwal_text {
+        font-size: 13px;
+        line-height: 1.6;
+    }
+    body.rbm-absensi-karyawan #gps_jadwal_text strong {
+        font-weight: 700;
+        color: #0f172a;
+    }
+    body.rbm-absensi-karyawan #face_id_status_info {
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 16px;
+        transition: all 0.3s ease;
+    }
+    .rbm-spinner { width: 16px; height: 16px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: rbm-spin 0.8s linear infinite; display: inline-block; }
+    @keyframes rbm-spin { to { transform: rotate(360deg); } }
+    .pulse-text { animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    body.rbm-absensi-karyawan .btn-absen:disabled {
+        background-color: #d1d5db;
+        color: #6b7280;
+        box-shadow: none;
+    }
+  </style>
 </head>
 <body>
 <script>
@@ -14,7 +180,10 @@
   if (u.role === 'staff') {
     var outletFromUrl = '';
     try { var p = new URLSearchParams(window.location.search); outletFromUrl = (p.get('outlet') || '').trim(); } catch(e) {}
-    if (!outletFromUrl) { window.location.href = 'index.html'; }
+    if (!outletFromUrl) { 
+      try { window.location.replace('index.html'); } 
+      catch(e) { window.location.href = 'index.html'; } 
+    }
   }
 })();
 </script>
@@ -75,14 +244,26 @@
       if (lockedMsg && lockedName) {
         lockedName.textContent = names[outletFromUrl] || (outletFromUrl.charAt(0).toUpperCase() + outletFromUrl.slice(1));
         lockedMsg.style.display = 'block';
-        sel.closest('.rbm-outlet-card').querySelector('.rbm-outlet-label').style.display = 'none';
-        sel.style.display = 'none';
+        var outletCard = sel.closest('.rbm-outlet-card');
+        if (outletCard) {
+            // Sembunyikan semua elemen KECUALI pesan outlet terkunci
+            Array.from(outletCard.children).forEach(function(child) {
+                if (child.id !== 'rbm-outlet-locked-msg') {
+                    child.style.display = 'none';
+                }
+            });
+        }
         if (document.body && !document.body.classList.contains('rbm-absensi-karyawan')) document.body.classList.add('rbm-absensi-karyawan');
       }
       // [BARU] Sembunyikan tombol kembali jika diakses dari link share karyawan
       var backBtn = document.querySelector('.rbm-back-btn');
       if (backBtn) {
         backBtn.style.display = 'none';
+      }
+      // [BARU] Sembunyikan hint pengaturan jadwal untuk karyawan
+      var settingHint = document.getElementById('rbm-gps-setting-hint');
+      if (settingHint) {
+        settingHint.style.display = 'none';
       }
     } else {
       if (u.role === 'manager' && u.outlet) {
@@ -148,6 +329,7 @@ function fallbackCopy(url, feedback) {
   <main class="app-main" style="margin-left:0;">
 <div id="absensi-gps-view" class="view-container">
   <div class="page-header">
+
     <style>
       /* Efek AI Scanner Canggih & Kamera Mirror */
       .rbm-scanner-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; border: 2px solid rgba(16, 185, 129, 0.5); border-radius: 8px; pointer-events: none; z-index: 10; overflow: hidden; }
@@ -159,25 +341,25 @@ function fallbackCopy(url, feedback) {
     </style>
     <h2>Absensi GPS & Foto</h2>
     <p>Absensi dengan validasi lokasi dan foto.</p>
+    <p id="rbm-gps-setting-hint" class="rbm-gps-setting-hint">Atur lokasi kantor, jam kerja, dan durasi istirahat di <a href="rbm-pengaturan-jadwal-absensi.html" style="color:#4C2A85; font-weight:600;">Pengaturan Jadwal &amp; Absensi</a> (dari menu Pengaturan).</p>
   </div>
   <div class="form-container">
-    <p id="rbm-gps-setting-hint" class="rbm-gps-setting-hint">Atur lokasi kantor, jam kerja, dan durasi istirahat di <a href="rbm-pengaturan-jadwal-absensi.html" style="color:#4C2A85; font-weight:600;">Pengaturan Jadwal &amp; Absensi</a> (dari menu Pengaturan).</p>
-
     <div class="form-section rbm-absen-name-section">
-        <label>Nama Karyawan</label>
-        <select id="gps_absen_name" onchange="updateGpsJadwalDisplay();">
-            <option value="">-- Pilih Nama --</option>
-            <!-- Populated by JS -->
-        </select>
+      <label>Nama Karyawan</label>
+      <select id="gps_absen_name" onchange="updateGpsJadwalDisplay();">
+        <option value="">-- Pilih Nama --</option>
+        <!-- Populated by JS -->
+      </select>
     </div>
 
-    <div id="gps_jadwal_display" class="form-section" style="display:none; background: #eff6ff; padding: 12px; border-radius: 8px; border: 1px solid #93c5fd;">
-        <strong>Jadwal Hari Ini:</strong> <span id="gps_jadwal_text">-</span>
+    <div id="gps_jadwal_display" class="form-section" style="display:none;">
+        <strong>📅 Jadwal & Status Anda</strong> 
+        <div id="gps_jadwal_text">-</div>
     </div>
 
     <div class="form-section" style="text-align: center;">
         <div class="rbm-camera-wrap">
-            <video id="gps_video" autoplay playsinline></video>
+            <video id="gps_video" autoplay playsinline muted></video>
             <div class="rbm-scanner-overlay" id="gps_scanner_ui" style="display:none;"><div class="rbm-scanner-line"></div></div>
             <canvas id="gps_canvas" style="display: none;"></canvas>
             <div id="gps_status_overlay" class="rbm-camera-status">Menunggu Lokasi...</div>
