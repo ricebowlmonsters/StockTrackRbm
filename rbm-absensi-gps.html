@@ -456,13 +456,9 @@ window.addEventListener('load', function() {
             var outlet = (outletSel && outletSel.value) ? outletSel.value : (localStorage.getItem('rbm_last_selected_outlet') || '');
             var sfx = outlet ? '_' + outlet.toLowerCase().replace(/[^a-z0-9]/g, '_') : '';
             
-            // Ambil Join Date dari Cache Local Storage
-            var empData = [];
-            try {
-                var raw = localStorage.getItem('RBM_EMPLOYEES' + sfx) || localStorage.getItem('RBM_EMPLOYEES_ALL');
-                if (raw) empData = JSON.parse(raw);
-            } catch(e) {}
-            if (!Array.isArray(empData)) empData = Object.values(empData || {});
+            var empData = (window._gpsKioskRosterEmployees && window._gpsKioskRosterEmployees.length) 
+                ? window._gpsKioskRosterEmployees 
+                : (typeof getCachedParsedStorage === 'function' ? getCachedParsedStorage(getRbmStorageKey('RBM_EMPLOYEES'), []) : []);
             
             var emp = empData.find(function(e) { return e && e.name === empName; });
             var empId = emp ? ((emp.id != null) ? emp.id : emp.name.replace(/[^a-zA-Z0-9]/g, '_')) : empName.replace(/[^a-zA-Z0-9]/g, '_');
