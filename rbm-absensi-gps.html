@@ -456,32 +456,33 @@ window.addEventListener('load', function() {
             var outlet = (outletSel && outletSel.value) ? outletSel.value : (localStorage.getItem('rbm_last_selected_outlet') || '');
             var sfx = outlet ? '_' + outlet.toLowerCase().replace(/[^a-z0-9]/g, '_') : '';
             
-            var empData = (window._gpsKioskRosterEmployees && window._gpsKioskRosterEmployees.length) 
-                ? window._gpsKioskRosterEmployees 
-                : (typeof getCachedParsedStorage === 'function' ? getCachedParsedStorage(getRbmStorageKey('RBM_EMPLOYEES'), []) : []);
-            
-            var emp = empData.find(function(e) { return e && e.name === empName; });
-            var empId = emp ? ((emp.id != null) ? emp.id : emp.name.replace(/[^a-zA-Z0-9]/g, '_')) : empName.replace(/[^a-zA-Z0-9]/g, '_');
-            
-            var joinDate = emp ? emp.joinDate : null;
-            var lamaBekerja = joinDate ? hitungLamaKerjaHR(joinDate) : 'Belum di-set (Hubungi Admin)';
-
             if (hrText) hrText.innerHTML = '<span class="loading" style="width:14px; height:14px; border-width:2px; margin-right:6px;"></span> Memuat info HR...';
             if (hrDisplay) hrDisplay.style.display = 'block';
 
             if (typeof firebase !== 'undefined' && firebase.database) {
-                firebase.database().ref('rbm_pro/hr_karyawan/' + outlet + '/' + empId).once('value').then(function(snap) {
-                    var hr = snap.val() || {};
-                    firebase.database().ref('rbm_pro/hr_sp_settings/' + outlet).once('value').then(function(setSnap) {
-                        renderHrInfo(hr, lamaBekerja, setSnap.val() || {});
-                    }).catch(function() {
-                        renderHrInfo(hr, lamaBekerja, {});
+                // Ambil data Employees langsung dari Firebase agar ID dan Join Date presisi
+                firebase.database().ref('rbm_pro/employees' + sfx).once('value').then(function(empSnap) {
+                    var employees = empSnap.val();
+                    var empArr = Array.isArray(employees) ? employees : (employees ? Object.values(employees) : []);
+                    var emp = empArr.find(function(e) { return e && e.name === empName; });
+                    
+                    var empId = emp ? ((emp.id != null) ? emp.id : emp.name.replace(/[^a-zA-Z0-9]/g, '_')) : empName.replace(/[^a-zA-Z0-9]/g, '_');
+                    var joinDate = emp ? emp.joinDate : null;
+                    var lamaBekerja = joinDate ? hitungLamaKerjaHR(joinDate) : 'Belum di-set (Hubungi Admin)';
+
+                    firebase.database().ref('rbm_pro/hr_karyawan/' + outlet + '/' + empId).once('value').then(function(snap) {
+                        var hr = snap.val() || {};
+                        firebase.database().ref('rbm_pro/hr_sp_settings/' + outlet).once('value').then(function(setSnap) {
+                            renderHrInfo(hr, lamaBekerja, setSnap.val() || {});
+                        }).catch(function() {
+                            renderHrInfo(hr, lamaBekerja, {});
+                        });
                     });
                 }).catch(function() {
                     if (hrText) hrText.innerHTML = '<span style="color:#dc2626;">Gagal memuat data HR. Pastikan koneksi internet stabil.</span>';
                 });
             } else {
-                renderHrInfo({}, lamaBekerja, {});
+                if (hrText) hrText.innerHTML = '<span style="color:#dc2626;">Mode Offline aktif. Tidak dapat memuat data HR.</span>';
             }
 
             function renderHrInfo(hr, lamaKerja, settings) {
